@@ -7,8 +7,6 @@ import os
 import sys
 from typing import Any, Dict, Optional
 
-import requests
-from dotenv import load_dotenv
 
 
 DEFAULT_BASE_URL = "https://ark.ap-southeast.byteplus.com/api/v3"
@@ -19,8 +17,24 @@ class ConfigError(RuntimeError):
     pass
 
 
-def load_config() -> Dict[str, str]:
+def load_dotenv_file() -> None:
+    try:
+        from dotenv import load_dotenv
+    except ModuleNotFoundError:
+        return
     load_dotenv()
+
+
+def import_requests() -> Any:
+    try:
+        import requests
+    except ModuleNotFoundError as exc:
+        raise RuntimeError("Missing dependency requests. Install with: pip install -r requirements.txt") from exc
+    return requests
+
+
+def load_config() -> Dict[str, str]:
+    load_dotenv_file()
     api_key = os.getenv("BYTEPLUS_API_KEY", "").strip()
     if not api_key:
         raise ConfigError("BYTEPLUS_API_KEY is missing. Add a real key to .env before calling BytePlus.")
@@ -39,7 +53,7 @@ def auth_headers(api_key: str) -> Dict[str, str]:
     return {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
 
-def explain_http_error(response: requests.Response) -> str:
+def explain_http_error(response: Any) -> str:
     messages = {
         401: "401 Unauthorized: API key is invalid, expired, or not accepted for this region.",
         403: "403 Forbidden: missing permission for this model/resource.",
@@ -52,6 +66,7 @@ def explain_http_error(response: requests.Response) -> str:
 
 
 def request_json(url: str, api_key: str) -> Dict[str, Any]:
+    requests = import_requests()
     try:
         response = requests.get(url, headers=auth_headers(api_key), timeout=60)
     except requests.RequestException as exc:

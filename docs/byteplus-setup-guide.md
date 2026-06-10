@@ -19,7 +19,7 @@
 dreamina-seedance-2-0-260128
 ```
 
-यो model ID मात्र use गर्नुहोस्। `seedance-2.0`, `seedance-2.0-fast`, वा `seedance-2.0-pro` जस्ता unverified IDs use नगर्नुहोस्।
+यो model ID मात्र use गर्नुहोस्। Guessed Seedance alias model IDs use नगर्नुहोस्।
 
 ## 3. Region र base URL
 
@@ -48,7 +48,7 @@ cp .env.example .env
 त्यसपछि `.env` edit गर्नुहोस्:
 
 ```text
-BYTEPLUS_API_KEY=your_real_api_key_here
+BYTEPLUS_API_KEY=
 BYTEPLUS_BASE_URL=https://ark.ap-southeast.byteplus.com/api/v3
 BYTEPLUS_MODEL_ID=dreamina-seedance-2-0-260128
 ```

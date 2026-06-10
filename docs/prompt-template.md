@@ -30,7 +30,7 @@ SHOT 2, 0:03-0:07 build: {one clear grounded motion}
 SHOT 3, 0:07-0:11 peak: {strongest realistic motion}
 SHOT 4, 0:11-0:15 payoff: {clean loop-ready ending}
 
-No blood, no gore, no visible wounds, no visible injury, no generated text, no watermark, no humans unless explicitly needed.
+no blood, no gore, no visible wounds/injury, no generated text, no watermark, no humans unless explicitly needed.
 ```
 
 ## Negative prompt

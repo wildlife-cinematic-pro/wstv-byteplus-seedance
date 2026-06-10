@@ -31,4 +31,4 @@ SHOT 4, 0:11-0:15 payoff:
 End with a clean loop-ready documentary frame for Facebook Reels.
 
 Safety and cleanup:
-No blood, no gore, no visible wounds, no visible injury, no generated text, no watermark, no logo, no subtitles, no humans unless explicitly needed.
+no blood, no gore, no visible wounds/injury, no generated text, no watermark, no logo, no subtitles, no humans unless explicitly needed.

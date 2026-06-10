@@ -8,11 +8,7 @@ Official model ID:
 dreamina-seedance-2-0-260128
 ```
 
-यी unverified model IDs use नगर्नुहोस्:
-
-- `seedance-2.0`
-- `seedance-2.0-fast`
-- `seedance-2.0-pro`
+Guessed Seedance alias model IDs use नगर्नुहोस्। सधैं माथिको official model ID मात्र use गर्नुहोस्।
 
 ## WSTV workflow
 
@@ -76,7 +72,7 @@ cp .env.example .env
 `.env` मा real key राख्नुहोस्:
 
 ```text
-BYTEPLUS_API_KEY=your_real_api_key_here
+BYTEPLUS_API_KEY=
 BYTEPLUS_BASE_URL=https://ark.ap-southeast.byteplus.com/api/v3
 BYTEPLUS_MODEL_ID=dreamina-seedance-2-0-260128
 ```
@@ -173,7 +169,7 @@ Default price: `$7.0` per 1M tokens for 480p/720p input without video.
 Always include:
 
 ```text
-no blood, no gore, no visible wounds, no visible injury, no generated text, no watermark
+no blood, no gore, no visible wounds/injury, no generated text, no watermark
 ```
 
 Negative prompt is in:
