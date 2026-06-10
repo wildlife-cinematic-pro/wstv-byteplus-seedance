@@ -1,0 +1,34 @@
+WSTV 15-second Seedance wildlife video prompt template
+
+Create a 15-second photorealistic cinematic wildlife documentary video for a USA Facebook Reels audience.
+
+Format:
+- Vertical 9:16.
+- 720p.
+- Full-body readable animals.
+- Realistic anatomy.
+- Grounded motion/contact with real ground, branch, water, snow, or grass.
+- Natural documentary camera movement.
+- Strong 0-3 second hook.
+
+Subject:
+- Main animal: {ANIMAL}
+- Habitat: {HABITAT}
+- Story moment: {STORY_MOMENT}
+- Master image identity: preserve the same animal identity, body shape, markings, face, light direction, and environment from the approved master image.
+
+Shot plan:
+SHOT 1, 0:00-0:03 hook:
+Open with the animal already readable in frame. Use a strong wildlife documentary hook with one clear action beat.
+
+SHOT 2, 0:03-0:07 build:
+Keep full-body readability and realistic anatomy. Show grounded movement with natural environmental response.
+
+SHOT 3, 0:07-0:11 peak motion:
+Show the strongest motion beat, but keep anatomy stable and believable. No chaotic camera shake.
+
+SHOT 4, 0:11-0:15 payoff:
+End with a clean loop-ready documentary frame for Facebook Reels.
+
+Safety and cleanup:
+No blood, no gore, no visible wounds, no visible injury, no generated text, no watermark, no logo, no subtitles, no humans unless explicitly needed.
