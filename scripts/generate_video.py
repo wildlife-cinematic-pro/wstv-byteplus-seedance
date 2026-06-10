@@ -178,18 +178,20 @@ def request_json(method: str, url: str, api_key: str, **kwargs: Any) -> Dict[str
         raise RuntimeError(f"BytePlus returned non-JSON response: {response.text[:500]}") from exc
 
 
-def deep_find_first(data: Any, keys: set) -> Optional[Any]:
+def deep_find_first(data: Any, keys: set, _depth: int = 0) -> Optional[Any]:
+    if _depth > 20:
+        return None
     if isinstance(data, dict):
         for key, value in data.items():
             if key in keys and value not in (None, ""):
                 return value
         for value in data.values():
-            found = deep_find_first(value, keys)
+            found = deep_find_first(value, keys, _depth + 1)
             if found is not None:
                 return found
     elif isinstance(data, list):
         for item in data:
-            found = deep_find_first(item, keys)
+            found = deep_find_first(item, keys, _depth + 1)
             if found is not None:
                 return found
     return None
@@ -206,7 +208,8 @@ def extract_status(data: Dict[str, Any]) -> str:
 
 
 def extract_output_url(data: Dict[str, Any]) -> Optional[str]:
-    value = deep_find_first(data, {"video_url", "videoUrl", "output_url", "outputUrl", "url"})
+    # "url" is intentionally excluded because it may match input image URLs before the generated video output.
+    value = deep_find_first(data, {"video_url", "videoUrl", "output_url", "outputUrl"})
     return str(value) if value is not None else None
 
 

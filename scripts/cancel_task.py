@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
-"""Check one BytePlus ModelArk Seedance task."""
+"""Cancel one BytePlus ModelArk Seedance task."""
 
 import argparse
 import json
 import os
 import sys
-from typing import Any, Dict, Optional
-
+from typing import Any, Dict
 
 
 DEFAULT_BASE_URL = "https://ark.ap-southeast.byteplus.com/api/v3"
-DEFAULT_RETRIEVE_TASK_PATH = "/contents/generations/tasks/{task_id}"
+DEFAULT_CANCEL_TASK_PATH = "/contents/generations/tasks/{task_id}"
 
 
 class ConfigError(RuntimeError):
@@ -41,7 +40,7 @@ def load_config() -> Dict[str, str]:
     return {
         "api_key": api_key,
         "base_url": os.getenv("BYTEPLUS_BASE_URL", DEFAULT_BASE_URL).rstrip("/"),
-        "retrieve_task_path": os.getenv("BYTEPLUS_RETRIEVE_TASK_PATH", DEFAULT_RETRIEVE_TASK_PATH),
+        "cancel_task_path": os.getenv("BYTEPLUS_CANCEL_TASK_PATH", DEFAULT_CANCEL_TASK_PATH),
     }
 
 
@@ -68,39 +67,22 @@ def explain_http_error(response: Any) -> str:
 def request_json(url: str, api_key: str) -> Dict[str, Any]:
     requests = import_requests()
     try:
-        response = requests.get(url, headers=auth_headers(api_key), timeout=60)
+        response = requests.delete(url, headers=auth_headers(api_key), timeout=60)
     except requests.RequestException as exc:
         raise RuntimeError(f"Network request failed: {exc}") from exc
     if response.status_code >= 400:
         raise RuntimeError(explain_http_error(response))
+    if not response.text.strip():
+        return {"ok": True}
     try:
         return response.json()
-    except ValueError as exc:
-        raise RuntimeError(f"BytePlus returned non-JSON response: {response.text[:500]}") from exc
-
-
-def deep_find_first(data: Any, keys: set, _depth: int = 0) -> Optional[Any]:
-    if _depth > 20:
-        return None
-    if isinstance(data, dict):
-        for key, value in data.items():
-            if key in keys and value not in (None, ""):
-                return value
-        for value in data.values():
-            found = deep_find_first(value, keys, _depth + 1)
-            if found is not None:
-                return found
-    elif isinstance(data, list):
-        for item in data:
-            found = deep_find_first(item, keys, _depth + 1)
-            if found is not None:
-                return found
-    return None
+    except ValueError:
+        return {"ok": True, "response": response.text[:500]}
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Check a WSTV BytePlus Seedance task.")
-    parser.add_argument("task_id", help="BytePlus task ID.")
+    parser = argparse.ArgumentParser(description="Cancel a WSTV BytePlus Seedance task.")
+    parser.add_argument("task_id", help="BytePlus task ID to cancel.")
     return parser.parse_args()
 
 
@@ -108,18 +90,11 @@ def main() -> int:
     args = parse_args()
     try:
         config = load_config()
-        url = make_url(config["base_url"], config["retrieve_task_path"], task_id=args.task_id)
+        url = make_url(config["base_url"], config["cancel_task_path"], task_id=args.task_id)
         data = request_json(url, config["api_key"])
-        status = deep_find_first(data, {"status", "state"}) or "unknown"
-        usage = deep_find_first(data, {"usage", "token_usage", "tokens"})
-        output_url = deep_find_first(data, {"video_url", "videoUrl", "output_url", "outputUrl", "url"})
-
-        print(f"Status: {status}")
-        if usage is not None:
-            print("Usage/token info:")
-            print(json.dumps(usage, indent=2, ensure_ascii=False))
-        if output_url is not None:
-            print(f"Output URL: {output_url}")
+        print(f"Cancel request submitted for task: {args.task_id}")
+        if data:
+            print(json.dumps(data, indent=2, ensure_ascii=False))
         return 0
     except (ConfigError, RuntimeError) as exc:
         print(f"Error: {exc}", file=sys.stderr)

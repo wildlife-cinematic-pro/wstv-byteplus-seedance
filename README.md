@@ -40,7 +40,7 @@ master image -> Seedance API -> CapCut edit
 ### 1. Python environment
 
 ```bash
-cd /Users/acharyabimal/Documents/wstv-byteplus-seedance
+cd wstv-byteplus-seedance
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
