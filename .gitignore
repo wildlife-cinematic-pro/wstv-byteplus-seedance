@@ -1,10 +1,15 @@
 .env
+.env.*
+!.env.example
 .venv/
 venv/
 **pycache**/
 *.pyc
 .DS_Store
+data/tasks.jsonl
 outputs/
 downloads/
 *.mp4
 *.mov
+*.tmp
+.pytest_cache/

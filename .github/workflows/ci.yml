@@ -1,0 +1,20 @@
+name: offline-safety
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install --upgrade pip
+      - run: pip install -r requirements.txt
+      - run: python -m compileall scripts
+      - run: pytest -q
+      - run: for script in scripts/*.py; do python "$script" --help >/dev/null; done
+      - run: '! git grep -nE "sk-[A-Za-z0-9_-]{8,}|Authorization:[[:space:]]Bearer"'

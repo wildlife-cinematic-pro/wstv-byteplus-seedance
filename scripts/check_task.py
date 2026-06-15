@@ -1,126 +1,93 @@
 #!/usr/bin/env python3
-"""Check one BytePlus ModelArk Seedance task."""
+"""Check or bounded-poll one existing BytePlus ModelArk video task."""
+
+from __future__ import annotations
 
 import argparse
-import json
-import os
 import sys
-from typing import Any, Dict, Optional
+import time
 
-
-
-DEFAULT_BASE_URL = "https://ark.ap-southeast.byteplus.com/api/v3"
-DEFAULT_RETRIEVE_TASK_PATH = "/contents/generations/tasks/{task_id}"
-
-
-class ConfigError(RuntimeError):
-    pass
-
-
-def load_dotenv_file() -> None:
-    try:
-        from dotenv import load_dotenv
-    except ModuleNotFoundError:
-        return
-    load_dotenv()
-
-
-def import_requests() -> Any:
-    try:
-        import requests
-    except ModuleNotFoundError as exc:
-        raise RuntimeError("Missing dependency requests. Install with: pip install -r requirements.txt") from exc
-    return requests
-
-
-def load_config() -> Dict[str, str]:
-    load_dotenv_file()
-    api_key = os.getenv("BYTEPLUS_API_KEY", "").strip()
-    if not api_key:
-        raise ConfigError("BYTEPLUS_API_KEY is missing. Add a real key to .env before calling BytePlus.")
-    return {
-        "api_key": api_key,
-        "base_url": os.getenv("BYTEPLUS_BASE_URL", DEFAULT_BASE_URL).rstrip("/"),
-        "retrieve_task_path": os.getenv("BYTEPLUS_RETRIEVE_TASK_PATH", DEFAULT_RETRIEVE_TASK_PATH),
-    }
-
-
-def make_url(base_url: str, path: str, **values: str) -> str:
-    return f"{base_url}/{path.format(**values).lstrip('/')}"
-
-
-def auth_headers(api_key: str) -> Dict[str, str]:
-    return {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-
-
-def explain_http_error(response: Any) -> str:
-    messages = {
-        401: "401 Unauthorized: API key is invalid, expired, or not accepted for this region.",
-        403: "403 Forbidden: missing permission for this model/resource.",
-        429: "429 Rate limited: wait or check quota/billing.",
-        500: "500 Server error: BytePlus service had an internal error. Retry later.",
-    }
-    detail = response.text.strip()
-    base = messages.get(response.status_code, f"HTTP {response.status_code}: BytePlus request failed.")
-    return f"{base}\nResponse: {detail}" if detail else base
-
-
-def request_json(url: str, api_key: str) -> Dict[str, Any]:
-    requests = import_requests()
-    try:
-        response = requests.get(url, headers=auth_headers(api_key), timeout=60)
-    except requests.RequestException as exc:
-        raise RuntimeError(f"Network request failed: {exc}") from exc
-    if response.status_code >= 400:
-        raise RuntimeError(explain_http_error(response))
-    try:
-        return response.json()
-    except ValueError as exc:
-        raise RuntimeError(f"BytePlus returned non-JSON response: {response.text[:500]}") from exc
-
-
-def deep_find_first(data: Any, keys: set, _depth: int = 0) -> Optional[Any]:
-    if _depth > 20:
-        return None
-    if isinstance(data, dict):
-        for key, value in data.items():
-            if key in keys and value not in (None, ""):
-                return value
-        for value in data.values():
-            found = deep_find_first(value, keys, _depth + 1)
-            if found is not None:
-                return found
-    elif isinstance(data, list):
-        for item in data:
-            found = deep_find_first(item, keys, _depth + 1)
-            if found is not None:
-                return found
-    return None
+from common import (
+    ConfigError,
+    FAILURE_STATUSES,
+    SUCCESS_STATUSES,
+    TERMINAL_STATUSES,
+    append_jsonl,
+    build_url,
+    load_config,
+    parse_task_response,
+    redact_json,
+    request_json,
+    safe_url_for_logs,
+    save_sanitized_response,
+    utc_now,
+)
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Check a WSTV BytePlus Seedance task.")
-    parser.add_argument("task_id", help="BytePlus task ID.")
+    parser = argparse.ArgumentParser(description="Check an existing WSTV BytePlus Seedance task.")
+    parser.add_argument("task_id", help="Existing BytePlus task ID.")
+    parser.add_argument("--poll", action="store_true", help="Poll until terminal status or timeout.")
+    parser.add_argument("--interval", type=int, default=10, help="Polling interval seconds. Default: 10.")
+    parser.add_argument("--timeout", type=int, default=900, help="Polling timeout seconds. Default: 900.")
     return parser.parse_args()
+
+
+def fetch_once(task_id: str):
+    config = load_config(require_key=True)
+    if config.used_deprecated_key:
+        print("Warning: BYTEPLUS_API_KEY fallback is deprecated. Use ARK_API_KEY.", file=sys.stderr)
+    url = build_url(config, config.retrieve_path, id=task_id)
+    data = request_json("GET", url, config.api_key or "", config.timeout_seconds)
+    parsed = parse_task_response(data)
+    save_sanitized_response(config, task_id, data)
+    append_jsonl(
+        config.task_log_path,
+        {
+            "local_request_id": None,
+            "request_fingerprint": None,
+            "created_at": utc_now(),
+            "model": data.get("model"),
+            "safe_input_identifier": None,
+            "task_id": task_id,
+            "status": parsed["status"],
+            "estimated_cost": None,
+            "actual_usage": parsed.get("usage"),
+            "downloaded_output_path": None,
+            "error_category": parsed.get("error", {}).get("code") if isinstance(parsed.get("error"), dict) else None,
+        },
+    )
+    return parsed
+
+
+def print_status(parsed: dict) -> None:
+    status = parsed["status"]
+    print(f"Status: {status}")
+    if status not in TERMINAL_STATUSES and status not in {"queued", "running"}:
+        print("Warning: unknown status. Treating as non-terminal and unsafe to infer success.")
+    if parsed.get("usage"):
+        print(f"Usage: {redact_json(parsed['usage'])}")
+    if parsed.get("video_url"):
+        print(f"Output URL: {safe_url_for_logs(parsed['video_url'])}")
+        print("Note: signed output URLs are redacted in logs and expire/delete after 24 hours per docs.")
+    if parsed.get("error"):
+        print(f"Error: {redact_json(parsed['error'])}")
 
 
 def main() -> int:
     args = parse_args()
     try:
-        config = load_config()
-        url = make_url(config["base_url"], config["retrieve_task_path"], task_id=args.task_id)
-        data = request_json(url, config["api_key"])
-        status = deep_find_first(data, {"status", "state"}) or "unknown"
-        usage = deep_find_first(data, {"usage", "token_usage", "tokens"})
-        output_url = deep_find_first(data, {"video_url", "videoUrl", "output_url", "outputUrl", "url"})
-
-        print(f"Status: {status}")
-        if usage is not None:
-            print("Usage/token info:")
-            print(json.dumps(usage, indent=2, ensure_ascii=False))
-        if output_url is not None:
-            print(f"Output URL: {output_url}")
-        return 0
+        started = time.monotonic()
+        while True:
+            parsed = fetch_once(args.task_id)
+            print_status(parsed)
+            status = parsed["status"]
+            if not args.poll or status in TERMINAL_STATUSES:
+                return 0 if status in SUCCESS_STATUSES or not args.poll else 1 if status in FAILURE_STATUSES else 0
+            if time.monotonic() - started >= args.timeout:
+                print(f"Timed out after {args.timeout}s without terminal status.", file=sys.stderr)
+                return 2
+            time.sleep(max(1, args.interval))
     except (ConfigError, RuntimeError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1

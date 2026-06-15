@@ -1,0 +1,37 @@
+{
+  "schema_status": "BLOCKED_OFFICIAL_PLAYGROUND_SAMPLE_REQUIRED",
+  "instructions": "Copy the current ModelArk Playground REST sample, remove secrets and signed URLs, then replace this file. Set schema_status to VERIFIED_OFFICIAL_PLAYGROUND_SAMPLE only after manual review.",
+  "must_not_contain": [
+    "authorization header",
+    "bearer token",
+    "real API key",
+    "signed output URL"
+  ],
+  "example_shape_only": {
+    "method": "POST",
+    "url": "https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "model": "dreamina-seedance-2-0-260128",
+      "content": [
+        {
+          "type": "text",
+          "text": "REDACTED_PROMPT"
+        },
+        {
+          "type": "image_url",
+          "image_url": {
+            "url": "REDACTED_IMAGE_URL"
+          }
+        }
+      ],
+      "resolution": "720p",
+      "ratio": "9:16",
+      "duration": 15,
+      "generate_audio": false,
+      "watermark": false
+    }
+  }
+}

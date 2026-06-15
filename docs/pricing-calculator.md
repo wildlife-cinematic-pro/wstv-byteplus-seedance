@@ -1,57 +1,19 @@
 # Pricing Calculator
 
-BytePlus/ModelArk pricing token-based हुन सक्छ। Exact token count र price तपाईंको BytePlus billing/API response बाट confirm गर्नुहोस्।
+The toolkit uses official BytePlus ModelArk pricing docs verified on 2026-06-15 for Seedance 2.0 model-specific estimates.
 
-## Formula
+Important:
 
-```text
-cost = total_tokens / 1,000,000 * price_per_million_tokens
-```
-
-## Example
-
-```text
-108900 tokens at $7.0/M = 108900 / 1000000 * 7.0 = $0.7623
-```
-
-## Attempts
-
-एक video perfect नआउन सक्छ, त्यसैले attempts को cost हेर्नुपर्छ।
-
-```text
-1 attempt = token cost once
-3 attempts = token cost * 3
-```
+- Estimates are labelled `ESTIMATED`.
+- Console billing is final.
+- Returned task `usage.completion_tokens` is the best reconciliation value after a real task.
+- Do not use one default rate for every model.
+- When input includes video, Seedance 2.0 has different rates and minimum token rules.
 
 Example:
 
-```text
-1 attempt:  $0.7623
-3 attempts: $2.2869
-```
-
-## 30 days
-
-यदि daily reels बनाउनुहुन्छ भने:
-
-```text
-30-day cost = one_video_cost * daily_reels * 30
-```
-
-## 60 videos/month
-
-```text
-60 videos/month cost = one_video_cost * 60
-```
-
-Use:
-
 ```bash
-python3 scripts/cost_calculator.py --tokens 108900
+python3 scripts/cost_calculator.py --duration 15 --resolution 720p --ratio 9:16 --max-cost-usd 3
 ```
 
-Custom price:
-
-```bash
-python3 scripts/cost_calculator.py --tokens 108900 --price 7.0
-```
+If `passes` is false, do not submit.

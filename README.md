@@ -1,43 +1,47 @@
 # WSTV BytePlus Seedance Toolkit
 
-यो standalone Python CLI toolkit हो Wild Stories TV को लागि। Goal: BytePlus ModelArk Dreamina Seedance 2.0 API use गरेर 15-second vertical 9:16 wildlife documentary video generate गर्ने।
+This is a safety-first Python CLI toolkit for preparing 15-second vertical 9:16 wildlife video generation requests for the official BytePlus ModelArk Dreamina Seedance 2.0 API.
 
-Official model ID:
+## Current Readiness Status
 
-```text
-dreamina-seedance-2-0-260128
-```
-
-Guessed Seedance alias model IDs use नगर्नुहोस्। सधैं माथिको official model ID मात्र use गर्नुहोस्।
-
-## WSTV workflow
+Status: **BLOCKED FOR PAID SUBMISSION** until you add a redacted official Playground REST sample at:
 
 ```text
-master image -> Seedance API -> CapCut edit
+docs/official-rest-sample.redacted.json
 ```
 
-1. पहिले clean master image बनाउनुहोस्।
-2. Master image approve भएपछि Seedance API मा prompt + image पठाउनुहोस्।
-3. Output video डाउनलोड गरेर CapCut मा edit गर्नुहोस्।
-4. Facebook Reels को लागि final crop, captions, music, and export गर्नुहोस्।
+Dry runs, local validation, cost previews, tests, and documentation are ready. A real paid create-task request is locked by default and requires `--submit`, `--max-cost-usd`, `--confirm SUBMIT_ONE_PAID_TASK`, a local `ARK_API_KEY`, duplicate-check pass, writable task log, and the verified redacted sample file.
 
-## Default WSTV rules
+No command in the normal setup makes a paid API call.
 
-- 15-second vertical 9:16
-- photorealistic wildlife documentary
-- full-body readable animals
-- realistic anatomy
-- grounded motion
-- no blood
-- no gore
-- no visible wounds/injury
-- no generated text
-- no watermark
-- no humans unless explicitly needed
+## Official Values Verified On 2026-06-15
 
-## Setup
+- Base URL: `https://ark.ap-southeast.bytepluses.com/api/v3`
+- API key env convention: `ARK_API_KEY`
+- Create task: `POST /contents/generations/tasks`
+- Retrieve task: `GET /contents/generations/tasks/{id}`
+- List tasks: `GET /contents/generations/tasks`
+- Cancel/delete task: `DELETE /contents/generations/tasks/{id}`
+- Model IDs: `dreamina-seedance-2-0-260128`, `dreamina-seedance-2-0-fast-260128`
+- Task statuses: `queued`, `running`, `cancelled`, `succeeded`, `failed`, `expired`
+- Output URL field: `content.video_url`
+- Output video URL is deleted after 24 hours; download promptly after success.
 
-### 1. Python environment
+Console billing and returned `usage.completion_tokens` are final.
+
+## Safety Warning About Paid Calls
+
+Never run `--submit` until you have:
+
+1. Confirmed Console model access, region, rate limits, billing, and budget.
+2. Added a local API key through your shell or password manager.
+3. Added the redacted official Playground REST sample.
+4. Run `scripts/doctor.py`.
+5. Run a dry run and reviewed the cost preview.
+
+The toolkit never retries a paid create-task request automatically.
+
+## macOS Setup
 
 ```bash
 cd wstv-byteplus-seedance
@@ -46,134 +50,173 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. BytePlus account
+Optional but recommended for downloaded video verification:
 
-1. BytePlus account बनाउनुहोस्।
-2. Console मा ModelArk enable गर्नुहोस्।
-3. Dreamina / Seedance video generation access check गर्नुहोस्।
-4. Billing/quota setup गर्नुहोस्।
-
-### 3. Region
-
-Default region/base URL:
-
-```text
-https://ark.ap-southeast.byteplus.com/api/v3
+```bash
+brew install ffmpeg
 ```
 
-तपाईंको account region फरक छ भने BytePlus ModelArk API Explorer बाट सही base URL copy गर्नुहोस्।
+## Environment Setup
 
-### 4. API key and .env
+Do not create a real `.env` unless you understand that it is local-only and ignored by Git.
+
+Template:
 
 ```bash
 cp .env.example .env
 ```
 
-`.env` मा real key राख्नुहोस्:
+Preferred key variable:
 
 ```text
-BYTEPLUS_API_KEY=
-BYTEPLUS_BASE_URL=https://ark.ap-southeast.byteplus.com/api/v3
-BYTEPLUS_MODEL_ID=dreamina-seedance-2-0-260128
+ARK_API_KEY=
 ```
 
-API key hardcode नगर्नुहोस्। `.env` GitHub मा commit नगर्नुहोस्।
-
-## Important API Explorer note
-
-BytePlus endpoint path र request payload schema official docs/API Explorer अनुसार फरक हुन सक्छ। यो toolkit मा endpoint paths `.env` बाट override गर्न मिल्छ:
+Deprecated fallback:
 
 ```text
-BYTEPLUS_CREATE_TASK_PATH=/contents/generations/tasks
-BYTEPLUS_RETRIEVE_TASK_PATH=/contents/generations/tasks/{task_id}
-BYTEPLUS_LIST_TASKS_PATH=/contents/generations/tasks
-BYTEPLUS_CANCEL_TASK_PATH=/contents/generations/tasks/{task_id}
+BYTEPLUS_API_KEY
 ```
 
-Exact endpoint/request schema must be copied or updated from BytePlus API Explorer if official docs differ. Payload builder `scripts/generate_video.py` भित्र isolated छ ताकि update गर्न सजिलो होस्।
+The fallback is supported temporarily for migration, but scripts warn and never print either value.
 
-## Generate video
+## API-Key Security
 
-Prompt text बाट:
+- Never paste keys into chat, GitHub, screenshots, logs, or docs.
+- Never commit `.env`.
+- Rotate/revoke a key immediately if it may have leaked.
+- Use a key scoped to the minimum project/permission possible.
+- Treat signed output URLs as sensitive; logs redact query strings.
+
+## Doctor Command
+
+Local-only check, no API request:
+
+```bash
+python3 scripts/doctor.py
+```
+
+Expected before adding the official sample/key: `BLOCKED`, not unsafe success.
+
+## Dry-Run Example
+
+This makes no network request:
 
 ```bash
 python3 scripts/generate_video.py \
-  --prompt "Create a 15-second photorealistic cinematic wildlife documentary video..." \
+  --prompt-file prompts/wstv-wildlife-template.txt \
   --image-url "https://example.com/master-image.jpg" \
-  --negative-prompt "$(cat prompts/negative-prompt.txt)" \
-  --poll
+  --duration 15 \
+  --ratio 9:16 \
+  --resolution 720p \
+  --no-generate-audio
 ```
 
-Prompt file बाट:
+It saves a redacted request preview in `outputs/request-previews/`.
+
+## Cost-Preview Example
+
+```bash
+python3 scripts/cost_calculator.py \
+  --model dreamina-seedance-2-0-260128 \
+  --duration 15 \
+  --resolution 720p \
+  --ratio 9:16 \
+  --max-cost-usd 3
+```
+
+The estimate is not final billing. Confirm actual spend in BytePlus Console and task `usage`.
+
+## One-Task Submission Process
+
+Paid submission remains blocked until `docs/official-rest-sample.redacted.json` exists and is marked verified.
+
+When you are ready for exactly one paid task:
 
 ```bash
 python3 scripts/generate_video.py \
   --prompt-file prompts/wstv-wildlife-template.txt \
   --image-url "https://example.com/master-image.jpg" \
-  --poll
+  --duration 15 \
+  --ratio 9:16 \
+  --resolution 720p \
+  --max-cost-usd 3 \
+  --confirm SUBMIT_ONE_PAID_TASK \
+  --submit
 ```
 
-Defaults:
+No automatic retry is allowed. If a submit call fails or times out, check the local task log and BytePlus Console before trying again.
 
-- `duration=15`
-- `ratio=9:16`
-- `resolution=720p`
-- `model=dreamina-seedance-2-0-260128`
+## Task Status Process
 
-Local image path:
-
-```bash
-python3 scripts/generate_video.py \
-  --prompt-file prompts/wstv-wildlife-template.txt \
-  --image-path ./master-image.jpg
-```
-
-If BytePlus API Explorer requires base64 image input, set:
-
-```text
-BYTEPLUS_IMAGE_SCHEMA=base64
-```
-
-Otherwise API Explorer may require upload/file_id first.
-
-## Check task
+One-shot status check:
 
 ```bash
 python3 scripts/check_task.py TASK_ID
 ```
 
-This prints task status, token/usage info if available, and output URL if available.
-
-## List tasks
+Bounded polling:
 
 ```bash
-python3 scripts/list_tasks.py --limit 10
+python3 scripts/check_task.py TASK_ID --poll --interval 10 --timeout 900
 ```
 
-## Cost calculator
+Unknown statuses are treated cautiously and never as success.
+
+## Download Process
+
+After a task succeeds, use the verified `content.video_url` promptly:
 
 ```bash
-python3 scripts/cost_calculator.py --tokens 108900
+python3 scripts/download_video.py \
+  --url "SIGNED_OUTPUT_URL" \
+  --out downloads/wstv-output.mp4 \
+  --expect-duration 15 \
+  --expect-width 720 \
+  --expect-height 1280
 ```
 
-Formula:
+Or pass a local completed task response JSON that still contains `content.video_url`:
 
-```text
-cost = total_tokens / 1_000_000 * price_per_million_tokens
+```bash
+python3 scripts/download_video.py \
+  --response-json /path/to/completed-response.json \
+  --out downloads/wstv-output.mp4
 ```
 
-Default price: `$7.0` per 1M tokens for 480p/720p input without video.
+Do not commit raw task responses that contain signed URLs.
 
-## Safety prompt
+The downloader streams to a temporary file, rejects HTML/error pages, saves atomically, and writes verification metadata.
 
-Always include:
+## Troubleshooting
 
-```text
-no blood, no gore, no visible wounds/injury, no generated text, no watermark
-```
+- `Overall: BLOCKED` from doctor is expected until the official sample and local key exist.
+- `BYTEPLUS_BASE_URL` must be `https://ark.ap-southeast.bytepluses.com/api/v3`.
+- `ARK_API_KEY is missing` means no API call can run.
+- `Duplicate active/recent request fingerprint found` means the same paid task may already have been submitted.
+- `Cost is UNVERIFIED` means do not submit.
 
-Negative prompt is in:
+## BytePlus Console Verification Checklist
 
-```text
-prompts/negative-prompt.txt
-```
+See `docs/CONSOLE_CHECKLIST.md`.
+
+## Actual Billing Audit
+
+After any paid task, compare:
+
+- local request fingerprint
+- BytePlus task ID
+- returned `usage.completion_tokens`
+- Console usage/billing page
+- downloaded output path
+
+Record only safe metadata in `data/tasks.jsonl`; never store API keys or full authorization headers.
+
+## Revoke A Leaked Key
+
+1. Open BytePlus ModelArk API Key management.
+2. Disable or delete the exposed key.
+3. Create a replacement key.
+4. Update only your local environment.
+5. Search GitHub history and logs for exposure.
+6. Treat all tasks submitted with the leaked key as auditable security events.
