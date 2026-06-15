@@ -1,0 +1,17 @@
+{
+  "base_url": "https://ark.ap-southeast.bytepluses.com/api/v3",
+  "model_id": "dreamina-seedance-2-0-260128",
+  "create_path": "/contents/generations/tasks",
+  "retrieve_path": "/contents/generations/tasks/{id}",
+  "list_path": "/contents/generations/tasks",
+  "cancel_path": "/contents/generations/tasks/{id}",
+  "timeout_seconds": 60,
+  "task_log_path": "data/tasks.jsonl",
+  "request_preview_dir": "outputs/request-previews",
+  "raw_response_dir": "outputs/raw-responses",
+  "outputs_dir": "outputs",
+  "downloads_dir": "downloads",
+  "schema_sample_path": "docs/official-rest-sample.redacted.json",
+  "paid_submit_default": false,
+  "duplicate_window_hours": 24
+}
