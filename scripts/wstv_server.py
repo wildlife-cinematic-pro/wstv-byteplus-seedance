@@ -32,6 +32,7 @@ MAX_BODY_BYTES = 64 * 1024
 SAFE_FILENAME_RE = re.compile(r"[^A-Za-z0-9._-]+")
 URL_RE = re.compile(r"https?://[^\s\"'<>]+")
 VALID_COST_PERIODS = {"today", "month", "all"}
+PROMPT_CHARACTER_LIMIT = 3500
 
 
 @dataclass(frozen=True)
@@ -145,6 +146,12 @@ def sanitize_log(text: str) -> str:
 def run_pipeline_request(request: DashboardRequest, *, submit: bool) -> dict[str, Any]:
     if submit and request.confirm != CONFIRMATION_TOKEN:
         raise ConfigError(f"Confirmation must equal {CONFIRMATION_TOKEN}.")
+    if submit:
+        if len(request.prompt) > PROMPT_CHARACTER_LIMIT:
+            raise ConfigError("Prompt exceeds 3,500-character limit. Shorten before paid generation.")
+        status = budget_status()
+        if status["blocked"]:
+            raise ConfigError("Budget check blocked paid submit: " + " ".join(status["warnings"]))
     cmd = pipeline_command(request, submit=submit)
     completed = subprocess.run(
         cmd,
@@ -200,6 +207,16 @@ def cost_summary(period: str = "all") -> dict[str, Any]:
     return cost_tracker.budget_summary(load_config(require_key=False), period=period)
 
 
+def budget_status() -> dict[str, Any]:
+    summary = cost_summary("all")
+    warnings = list(summary.get("warnings") or [])
+    return {
+        "blocked": bool(warnings),
+        "warnings": warnings,
+        "summary": summary,
+    }
+
+
 def save_budget(data: dict[str, Any]) -> dict[str, Any]:
     config = load_config(require_key=False)
     settings = cost_tracker.save_budget_settings(config, data)
@@ -210,6 +227,34 @@ def reset_budget() -> dict[str, Any]:
     config = load_config(require_key=False)
     settings = cost_tracker.reset_budget_settings(config)
     return cost_tracker.budget_summary(config, period="all", budget_settings=settings)
+
+
+def open_path(path: Path) -> dict[str, Any]:
+    subprocess.run(["open", str(path)], check=False)
+    return {"opened": str(path)}
+
+
+def open_video_folder() -> dict[str, Any]:
+    config = load_config(require_key=False)
+    folder = config.downloads_dir.expanduser().resolve()
+    folder.mkdir(parents=True, exist_ok=True)
+    return open_path(folder)
+
+
+def latest_video_path() -> Path:
+    config = load_config(require_key=False)
+    folder = config.downloads_dir.expanduser().resolve()
+    if not folder.exists():
+        raise ConfigError("No generated video found yet.")
+    videos = sorted(folder.glob("*.mp4"), key=lambda path: path.stat().st_mtime, reverse=True)
+    if not videos:
+        raise ConfigError("No generated video found yet.")
+    return videos[0]
+
+
+def open_latest_video() -> dict[str, Any]:
+    path = latest_video_path()
+    return open_path(path)
 
 
 class DashboardHandler(BaseHTTPRequestHandler):
@@ -245,6 +290,10 @@ class DashboardHandler(BaseHTTPRequestHandler):
             raise ConfigError("Request body must be a JSON object.")
         return data
 
+    def _require_local_client(self) -> None:
+        if self.client_address[0] != HOST:
+            raise ConfigError("Dashboard action is allowed only from 127.0.0.1.")
+
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
         if parsed.path in {"/", "/index.html"}:
@@ -257,10 +306,21 @@ class DashboardHandler(BaseHTTPRequestHandler):
             period = parse_qs(parsed.query).get("period", ["all"])[0]
             self._send_json({"ok": True, "summary": cost_summary(period)})
             return
+        if parsed.path == "/api/budget_status":
+            self._send_json({"ok": True, **budget_status()})
+            return
         self._send_json({"ok": False, "error": "Not found."}, HTTPStatus.NOT_FOUND)
 
     def do_POST(self) -> None:
         try:
+            if self.path == "/api/open-video-folder":
+                self._require_local_client()
+                self._send_json({"ok": True, **open_video_folder()})
+                return
+            if self.path == "/api/open-latest-video":
+                self._require_local_client()
+                self._send_json({"ok": True, **open_latest_video()})
+                return
             data = self._read_json_body()
             if self.path == "/api/budget-settings":
                 if data.get("reset") is True:
