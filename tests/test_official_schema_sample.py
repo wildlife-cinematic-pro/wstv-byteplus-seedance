@@ -41,7 +41,8 @@ def test_official_sample_content_items():
     assert any(item["type"] == "audio_url" and item["role"] == "reference_audio" for item in content)
 
 
-def test_builder_matches_official_image_url_shape():
+def test_builder_matches_official_image_url_shape(monkeypatch):
+    monkeypatch.setattr(common, "validate_public_image_url", lambda *args, **kwargs: {"content_type": "image/jpeg"})
     content = common.build_content(
         "Prompt",
         "https://example.com/image-1.jpg",

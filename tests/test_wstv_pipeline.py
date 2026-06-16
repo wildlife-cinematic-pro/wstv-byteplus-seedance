@@ -72,6 +72,54 @@ def test_dry_run_does_not_call_network(monkeypatch, tmp_path, capsys):
     assert called is False
 
 
+def test_dry_run_with_valid_image_url_does_not_call_byteplus(monkeypatch, tmp_path, capsys):
+    config = _config(tmp_path)
+    byteplus_called = False
+
+    def fake_image_validator(*args, **kwargs):
+        return {"content_type": "image/png"}
+
+    def fake_request(*args, **kwargs):
+        nonlocal byteplus_called
+        byteplus_called = True
+
+    monkeypatch.setattr(common, "validate_public_image_url", fake_image_validator)
+    monkeypatch.setattr(wstv_pipeline, "load_config", lambda require_key=False: config)
+    monkeypatch.setattr(wstv_pipeline, "request_json", fake_request)
+
+    assert wstv_pipeline.run_pipeline(
+        _args(tmp_path, image_url="https://images.wildstoriestv.com/elephant_mud_master.png")
+    ) == 0
+
+    assert "No network request was made." in capsys.readouterr().out
+    assert byteplus_called is False
+
+
+def test_paid_submit_invalid_image_url_blocks_before_paid_call(monkeypatch, tmp_path):
+    config = _config(tmp_path, api_key="test-key")
+    byteplus_called = False
+
+    def fake_request(*args, **kwargs):
+        nonlocal byteplus_called
+        byteplus_called = True
+
+    monkeypatch.setattr(wstv_pipeline, "load_config", lambda require_key=False: config)
+    monkeypatch.setattr(wstv_pipeline, "request_json", fake_request)
+
+    with pytest.raises(common.ConfigError, match="https"):
+        wstv_pipeline.run_pipeline(
+            _args(
+                tmp_path,
+                image_url="http://images.wildstoriestv.com/bear_cub_falling.png",
+                submit=True,
+                max_cost_usd=3.0,
+                confirm=generate_video.CONFIRMATION_TOKEN,
+            )
+        )
+
+    assert byteplus_called is False
+
+
 def test_submit_requires_max_cost(monkeypatch, tmp_path):
     config = _config(tmp_path, api_key="test-key")
     monkeypatch.setattr(wstv_pipeline, "load_config", lambda require_key=False: config)

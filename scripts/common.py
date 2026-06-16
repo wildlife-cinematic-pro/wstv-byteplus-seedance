@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import hashlib
+import ipaddress
 import json
 import os
 import re
@@ -50,6 +51,8 @@ CONTROLLED_CAPTURE_SCHEMA_STATUSES = {
     "VERIFIED_OFFICIAL_PLAYGROUND_SAMPLE",
     "VERIFIED_REDACTED_OFFICIAL_SAMPLE_CONTROLLED_CAPTURE",
 }
+ALLOWED_IMAGE_CONTENT_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
+HEAD_FALLBACK_STATUSES = {403, 405, 501}
 
 
 class ConfigError(RuntimeError):
@@ -297,6 +300,11 @@ def import_requests() -> Any:
     return requests
 
 
+def request_public_url(method: str, url: str, timeout: float, **kwargs: Any) -> Any:
+    requests = import_requests()
+    return requests.request(method, url, timeout=timeout, **kwargs)
+
+
 def request_json(method: str, url: str, api_key: str, timeout: float, **kwargs: Any) -> dict[str, Any]:
     requests = import_requests()
     try:
@@ -382,6 +390,115 @@ def validate_public_url(value: str, label: str) -> None:
         raise ConfigError(f"{label} must be an http(s) URL.")
 
 
+def _normalized_hostname(parsed: Any, label: str) -> str:
+    host = (parsed.hostname or "").strip().lower().rstrip(".")
+    if not host:
+        raise ConfigError(f"{label} must include a public hostname.")
+    return host
+
+
+def validate_public_image_url_structure(value: str, label: str = "--image-url") -> str:
+    if not value or not value.strip():
+        raise ConfigError(f"{label} is empty. Use a public HTTPS direct image URL.")
+    parsed = urlparse(value.strip())
+    if parsed.scheme != "https":
+        raise ConfigError(f"{label} must use https.")
+    if not parsed.netloc:
+        raise ConfigError(f"{label} is malformed. Use a public HTTPS direct image URL.")
+    if parsed.username or parsed.password:
+        raise ConfigError(f"{label} must not contain embedded credentials.")
+    host = _normalized_hostname(parsed, label)
+    if host == "localhost" or host.endswith(".localhost") or host.endswith(".local"):
+        raise ConfigError(f"{label} must not point to localhost or local-only hosts.")
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        address = None
+    if address and (
+        address.is_private
+        or address.is_loopback
+        or address.is_link_local
+        or address.is_reserved
+        or address.is_unspecified
+        or address.is_multicast
+    ):
+        raise ConfigError(f"{label} must not point to private or internal IP ranges.")
+    if host in {"github.com", "www.github.com"} and "/blob/" in parsed.path:
+        raise ConfigError(f"{label} must be a direct image URL, not a GitHub blob page.")
+    if host in {"drive.google.com", "docs.google.com"} or host.endswith(".drive.google.com"):
+        raise ConfigError(f"{label} must be a direct image URL, not a Google Drive preview page.")
+    if host in {"facebook.com", "www.facebook.com", "m.facebook.com", "instagram.com", "www.instagram.com"}:
+        raise ConfigError(f"{label} must be a direct image URL, not a social media page URL.")
+    return value.strip()
+
+
+def _close_response(response: Any) -> None:
+    close = getattr(response, "close", None)
+    if callable(close):
+        close()
+
+
+def _validate_image_response(response: Any, label: str) -> dict[str, Any]:
+    status_code = int(getattr(response, "status_code", 0) or 0)
+    if status_code != 200:
+        raise ConfigError(f"{label} returned HTTP {status_code}; expected 200.")
+    final_url = getattr(response, "url", None)
+    if final_url:
+        validate_public_image_url_structure(str(final_url), label)
+    headers = getattr(response, "headers", {}) or {}
+    content_type = str(headers.get("content-type") or headers.get("Content-Type") or "").split(";", 1)[0].strip().lower()
+    if content_type == "text/html":
+        raise ConfigError(f"{label} points to an HTML page, not a direct image.")
+    if content_type in {"application/json", "text/plain"}:
+        raise ConfigError(f"{label} points to a non-image response: {content_type}.")
+    if not content_type.startswith("image/"):
+        raise ConfigError(f"{label} must return an image/* Content-Type.")
+    if content_type not in ALLOWED_IMAGE_CONTENT_TYPES:
+        allowed = ", ".join(sorted(ALLOWED_IMAGE_CONTENT_TYPES))
+        raise ConfigError(f"{label} returned unsupported image type {content_type}; allowed: {allowed}.")
+    return {"status_code": status_code, "content_type": content_type}
+
+
+def validate_public_image_url(
+    value: str,
+    label: str = "--image-url",
+    timeout: float = 10,
+    requester: Any | None = None,
+) -> dict[str, Any]:
+    url = validate_public_image_url_structure(value, label)
+    requester = requester or request_public_url
+    try:
+        response = requester("HEAD", url, allow_redirects=True, timeout=timeout)
+    except Exception:
+        response = None
+    else:
+        try:
+            if int(getattr(response, "status_code", 0) or 0) not in HEAD_FALLBACK_STATUSES:
+                result = _validate_image_response(response, label)
+                print(f"Reference image URL validation passed for {label}: {result['content_type']}")
+                return result
+        finally:
+            _close_response(response)
+
+    try:
+        response = requester(
+            "GET",
+            url,
+            allow_redirects=True,
+            timeout=timeout,
+            stream=True,
+            headers={"Range": "bytes=0-1023"},
+        )
+    except Exception as exc:
+        raise ConfigError(f"{label} could not be validated as a public image URL.") from exc
+    try:
+        result = _validate_image_response(response, label)
+        print(f"Reference image URL validation passed for {label}: {result['content_type']}")
+        return result
+    finally:
+        _close_response(response)
+
+
 def build_content(
     prompt: str,
     image_url: str | None,
@@ -395,7 +512,7 @@ def build_content(
     if image_url and image_path:
         raise ConfigError("Use only one of --image-url or --image-path.")
     if image_url:
-        validate_public_url(image_url, "--image-url")
+        validate_public_image_url(image_url, "--image-url")
         image_item: dict[str, Any] = {"type": "image_url", "image_url": {"url": image_url}}
         if image_role:
             image_item["role"] = image_role
@@ -406,7 +523,7 @@ def build_content(
             raise ConfigError(f"Image path does not exist: {path}")
         raise ConfigError("Local image upload is blocked until the official upload/base64 flow is verified.")
     for url in reference_image_urls or []:
-        validate_public_url(url, "--reference-image-url")
+        validate_public_image_url(url, "--reference-image-url")
         content.append({"type": "image_url", "image_url": {"url": url}, "role": "reference_image"})
     for url in reference_video_urls or []:
         validate_public_url(url, "--reference-video-url")
