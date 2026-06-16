@@ -46,6 +46,24 @@ open /Users/acharyabimal/Movies/WSTV/SeedanceVideos
 
 To use a different local non-cloud folder, set `WSTV_VIDEO_OUTPUT_DIR` before starting the dashboard. Avoid iCloud, Dropbox, and Google Drive folders unless you deliberately want generated video files synced.
 
+## PR #12 Dashboard Safety Quick Wins
+
+- Use `Dry Run (no cost)` before any paid generation.
+- Safe Mode ON hides the Paid Zone with `display: none`, so the paid button cannot be clicked.
+- Safe Mode OFF is neutral and makes the Paid Zone visible again.
+- Paid Zone is styled as dangerous and clearly says `SUBMIT PAID TASK`.
+- Paid submission still requires exact `SUBMIT_ONE_PAID_TASK`.
+- After a successful paid flow, the confirmation input is cleared and the paid button stays disabled until the phrase is retyped.
+- The prompt counter shows `Characters: X / 3500`; paid submit is blocked above 3,500 characters.
+- Reference image preview requires a direct HTTPS image URL.
+- If the reference host is not `images.wildstoriestv.com` or under `wildstoriestv.com`, the UI shows a warning before paid generation.
+- The log box is capped to about 200px high and scrolls for long output.
+- QA checklist items are unchecked by default, including `Loop ending clean`.
+- Status badges show states such as `READY`, `DRY RUN OK`, `GENERATING`, `BUDGET LOW`, `ERROR`, `PAID RECORDED`, and `SAFE MODE`.
+- Errors show a human-readable message first, with technical details collapsed.
+- `Open video folder`, `Open latest video`, and `Open this video` are local-only helper actions.
+- Budget warnings are checked on the server before paid submit; UI-only warnings are not trusted.
+
 ## Cost / Budget Tracker
 
 The dashboard includes a local-only `Cost / Budget Tracker` panel. Budget settings are stored locally in:

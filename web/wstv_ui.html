@@ -19,11 +19,29 @@
     button.primary { background: #5f8cff; color: white; }
     button.danger { background: #ff6b6b; color: #240707; }
     button:disabled { opacity: .45; cursor: not-allowed; }
-    pre { white-space: pre-wrap; word-break: break-word; min-height: 180px; background: #060914; border-radius: 12px; padding: 16px; color: #d5e1ff; }
+    pre { white-space: pre-wrap; word-break: break-word; min-height: 120px; max-height: 200px; overflow-y: auto; background: #060914; border-radius: 12px; padding: 16px; color: #d5e1ff; }
     .status { margin-top: 10px; color: #9ee493; font-weight: 800; }
     .warn { color: #ffd166; }
+    .error { color: #ff8f8f; }
     .history li { margin: 10px 0; color: #ccd6f6; }
     .small { font-size: 13px; color: #9eaccd; }
+    .paid-zone { border: 2px solid #ff6b6b; border-radius: 16px; padding: 16px; margin-top: 18px; background: #271017; }
+    .safe-banner { border-radius: 12px; padding: 12px; background: #10351f; color: #9ee493; font-weight: 800; margin: 12px 0; }
+    .safe-off { background: #25304a; color: #e9eefc; }
+    .safe-on { background: #1f8f4d; color: white; }
+    .badge { display: inline-block; border-radius: 999px; padding: 6px 10px; margin: 4px 6px 4px 0; font-size: 12px; font-weight: 900; background: #25304a; color: #dbe6ff; }
+    .badge.ready { background: #37517e; }
+    .badge.ok { background: #1f8f4d; }
+    .badge.generating { background: #8a5a00; }
+    .badge.low { background: #9a6b00; }
+    .badge.error { background: #8a1f2d; color: white; }
+    .badge.safe { background: #1f8f4d; color: white; }
+    .char-green { color: #9ee493; }
+    .char-amber { color: #ffd166; }
+    .char-red { color: #ff8f8f; }
+    .preview-img { display: none; width: 200px; max-height: 140px; object-fit: cover; border-radius: 12px; border: 1px solid #32405f; margin-top: 10px; }
+    .qa label { font-weight: 500; margin: 8px 0; }
+    .qa input { width: auto; margin-right: 8px; }
     .metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
     .metric { background: #0a1021; border: 1px solid #263555; border-radius: 12px; padding: 12px; }
     .metric strong { display: block; color: #ffffff; font-size: 20px; }
@@ -36,6 +54,9 @@
   <main>
     <h1>WSTV Seedance Local Dashboard</h1>
     <p>Local-only dashboard bound to <code>127.0.0.1</code>. It never shows API keys, signed output URLs, or private response JSON.</p>
+    <div id="safeBanner" class="safe-banner">Safe Mode ON: paid generation disabled. Dry-runs still allowed.</div>
+    <button id="safeModeButton" class="safe-on">Shield Safe Mode ON</button>
+    <span id="badges"></span>
 
     <section class="grid">
       <div class="card">
@@ -43,10 +64,26 @@
         <textarea id="sceneIdea" placeholder="A young sea lion looks toward cinematic sunset surf..."></textarea>
 
         <label for="prompt">Final Seedance prompt</label>
+        <select id="promptPreset">
+          <option value="">Prompt preset...</option>
+          <option value="rescue">Rescue scene</option>
+          <option value="predator">Predator-prey near miss</option>
+          <option value="baby">Baby animal</option>
+          <option value="herd">Herd protection</option>
+          <option value="helicopter">Helicopter rescue</option>
+        </select>
         <textarea id="prompt" placeholder="Final production prompt. If empty, the scene idea is used."></textarea>
+        <div id="charCounter" class="small char-green">Characters: 0 / 3500</div>
+        <div id="promptWarning" class="small error"></div>
+        <button id="copyPromptButton">Copy final prompt</button>
+        <span id="copyStatus" class="small"></span>
 
         <label for="imageUrl">Reference image URL</label>
         <input id="imageUrl" placeholder="https://images.wildstoriestv.com/elephant_mud_master.png">
+        <div id="imageHostStatus" class="small"></div>
+        <img id="imagePreview" class="preview-img" alt="Reference image preview">
+        <div id="imagePreviewError" class="small error"></div>
+        <label class="small"><input id="imageHostOverride" type="checkbox"> I reviewed this non-WSTV image host for paid generation.</label>
 
         <div class="grid">
           <div>
@@ -59,24 +96,42 @@
           </div>
         </div>
 
-        <button class="primary" id="dryRunButton">Dry Run</button>
+        <button class="primary" id="dryRunButton">Dry Run (no cost)</button>
         <p class="small">Dry run validates inputs, including public image URL checks, and makes no paid BytePlus request.</p>
 
-        <label for="confirm">Paid confirmation</label>
-        <input id="confirm" placeholder="SUBMIT_ONE_PAID_TASK">
-        <button class="danger" id="generateButton" disabled>Generate Paid Video</button>
-        <p class="small warn">Generate is disabled until dry-run succeeds and exact confirmation is typed. Paid clicks disable immediately.</p>
+        <div id="paidZone" class="paid-zone" style="display:none">
+          <h2>Paid Zone</h2>
+          <p class="small warn">Paid generation may spend BytePlus credits. Dry-run first.</p>
+          <label for="confirm">Paid confirmation</label>
+          <input id="confirm" placeholder="SUBMIT_ONE_PAID_TASK">
+          <button class="danger" id="generateButton" disabled>SUBMIT PAID TASK</button>
+          <p class="small warn">Generate is disabled until dry-run succeeds and exact confirmation is typed. Paid clicks disable immediately.</p>
+        </div>
       </div>
 
       <div class="card">
         <h2>Status / Log</h2>
         <div id="status" class="status">Ready.</div>
-        <pre id="log"></pre>
+        <div id="errorBox" class="error"></div>
+        <details id="technicalDetails"><summary>Show technical details</summary><pre id="log"></pre></details>
         <h2>Downloaded MP4 path</h2>
         <pre id="mp4Path"></pre>
         <h2>Open video folder</h2>
         <pre id="videoFolder"></pre>
         <p class="small">Open this folder in Finder or run <code>open /Users/acharyabimal/Movies/WSTV/SeedanceVideos</code>.</p>
+        <button id="openVideoFolderButton">Open video folder</button>
+        <button id="openLatestVideoButton">Open latest video</button>
+        <button id="openThisVideoButton" style="display:none">Open this video</button>
+        <div id="openStatus" class="small"></div>
+        <h2>QA Checklist</h2>
+        <p class="small">Duration/resolution status appears after verification; checklist stays manual.</p>
+        <div id="verificationStatus" class="small">No verified video yet.</div>
+        <div class="qa">
+          <label><input type="checkbox" id="qaDuration"> Duration verified</label>
+          <label><input type="checkbox" id="qaResolution"> Resolution verified</label>
+          <label><input type="checkbox" id="qaOrientation"> Vertical 9:16 verified</label>
+          <label><input type="checkbox" id="qaLoop"> Loop ending clean</label>
+        </div>
       </div>
     </section>
 
@@ -116,7 +171,7 @@
       <h3>Recent paid history</h3>
       <table>
         <thead>
-          <tr><th>Date/time</th><th>Filename</th><th>Status</th><th>Tokens</th><th>Cost USD</th><th>Output path</th></tr>
+          <tr><th>Date/time</th><th>Filename</th><th>Status</th><th>Tokens (actual/est.)</th><th>Cost USD</th><th>Output path</th></tr>
         </thead>
         <tbody id="paidHistory"></tbody>
       </table>
@@ -130,10 +185,21 @@
 
   <script>
     const CONFIRM = "SUBMIT_ONE_PAID_TASK";
+    const PROMPT_LIMIT = 3500;
+    const WSTV_HOST = "images.wildstoriestv.com";
+    const PRESETS = {
+      rescue: "A cinematic WSTV wildlife rescue scene with a vulnerable animal in danger, careful human rescue action, emotional pacing, vertical 9:16 framing, realistic natural light, no gore, hopeful ending.",
+      predator: "A tense but non-graphic predator-prey near miss in wild habitat, fast cinematic camera movement, the prey escapes safely, dramatic natural sound, vertical 9:16 wildlife documentary style.",
+      baby: "A baby animal explores its habitat, stumbles gently, receives protection from its parent, warm emotional tone, realistic wildlife behavior, vertical 9:16 cinematic close-ups.",
+      herd: "A protective herd surrounds a vulnerable young animal during a tense wildlife moment, dust, movement, dramatic but safe action, vertical 9:16 cinematic documentary realism.",
+      helicopter: "A careful helicopter wildlife rescue operation in rugged terrain, professional responders, animal safety prioritized, wind and dust, vertical 9:16 cinematic realism, hopeful ending."
+    };
     const fields = {
       sceneIdea: document.getElementById("sceneIdea"),
       prompt: document.getElementById("prompt"),
+      promptPreset: document.getElementById("promptPreset"),
       imageUrl: document.getElementById("imageUrl"),
+      imageHostOverride: document.getElementById("imageHostOverride"),
       outputFilename: document.getElementById("outputFilename"),
       maxCost: document.getElementById("maxCost"),
       confirm: document.getElementById("confirm"),
@@ -144,11 +210,27 @@
     };
     const dryRunButton = document.getElementById("dryRunButton");
     const generateButton = document.getElementById("generateButton");
+    const safeModeButton = document.getElementById("safeModeButton");
+    const paidZone = document.getElementById("paidZone");
+    const safeBanner = document.getElementById("safeBanner");
+    const badgesEl = document.getElementById("badges");
     const statusEl = document.getElementById("status");
     const logEl = document.getElementById("log");
+    const errorBoxEl = document.getElementById("errorBox");
     const mp4PathEl = document.getElementById("mp4Path");
     const videoFolderEl = document.getElementById("videoFolder");
+    const charCounterEl = document.getElementById("charCounter");
+    const promptWarningEl = document.getElementById("promptWarning");
+    const imageHostStatusEl = document.getElementById("imageHostStatus");
+    const imagePreviewEl = document.getElementById("imagePreview");
+    const imagePreviewErrorEl = document.getElementById("imagePreviewError");
+    const copyPromptButton = document.getElementById("copyPromptButton");
+    const copyStatusEl = document.getElementById("copyStatus");
     const historyEl = document.getElementById("history");
+    const openVideoFolderButton = document.getElementById("openVideoFolderButton");
+    const openLatestVideoButton = document.getElementById("openLatestVideoButton");
+    const openThisVideoButton = document.getElementById("openThisVideoButton");
+    const openStatusEl = document.getElementById("openStatus");
     const saveBudgetButton = document.getElementById("saveBudgetButton");
     const refreshCostButton = document.getElementById("refreshCostButton");
     const resetBudgetButton = document.getElementById("resetBudgetButton");
@@ -158,6 +240,10 @@
     const costLedgerFolderEl = document.getElementById("costLedgerFolder");
     const paidHistoryEl = document.getElementById("paidHistory");
     let dryRunOk = false;
+    let safeMode = true;
+    let budgetBlocked = false;
+    let statusBadge = "READY";
+    let lastVideoPath = "";
 
     function payload() {
       return {
@@ -170,8 +256,54 @@
       };
     }
 
+    function finalPromptText() {
+      return fields.prompt.value || fields.sceneIdea.value || "";
+    }
+
+    function promptTooLong() {
+      return finalPromptText().length > PROMPT_LIMIT;
+    }
+
+    function imageHostWarningActive() {
+      const value = fields.imageUrl.value.trim();
+      if (!value) return false;
+      try {
+        const url = new URL(value);
+        return url.protocol === "https:" && url.hostname !== WSTV_HOST && url.hostname !== "wildstoriestv.com" && !url.hostname.endsWith(".wildstoriestv.com");
+      } catch {
+        return false;
+      }
+    }
+
+    function renderBadges(extra = []) {
+      const badges = [statusBadge];
+      if (safeMode) badges.push("SAFE MODE");
+      if (budgetBlocked) badges.push("BUDGET LOW");
+      for (const item of extra) badges.push(item);
+      badgesEl.innerHTML = badges.map(label => {
+        const key = label.toLowerCase().replaceAll(" ", "-");
+        const klass = label === "DRY RUN OK" || label === "PAID RECORDED" ? "ok" : label === "GENERATING" ? "generating" : label === "ERROR" ? "error" : label === "BUDGET LOW" ? "low" : label === "SAFE MODE" ? "safe" : "ready";
+        return `<span class="badge ${klass}" data-badge="${key}">${label}</span>`;
+      }).join("");
+    }
+
     function updateGenerateState() {
-      generateButton.disabled = !(dryRunOk && fields.confirm.value === CONFIRM);
+      const needsImageOverride = imageHostWarningActive() && !fields.imageHostOverride.checked;
+      generateButton.disabled = !!(
+        safeMode ||
+        !dryRunOk ||
+        fields.confirm.value !== CONFIRM ||
+        promptTooLong() ||
+        needsImageOverride ||
+        budgetBlocked
+      );
+      paidZone.style.display = safeMode ? "none" : "block";
+      safeBanner.textContent = safeMode
+        ? "Safe Mode ON: paid generation disabled. Dry-runs still allowed."
+        : "Safe Mode OFF: paid zone visible. Dry-run first.";
+      safeModeButton.textContent = safeMode ? "Shield Safe Mode ON" : "Safe Mode OFF";
+      safeModeButton.className = safeMode ? "safe-on" : "safe-off";
+      renderBadges();
     }
 
     async function postJSON(path, body) {
@@ -208,6 +340,7 @@
       fields.dailyBudget.value = settings.daily_budget_usd ?? "";
       fields.monthlyBudget.value = settings.monthly_budget_usd ?? "";
       costWarningsEl.textContent = (summary.warnings || []).join(" ");
+      budgetBlocked = (summary.warnings || []).length > 0;
       costVideoFolderEl.textContent = summary.video_folder || "";
       costLedgerFolderEl.textContent = summary.ledger_folder || "";
       costMetricsEl.innerHTML = [
@@ -220,14 +353,16 @@
         metric("Total tokens", summary.total_tokens_used ?? 0),
         metric("Avg / success", money(summary.average_cost_per_successful_video)),
         metric("Next estimate", money(summary.next_video_estimated_cost_usd)),
-        metric("More videos possible", summary.estimated_more_videos_possible ?? "unknown")
+        metric("Est. videos left", summary.estimated_more_videos_possible ?? "unknown")
       ].join("");
       paidHistoryEl.innerHTML = "";
       for (const item of summary.recent_paid_history || []) {
         const row = document.createElement("tr");
-        row.innerHTML = `<td>${item.timestamp || ""}</td><td>${item.output_filename || ""}</td><td>${item.status || ""}</td><td>${item.token_count || ""}</td><td>${item.calculated_cost_usd ?? ""}</td><td>${item.final_downloaded_mp4_path || ""}</td>`;
+        const tokenText = `${item.token_count || ""} (${item.token_source || "unknown"})`;
+        row.innerHTML = `<td>${item.timestamp || ""}</td><td>${item.output_filename || ""}</td><td>${item.status || ""}</td><td>${tokenText}</td><td>${item.calculated_cost_usd ?? ""}</td><td>${item.final_downloaded_mp4_path || ""}</td>`;
         paidHistoryEl.appendChild(row);
       }
+      updateGenerateState();
     }
 
     async function refreshCostSummary() {
@@ -235,12 +370,66 @@
       renderCostSummary(result.summary);
     }
 
+    async function refreshBudgetStatus() {
+      const result = await fetch("/api/budget_status").then(r => r.json());
+      if (result.summary) renderCostSummary(result.summary);
+      budgetBlocked = !!result.blocked;
+      updateGenerateState();
+    }
+
+    function updatePromptCounter() {
+      const length = finalPromptText().length;
+      charCounterEl.textContent = `Characters: ${length} / 3500`;
+      charCounterEl.className = "small " + (length < 3000 ? "char-green" : length <= 3400 ? "char-amber" : "char-red");
+      promptWarningEl.textContent = length > PROMPT_LIMIT ? "Prompt exceeds 3,500-character limit. Shorten before paid generation." : "";
+      updateGenerateState();
+    }
+
+    function updateImagePreview() {
+      const value = fields.imageUrl.value.trim();
+      imagePreviewEl.style.display = "none";
+      imagePreviewErrorEl.textContent = "";
+      imageHostStatusEl.textContent = "";
+      if (!value) {
+        updateGenerateState();
+        return;
+      }
+      try {
+        const url = new URL(value);
+        imageHostStatusEl.textContent = `Reference image host: ${url.hostname}`;
+        if (url.protocol !== "https:") {
+          imagePreviewErrorEl.textContent = "Preview requires HTTPS direct image URL.";
+          updateGenerateState();
+          return;
+        }
+        if (imageHostWarningActive()) {
+          imageHostStatusEl.textContent += " Warning: URL is not from images.wildstoriestv.com. Confirm before paid generation.";
+        }
+        imagePreviewEl.onload = () => { imagePreviewEl.style.display = "block"; };
+        imagePreviewEl.onerror = () => {
+          imagePreviewEl.style.display = "none";
+          imagePreviewErrorEl.textContent = "Image preview failed. Check the direct image URL.";
+        };
+        imagePreviewEl.src = value;
+      } catch {
+        imagePreviewErrorEl.textContent = "Image preview failed. Check the direct image URL.";
+      }
+      updateGenerateState();
+    }
+
     function showResult(result, action) {
       statusEl.textContent = result.ok ? `${action} succeeded.` : `${action} failed.`;
+      errorBoxEl.textContent = result.ok ? "" : (result.error || `${action} failed.`);
       logEl.textContent = result.log || result.error || "";
       mp4PathEl.textContent = result.mp4_path || "";
       videoFolderEl.textContent = result.video_folder || "/Users/acharyabimal/Movies/WSTV/SeedanceVideos";
+      if (result.mp4_path) {
+        lastVideoPath = result.mp4_path;
+        openThisVideoButton.style.display = "inline-block";
+      }
       renderCostSummary(result.cost_summary);
+      statusBadge = result.ok && action === "Dry run" ? "DRY RUN OK" : result.ok && action === "Paid generation" ? "PAID RECORDED" : result.ok ? "READY" : "ERROR";
+      renderBadges();
     }
 
     async function refreshHistory() {
@@ -256,7 +445,9 @@
     dryRunButton.addEventListener("click", async () => {
       dryRunOk = false;
       updateGenerateState();
+      statusBadge = "READY";
       statusEl.textContent = "Running dry run...";
+      errorBoxEl.textContent = "";
       logEl.textContent = "";
       mp4PathEl.textContent = "";
       videoFolderEl.textContent = "";
@@ -270,9 +461,14 @@
 
     generateButton.addEventListener("click", async () => {
       generateButton.disabled = true;
+      generateButton.textContent = "Submitting...";
+      statusBadge = "GENERATING";
+      renderBadges();
       statusEl.textContent = "Generating paid video...";
       const result = await postJSON("/api/generate", payload());
       showResult(result, "Paid generation");
+      if (result.ok) fields.confirm.value = "";
+      generateButton.textContent = "SUBMIT PAID TASK";
       dryRunOk = false;
       updateGenerateState();
       refreshHistory();
@@ -288,8 +484,37 @@
       const result = await postJSON("/api/budget-settings", {reset: true});
       renderCostSummary(result.summary);
     });
+    safeModeButton.addEventListener("click", () => {
+      safeMode = !safeMode;
+      updateGenerateState();
+    });
+    fields.promptPreset.addEventListener("change", () => {
+      if (PRESETS[fields.promptPreset.value]) fields.prompt.value = PRESETS[fields.promptPreset.value];
+      dryRunOk = false;
+      updatePromptCounter();
+    });
+    copyPromptButton.addEventListener("click", async () => {
+      await navigator.clipboard.writeText(finalPromptText());
+      copyStatusEl.textContent = "Prompt copied.";
+    });
+    openVideoFolderButton.addEventListener("click", async () => {
+      const result = await postJSON("/api/open-video-folder", {});
+      openStatusEl.textContent = result.ok ? `Opened: ${result.opened}` : result.error;
+    });
+    openLatestVideoButton.addEventListener("click", async () => {
+      const result = await postJSON("/api/open-latest-video", {});
+      openStatusEl.textContent = result.ok ? `Opened: ${result.opened}` : (result.error || "No generated video found yet.");
+    });
+    openThisVideoButton.addEventListener("click", async () => {
+      const result = await postJSON("/api/open-latest-video", {});
+      openStatusEl.textContent = result.ok ? `Opened: ${lastVideoPath || result.opened}` : (result.error || "No generated video found yet.");
+    });
     fields.costPeriod.addEventListener("change", refreshCostSummary);
     fields.confirm.addEventListener("input", updateGenerateState);
+    fields.imageHostOverride.addEventListener("change", updateGenerateState);
+    fields.imageUrl.addEventListener("input", updateImagePreview);
+    fields.prompt.addEventListener("input", () => { dryRunOk = false; updatePromptCounter(); });
+    fields.sceneIdea.addEventListener("input", () => { dryRunOk = false; updatePromptCounter(); });
     for (const key of ["sceneIdea", "prompt", "imageUrl", "outputFilename", "maxCost"]) {
       fields[key].addEventListener("input", () => {
         dryRunOk = false;
@@ -298,6 +523,10 @@
     }
     refreshHistory();
     refreshCostSummary();
+    refreshBudgetStatus();
+    updatePromptCounter();
+    updateImagePreview();
+    updateGenerateState();
   </script>
 </body>
 </html>

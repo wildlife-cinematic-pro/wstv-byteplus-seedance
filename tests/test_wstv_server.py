@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+import cost_tracker
 import wstv_server
 from common import ConfigError
 from generate_video import CONFIRMATION_TOKEN
@@ -144,11 +145,76 @@ def test_cost_summary_and_budget_settings_are_local(monkeypatch, tmp_path):
     assert not config.budget_settings_path.exists()
 
 
+def test_budget_insufficient_blocks_paid_before_subprocess(monkeypatch, tmp_path):
+    config = _server_config(tmp_path)
+    monkeypatch.setattr(wstv_server, "load_config", lambda require_key=False: config)
+    cost_tracker.save_budget_settings(
+        config,
+        {"total_budget_usd": 0.01, "daily_budget_usd": "", "monthly_budget_usd": ""},
+    )
+    called = False
+
+    def fake_run(*args, **kwargs):
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(wstv_server.subprocess, "run", fake_run)
+    with pytest.raises(ConfigError, match="Budget check blocked"):
+        wstv_server.run_pipeline_request(_request(confirm=CONFIRMATION_TOKEN), submit=True)
+    assert called is False
+
+
+def test_open_video_folder_and_latest_video_are_local_safe(monkeypatch, tmp_path):
+    config = _server_config(tmp_path)
+    monkeypatch.setattr(wstv_server, "load_config", lambda require_key=False: config)
+    opened = []
+    monkeypatch.setattr(wstv_server, "open_path", lambda path: opened.append(path) or {"opened": str(path)})
+
+    result = wstv_server.open_video_folder()
+    assert result["opened"] == str(config.downloads_dir.resolve())
+
+    with pytest.raises(ConfigError, match="No generated video"):
+        wstv_server.open_latest_video()
+
+    video = config.downloads_dir / "latest.mp4"
+    video.parent.mkdir(parents=True, exist_ok=True)
+    video.write_bytes(b"fake")
+    result = wstv_server.open_latest_video()
+    assert result["opened"].endswith("latest.mp4")
+
+
+def test_open_endpoint_rejects_non_local_client():
+    handler = object.__new__(wstv_server.DashboardHandler)
+    handler.client_address = ("192.0.2.10", 12345)
+    with pytest.raises(ConfigError, match="127.0.0.1"):
+        handler._require_local_client()
+
+
 def test_ui_requires_dry_run_and_confirmation_for_paid_button():
     html = Path("web/wstv_ui.html").read_text(encoding="utf-8")
-    assert "generateButton.disabled = !(dryRunOk && fields.confirm.value === CONFIRM)" in html
-    assert "Generate Paid Video" in html
-    assert "Dry Run" in html
+    assert 'id="paidZone" class="paid-zone" style="display:none"' in html
+    assert 'paidZone.style.display = safeMode ? "none" : "block"' in html
+    assert "Safe Mode ON: paid generation disabled. Dry-runs still allowed." in html
+    assert "generateButton.disabled = true;" in html
+    assert 'generateButton.textContent = "Submitting..."' in html
+    assert 'if (result.ok) fields.confirm.value = "";' in html
+    assert "promptTooLong()" in html
+    assert "Prompt exceeds 3,500-character limit. Shorten before paid generation." in html
+    assert "SUBMIT PAID TASK" in html
+    assert "Dry Run (no cost)" in html
     assert "Open video folder" in html
     assert "Cost / Budget Tracker" in html
+    assert "Reference image host:" in html
+    assert "imagePreview" in html
+    assert "Characters:" in html
+    assert "Loop ending clean" in html
+    assert 'id="qaDuration"> Duration verified' in html
+    assert '<input type="checkbox" checked' not in html
+    assert "max-height: 200px; overflow-y: auto" in html
+    assert "Est. videos left" in html
+    assert "Tokens (actual/est.)" in html
+    assert "/api/budget_status" in html
+    assert "/api/open-video-folder" in html
+    assert "/api/open-latest-video" in html
+    assert "Prompt copied." in html
     assert "BytePlus Console Billing remains the final source of truth" in html

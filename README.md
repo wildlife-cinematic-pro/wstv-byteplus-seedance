@@ -189,6 +189,17 @@ open /Users/acharyabimal/Movies/WSTV/SeedanceVideos
 
 It is not deployed publicly. See `docs/LOCAL_DASHBOARD.md`.
 
+Dashboard quick safety rules:
+
+- Dry Run first: use `Dry Run (no cost)` before any paid action.
+- Safe Mode ON hides the Paid Zone entirely and disables paid generation.
+- Paid Zone uses danger styling and requires exact `SUBMIT_ONE_PAID_TASK`.
+- The paid button disables immediately while submitting and clears the confirmation after a successful paid flow.
+- Prompt counter warns at 3,000+ characters and blocks paid submit above 3,500 characters.
+- Reference image preview requires HTTPS and warns when the host is not `images.wildstoriestv.com` or under `wildstoriestv.com`.
+- Budget warnings are checked server-side before paid submit.
+- Open video folder/open latest video actions are local-only.
+
 ### Cost / Budget Tracker
 
 The local dashboard keeps a private cost ledger at `data/wstv_cost_ledger.jsonl`. This file is gitignored. Dry-runs are free and are not counted. A paid generation is counted only after the paid task result is recorded by the local pipeline.
