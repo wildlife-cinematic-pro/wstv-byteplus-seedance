@@ -1,6 +1,7 @@
 {
-  "schema_status": "BLOCKED_OFFICIAL_PLAYGROUND_SAMPLE_REQUIRED",
-  "instructions": "Copy the current ModelArk Playground REST sample, remove secrets and signed URLs, then replace this file. Set schema_status to VERIFIED_OFFICIAL_PLAYGROUND_SAMPLE only after manual review.",
+  "schema_status": "VERIFIED_REDACTED_OFFICIAL_SAMPLE_SUBMIT_BLOCKED",
+  "source_file": "docs/official-rest-sample.redacted.txt",
+  "instructions": "This file is derived only from the redacted official sample. Paid submission remains blocked until schema, billing, and model submit gates are manually reviewed.",
   "must_not_contain": [
     "authorization header",
     "bearer token",
@@ -24,14 +25,32 @@
           "type": "image_url",
           "image_url": {
             "url": "REDACTED_IMAGE_URL"
-          }
+          },
+          "role": "reference_image"
         }
       ],
-      "resolution": "720p",
-      "ratio": "9:16",
-      "duration": 15,
-      "generate_audio": false,
+      "ratio": "16:9",
+      "duration": 11,
+      "generate_audio": true,
       "watermark": false
     }
-  }
+  },
+  "verified_fields": {
+    "create_task_endpoint_path": "/contents/generations/tasks",
+    "model_id": "dreamina-seedance-2-0-260128",
+    "content_array": "content is an array of typed media/text items",
+    "text_item": {
+      "type": "text",
+      "text": "string"
+    },
+    "image_url_item": {
+      "type": "image_url",
+      "image_url": {
+        "url": "string"
+      },
+      "role": "reference_image"
+    },
+    "response_task_id_field": "UNVERIFIED_NOT_PRESENT_IN_REDACTED_SAMPLE"
+  },
+  "submit_gate": "BLOCKED"
 }

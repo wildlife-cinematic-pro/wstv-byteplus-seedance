@@ -33,16 +33,20 @@ from common import (
 CONFIRMATION_TOKEN = "SUBMIT_ONE_PAID_TASK"
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Dry-run or submit one WSTV Seedance video task.")
     parser.add_argument("--prompt", help="Prompt text.")
     parser.add_argument("--prompt-file", help="Path to a prompt text file.")
     parser.add_argument("--image-url", help="Public URL for the approved master image.")
     parser.add_argument("--image-path", help="Local image path. Blocked until official upload/base64 flow is verified.")
+    parser.add_argument("--image-role", default="reference_image", help="Official role for --image-url. Default: reference_image.")
+    parser.add_argument("--reference-image-url", action="append", help="Additional official reference image URL. Repeatable.")
+    parser.add_argument("--reference-video-url", action="append", help="Official reference video URL. Repeatable.")
+    parser.add_argument("--reference-audio-url", action="append", help="Official reference audio URL. Repeatable.")
     parser.add_argument("--duration", type=int, default=15, help="Video duration in seconds. Default: 15.")
     parser.add_argument("--ratio", default="9:16", help="Aspect ratio. Default: 9:16.")
     parser.add_argument("--resolution", default="720p", help="Output resolution. Default: 720p.")
-    parser.add_argument("--generate-audio", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("--generate-audio", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--watermark", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--seed", type=int, help="Optional deterministic seed. Omit or use -1 for model-selected randomness.")
     parser.add_argument("--frames", type=int, help="Blocked by this toolkit; use --duration for cost clarity.")
@@ -53,7 +57,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-cost-usd", type=float, help="Required with --submit. Blocks submission above this estimate.")
     parser.add_argument("--confirm", help=f"Required with --submit. Must equal {CONFIRMATION_TOKEN}.")
     parser.add_argument("--allow-duplicate", action="store_true", help="Override duplicate fingerprint blocking.")
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 def save_preview(config: AppConfig, payload: dict, cost: dict, fingerprint: str, preview_out: str | None) -> str:
@@ -112,7 +116,14 @@ def main() -> int:
         config = load_config(require_key=args.submit)
         payload = build_create_payload(args, config)
         fingerprint = request_fingerprint(payload)
-        cost = estimate_cost_usd(config, payload["resolution"], payload["ratio"], payload["duration"])
+        input_has_video = any(item.get("type") == "video_url" for item in payload.get("content", []))
+        cost = estimate_cost_usd(
+            config,
+            payload["resolution"],
+            payload["ratio"],
+            payload["duration"],
+            input_has_video=input_has_video,
+        )
         preview_path = save_preview(config, payload, cost, fingerprint, args.preview_out)
         print_summary(payload, cost, preview_path)
         guard_submit(args, config, payload, cost, fingerprint)

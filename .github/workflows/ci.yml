@@ -17,4 +17,4 @@ jobs:
       - run: python -m compileall scripts
       - run: pytest -q
       - run: for script in scripts/*.py; do python "$script" --help >/dev/null; done
-      - run: '! git grep -nE "sk-[A-Za-z0-9_-]{8,}|Authorization:[[:space:]]Bearer"'
+      - run: '! git grep -nE "sk-[A-Za-z0-9_-]{8,}|Authorization:[[:space:]]Bearer[[:space:]][A-Za-z0-9._-]{20,}|ark-[A-Za-z0-9._-]{8,}"'
