@@ -9,6 +9,7 @@ dry-run preview
 -> private response save
 -> safe download
 -> ffprobe verification
+-> local cost ledger append
 ```
 
 Dry-run only by default:
@@ -53,5 +54,16 @@ Safety rules:
 - The pipeline intentionally does not expose `--allow-duplicate`.
 - Private full task responses are saved under `outputs/private-responses/`.
 - Generated videos and verification sidecars are saved under `/Users/acharyabimal/Movies/WSTV/SeedanceVideos/` by default.
+- Successful paid generations append safe cost metadata to `data/wstv_cost_ledger.jsonl`.
+- If `usage.completion_tokens` is present, cost uses actual tokens; otherwise it is labeled estimated.
+- Dry-runs do not append to the cost ledger.
 - Signed URLs, private task responses, and `.mp4` files must not be committed.
 - ffprobe verification is required for the production pipeline.
+
+Cost formula:
+
+```text
+tokens * rate_usd_per_million_tokens / 1000000
+```
+
+BytePlus Console Billing remains the final source of truth.

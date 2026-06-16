@@ -9,6 +9,7 @@ import time
 from pathlib import Path
 
 import check_task
+import cost_tracker
 import download_video
 import generate_video
 from common import (
@@ -229,6 +230,30 @@ def download_completed_video(config: AppConfig, response_path: Path, out_path: P
         raise ConfigError("Downloaded video failed verification: " + "; ".join(findings))
 
 
+def record_cost_entry(
+    config: AppConfig,
+    *,
+    payload: dict,
+    cost: dict,
+    completed: dict,
+    status: str,
+    out_path: Path,
+    task_id: str,
+    error_category: str | None = None,
+) -> bool:
+    entry = cost_tracker.ledger_entry(
+        config=config,
+        payload=payload,
+        estimated_cost=cost,
+        response=completed,
+        status=status,
+        output_path=out_path,
+        task_id=task_id,
+        error_category=error_category,
+    )
+    return cost_tracker.append_ledger_entry(config, entry)
+
+
 def run_pipeline(args: argparse.Namespace) -> int:
     config = load_config(require_key=args.submit)
     out_path = validate_output_path(config, args.out)
@@ -254,7 +279,31 @@ def run_pipeline(args: argparse.Namespace) -> int:
     )
     private_response_path = save_private_task_response(config, task_id, completed)
     print(f"Private completed response saved: {private_response_path}")
-    download_completed_video(config, private_response_path, out_path, args)
+    try:
+        download_completed_video(config, private_response_path, out_path, args)
+    except (ConfigError, RuntimeError, OSError) as exc:
+        recorded = record_cost_entry(
+            config,
+            payload=payload,
+            cost=cost,
+            completed=completed,
+            status="failed",
+            out_path=out_path,
+            task_id=task_id,
+            error_category="download_or_verification_failed",
+        )
+        print("Cost ledger: recorded failed paid attempt." if recorded else "Already recorded in cost ledger.")
+        raise exc
+    recorded = record_cost_entry(
+        config,
+        payload=payload,
+        cost=cost,
+        completed=completed,
+        status="ok",
+        out_path=out_path,
+        task_id=task_id,
+    )
+    print("Cost ledger: recorded paid generation." if recorded else "Already recorded in cost ledger.")
     print(f"Final MP4: {out_path}")
     return 0
 

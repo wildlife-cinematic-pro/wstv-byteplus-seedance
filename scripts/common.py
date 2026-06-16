@@ -25,6 +25,8 @@ DATA_DIR = PROJECT_ROOT / "data"
 OUTPUTS_DIR = PROJECT_ROOT / "outputs"
 DOWNLOADS_DIR = Path("/Users/acharyabimal/Movies/WSTV/SeedanceVideos")
 TASK_LOG_PATH = DATA_DIR / "tasks.jsonl"
+COST_LEDGER_PATH = DATA_DIR / "wstv_cost_ledger.jsonl"
+BUDGET_SETTINGS_PATH = DATA_DIR / "wstv_budget_settings.json"
 REQUEST_PREVIEW_DIR = OUTPUTS_DIR / "request-previews"
 RAW_RESPONSE_DIR = OUTPUTS_DIR / "raw-responses"
 PRIVATE_TASK_RESPONSE_DIR = OUTPUTS_DIR / "private-responses"
@@ -91,6 +93,8 @@ class AppConfig:
     cancel_path: str
     timeout_seconds: float
     task_log_path: Path
+    cost_ledger_path: Path
+    budget_settings_path: Path
     request_preview_dir: Path
     raw_response_dir: Path
     private_task_response_dir: Path
@@ -267,6 +271,8 @@ def load_config(require_key: bool = False) -> AppConfig:
         cancel_path=os.getenv("BYTEPLUS_CANCEL_TASK_PATH", defaults["cancel_path"]),
         timeout_seconds=float(defaults.get("timeout_seconds", 60)),
         task_log_path=config_path(defaults.get("task_log_path", "data/tasks.jsonl")),
+        cost_ledger_path=config_path(defaults.get("cost_ledger_path", "data/wstv_cost_ledger.jsonl")),
+        budget_settings_path=config_path(defaults.get("budget_settings_path", "data/wstv_budget_settings.json")),
         request_preview_dir=config_path(defaults.get("request_preview_dir", "outputs/request-previews")),
         raw_response_dir=config_path(defaults.get("raw_response_dir", "outputs/raw-responses")),
         private_task_response_dir=config_path(defaults.get(

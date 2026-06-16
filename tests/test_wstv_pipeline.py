@@ -20,6 +20,8 @@ def _config(tmp_path, api_key=None):
             "api_key": api_key,
             "api_key_source": "ARK_API_KEY" if api_key else None,
             "task_log_path": tmp_path / "data" / "tasks.jsonl",
+            "cost_ledger_path": tmp_path / "data" / "wstv_cost_ledger.jsonl",
+            "budget_settings_path": tmp_path / "data" / "wstv_budget_settings.json",
             "request_preview_dir": tmp_path / "outputs" / "request-previews",
             "raw_response_dir": tmp_path / "outputs" / "raw-responses",
             "private_task_response_dir": tmp_path / "outputs" / "private-responses",
@@ -70,6 +72,7 @@ def test_dry_run_does_not_call_network(monkeypatch, tmp_path, capsys):
     output = capsys.readouterr().out
     assert "No network request was made." in output
     assert called is False
+    assert not config.cost_ledger_path.exists()
 
 
 def test_dry_run_with_valid_image_url_does_not_call_byteplus(monkeypatch, tmp_path, capsys):
@@ -233,6 +236,9 @@ def test_full_submit_flow_is_offline_with_mocks(monkeypatch, tmp_path):
     assert requests == [("POST", "https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks")]
     assert downloaded["response_path"].parent == tmp_path / "outputs" / "private-responses"
     assert downloaded["out_path"].parent == tmp_path / "downloads"
+    ledger = common.read_jsonl(config.cost_ledger_path)
+    assert len(ledger) == 1
+    assert ledger[0]["status"] == "ok"
 
 
 def test_no_signed_urls_or_mp4_files_are_tracked():

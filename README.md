@@ -189,6 +189,26 @@ open /Users/acharyabimal/Movies/WSTV/SeedanceVideos
 
 It is not deployed publicly. See `docs/LOCAL_DASHBOARD.md`.
 
+### Cost / Budget Tracker
+
+The local dashboard keeps a private cost ledger at `data/wstv_cost_ledger.jsonl`. This file is gitignored. Dry-runs are free and are not counted. A paid generation is counted only after the paid task result is recorded by the local pipeline.
+
+Cost is calculated as:
+
+```text
+tokens * rate_usd_per_million_tokens / 1000000
+```
+
+When `usage.completion_tokens` is available, the ledger marks tokens as `actual`. Otherwise it uses the local estimate and marks tokens as `estimated`. The current verified estimator rate is `$7.00 per 1,000,000 output tokens`, but BytePlus Console Billing remains the final source of truth.
+
+To backfill a previously verified paid video from BytePlus Console usage, run the local-only helper with explicit confirmation:
+
+```bash
+python3 scripts/backfill_cost_ledger.py --confirm BACKFILL_VERIFIED_CONSOLE_COST
+```
+
+This records the verified `2026-06-16` `elephant-mud-test.mp4` usage entry with `324900` actual Console tokens and `$2.2743` calculated cost. It makes no BytePlus API request and blocks duplicate filename/date/token entries.
+
 ## Reference Image URLs
 
 Use public HTTPS direct image URLs only, for example:
@@ -269,7 +289,7 @@ After any paid task, compare:
 - Console usage/billing page
 - downloaded output path
 
-Record only safe metadata in `data/tasks.jsonl`; never store API keys or full authorization headers.
+Record only safe metadata in `data/tasks.jsonl` and `data/wstv_cost_ledger.jsonl`; never store API keys, full authorization headers, signed output URLs, or private response JSON in the ledger.
 
 ## Revoke A Leaked Key
 

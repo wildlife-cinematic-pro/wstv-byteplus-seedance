@@ -12,6 +12,8 @@ Rules:
 - Save generated/downloaded videos under `/Users/acharyabimal/Movies/WSTV/SeedanceVideos/` by default.
 - Do not commit signed output URLs, private responses, `.mp4` files, or verification sidecars.
 - Use one explicit download command per completed task.
+- The one-command pipeline records paid cost in `data/wstv_cost_ledger.jsonl` only after the paid task result is recorded.
+- Standalone download commands do not submit new paid tasks.
 
 From a completed private response:
 
@@ -36,3 +38,5 @@ python3 scripts/download_video.py \
 ```
 
 The downloader streams to a temporary file, rejects HTML or JSON error pages, atomically renames the file, verifies non-zero size, and writes local verification metadata.
+
+The local dashboard budget panel reads the cost ledger and calculates spend from token count and the verified local rate. BytePlus Console Billing remains the final source of truth.

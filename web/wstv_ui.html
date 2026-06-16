@@ -11,7 +11,7 @@
     h1 { margin: 0 0 8px; font-size: 32px; }
     p { color: #aeb9d8; }
     label { display: block; margin: 16px 0 8px; font-weight: 700; }
-    input, textarea { box-sizing: border-box; width: 100%; border: 1px solid #32405f; border-radius: 10px; background: #121a31; color: #f6f8ff; padding: 12px; font: inherit; }
+    input, textarea, select { box-sizing: border-box; width: 100%; border: 1px solid #32405f; border-radius: 10px; background: #121a31; color: #f6f8ff; padding: 12px; font: inherit; }
     textarea { min-height: 112px; resize: vertical; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
     .card { border: 1px solid #263555; border-radius: 18px; background: #11182b; padding: 20px; box-shadow: 0 18px 50px rgba(0,0,0,.25); }
@@ -24,6 +24,12 @@
     .warn { color: #ffd166; }
     .history li { margin: 10px 0; color: #ccd6f6; }
     .small { font-size: 13px; color: #9eaccd; }
+    .metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .metric { background: #0a1021; border: 1px solid #263555; border-radius: 12px; padding: 12px; }
+    .metric strong { display: block; color: #ffffff; font-size: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { border-bottom: 1px solid #263555; padding: 8px; text-align: left; vertical-align: top; }
+    th { color: #d8e2ff; }
   </style>
 </head>
 <body>
@@ -75,6 +81,48 @@
     </section>
 
     <section class="card" style="margin-top:18px">
+      <h2>Cost / Budget Tracker</h2>
+      <p class="small">Dashboard cost is calculated from local ledger and verified token rate. BytePlus Console Billing remains the final source of truth.</p>
+      <div class="grid">
+        <div>
+          <label for="totalBudget">Total budget USD</label>
+          <input id="totalBudget" type="number" min="0" step="0.01" value="50.00">
+        </div>
+        <div>
+          <label for="dailyBudget">Optional daily budget USD</label>
+          <input id="dailyBudget" type="number" min="0" step="0.01" placeholder="optional">
+        </div>
+        <div>
+          <label for="monthlyBudget">Optional monthly budget USD</label>
+          <input id="monthlyBudget" type="number" min="0" step="0.01" placeholder="optional">
+        </div>
+        <div>
+          <label for="costPeriod">Filter</label>
+          <select id="costPeriod">
+            <option value="today">Today</option>
+            <option value="month">This month</option>
+            <option value="all" selected>All time</option>
+          </select>
+        </div>
+      </div>
+      <button class="primary" id="saveBudgetButton">Save Budget</button>
+      <button id="refreshCostButton">Refresh Cost Summary</button>
+      <button id="resetBudgetButton">Reset Local Budget Setting Only</button>
+      <div id="costWarnings" class="warn"></div>
+      <div class="metrics" id="costMetrics"></div>
+      <h3>Manual tools</h3>
+      <p class="small">Open video folder: <code id="costVideoFolder">/Users/acharyabimal/Movies/WSTV/SeedanceVideos</code></p>
+      <p class="small">Open local ledger folder: <code id="costLedgerFolder">data</code></p>
+      <h3>Recent paid history</h3>
+      <table>
+        <thead>
+          <tr><th>Date/time</th><th>Filename</th><th>Status</th><th>Tokens</th><th>Cost USD</th><th>Output path</th></tr>
+        </thead>
+        <tbody id="paidHistory"></tbody>
+      </table>
+    </section>
+
+    <section class="card" style="margin-top:18px">
       <h2>Recent history</h2>
       <ul id="history" class="history"></ul>
     </section>
@@ -88,7 +136,11 @@
       imageUrl: document.getElementById("imageUrl"),
       outputFilename: document.getElementById("outputFilename"),
       maxCost: document.getElementById("maxCost"),
-      confirm: document.getElementById("confirm")
+      confirm: document.getElementById("confirm"),
+      totalBudget: document.getElementById("totalBudget"),
+      dailyBudget: document.getElementById("dailyBudget"),
+      monthlyBudget: document.getElementById("monthlyBudget"),
+      costPeriod: document.getElementById("costPeriod")
     };
     const dryRunButton = document.getElementById("dryRunButton");
     const generateButton = document.getElementById("generateButton");
@@ -97,6 +149,14 @@
     const mp4PathEl = document.getElementById("mp4Path");
     const videoFolderEl = document.getElementById("videoFolder");
     const historyEl = document.getElementById("history");
+    const saveBudgetButton = document.getElementById("saveBudgetButton");
+    const refreshCostButton = document.getElementById("refreshCostButton");
+    const resetBudgetButton = document.getElementById("resetBudgetButton");
+    const costMetricsEl = document.getElementById("costMetrics");
+    const costWarningsEl = document.getElementById("costWarnings");
+    const costVideoFolderEl = document.getElementById("costVideoFolder");
+    const costLedgerFolderEl = document.getElementById("costLedgerFolder");
+    const paidHistoryEl = document.getElementById("paidHistory");
     let dryRunOk = false;
 
     function payload() {
@@ -123,11 +183,64 @@
       return await response.json();
     }
 
+    function money(value) {
+      if (value === null || value === undefined || value === "") return "not set";
+      return `$${Number(value).toFixed(4)}`;
+    }
+
+    function metric(label, value) {
+      return `<div class="metric"><span>${label}</span><strong>${value}</strong></div>`;
+    }
+
+    function budgetPayload() {
+      return {
+        total_budget_usd: fields.totalBudget.value,
+        daily_budget_usd: fields.dailyBudget.value,
+        monthly_budget_usd: fields.monthlyBudget.value,
+        period: fields.costPeriod.value
+      };
+    }
+
+    function renderCostSummary(summary) {
+      if (!summary) return;
+      const settings = summary.budget_settings || {};
+      fields.totalBudget.value = settings.total_budget_usd ?? "";
+      fields.dailyBudget.value = settings.daily_budget_usd ?? "";
+      fields.monthlyBudget.value = settings.monthly_budget_usd ?? "";
+      costWarningsEl.textContent = (summary.warnings || []).join(" ");
+      costVideoFolderEl.textContent = summary.video_folder || "";
+      costLedgerFolderEl.textContent = summary.ledger_folder || "";
+      costMetricsEl.innerHTML = [
+        metric("Total budget", money(settings.total_budget_usd)),
+        metric("Total spent", money(summary.total_spent_usd)),
+        metric("Remaining budget", money(summary.remaining_budget_usd)),
+        metric("Paid videos", summary.paid_videos_generated ?? 0),
+        metric("Successful", summary.successful_paid_videos ?? 0),
+        metric("Failed attempts", summary.failed_paid_attempts ?? 0),
+        metric("Total tokens", summary.total_tokens_used ?? 0),
+        metric("Avg / success", money(summary.average_cost_per_successful_video)),
+        metric("Next estimate", money(summary.next_video_estimated_cost_usd)),
+        metric("More videos possible", summary.estimated_more_videos_possible ?? "unknown")
+      ].join("");
+      paidHistoryEl.innerHTML = "";
+      for (const item of summary.recent_paid_history || []) {
+        const row = document.createElement("tr");
+        row.innerHTML = `<td>${item.timestamp || ""}</td><td>${item.output_filename || ""}</td><td>${item.status || ""}</td><td>${item.token_count || ""}</td><td>${item.calculated_cost_usd ?? ""}</td><td>${item.final_downloaded_mp4_path || ""}</td>`;
+        paidHistoryEl.appendChild(row);
+      }
+    }
+
+    async function refreshCostSummary() {
+      const result = await fetch(`/api/cost-summary?period=${encodeURIComponent(fields.costPeriod.value)}`).then(r => r.json());
+      renderCostSummary(result.summary);
+    }
+
     function showResult(result, action) {
       statusEl.textContent = result.ok ? `${action} succeeded.` : `${action} failed.`;
       logEl.textContent = result.log || result.error || "";
       mp4PathEl.textContent = result.mp4_path || "";
       videoFolderEl.textContent = result.video_folder || "/Users/acharyabimal/Movies/WSTV/SeedanceVideos";
+      renderCostSummary(result.cost_summary);
     }
 
     async function refreshHistory() {
@@ -152,6 +265,7 @@
       showResult(result, "Dry run");
       updateGenerateState();
       refreshHistory();
+      refreshCostSummary();
     });
 
     generateButton.addEventListener("click", async () => {
@@ -162,8 +276,19 @@
       dryRunOk = false;
       updateGenerateState();
       refreshHistory();
+      refreshCostSummary();
     });
 
+    saveBudgetButton.addEventListener("click", async () => {
+      const result = await postJSON("/api/budget-settings", budgetPayload());
+      renderCostSummary(result.summary);
+    });
+    refreshCostButton.addEventListener("click", refreshCostSummary);
+    resetBudgetButton.addEventListener("click", async () => {
+      const result = await postJSON("/api/budget-settings", {reset: true});
+      renderCostSummary(result.summary);
+    });
+    fields.costPeriod.addEventListener("change", refreshCostSummary);
     fields.confirm.addEventListener("input", updateGenerateState);
     for (const key of ["sceneIdea", "prompt", "imageUrl", "outputFilename", "maxCost"]) {
       fields[key].addEventListener("input", () => {
@@ -172,6 +297,7 @@
       });
     }
     refreshHistory();
+    refreshCostSummary();
   </script>
 </body>
 </html>
