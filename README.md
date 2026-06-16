@@ -126,11 +126,11 @@ python3 scripts/cost_calculator.py \
 
 The estimate is not final billing. Confirm actual spend in BytePlus Console and task `usage`.
 
-## One-Task Submission Process
+## Controlled One-Task Response Capture
 
-Paid submission remains blocked until `docs/official-rest-sample.redacted.json` exists and is marked verified.
+Paid submission remains blocked until request schema, billing, and model gates are manually approved. The first paid create-task call is only for capturing and redacting the official response body so the task ID field can be verified.
 
-When you are ready for exactly one paid task:
+Do not run this command until `scripts/doctor.py` shows the expected manual approval state and you have confirmed the budget in BytePlus Console:
 
 ```bash
 python3 scripts/generate_video.py \
@@ -141,10 +141,13 @@ python3 scripts/generate_video.py \
   --resolution 720p \
   --max-cost-usd 3 \
   --confirm SUBMIT_ONE_PAID_TASK \
+  --capture-create-response \
   --submit
 ```
 
-No automatic retry is allowed. If a submit call fails or times out, check the local task log and BytePlus Console before trying again.
+The command saves a redacted request preview and a redacted create-task response capture. It does not auto-poll or auto-download. No automatic retry is allowed. If a submit call fails or times out, check the local task log and BytePlus Console before trying again.
+
+See `docs/ONE_PAID_RESPONSE_CAPTURE.md`.
 
 ## Task Status Process
 

@@ -24,6 +24,7 @@ from common import (
     request_fingerprint,
     request_json,
     require_verified_schema,
+    save_create_response_capture,
     save_sanitized_response,
     utc_now,
     write_json,
@@ -56,6 +57,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--submit", action="store_true", help="Actually submit one paid task. Default is dry-run only.")
     parser.add_argument("--max-cost-usd", type=float, help="Required with --submit. Blocks submission above this estimate.")
     parser.add_argument("--confirm", help=f"Required with --submit. Must equal {CONFIRMATION_TOKEN}.")
+    parser.add_argument(
+        "--capture-create-response",
+        action="store_true",
+        help="Required with --submit while create-task response task ID is still being verified.",
+    )
     parser.add_argument("--allow-duplicate", action="store_true", help="Override duplicate fingerprint blocking.")
     return parser.parse_args(argv)
 
@@ -105,6 +111,8 @@ def guard_submit(args: argparse.Namespace, config: AppConfig, payload: dict, cos
         raise ConfigError(f"Estimated cost ${estimated:.4f} exceeds --max-cost-usd ${args.max_cost_usd:.4f}.")
     if args.confirm != CONFIRMATION_TOKEN:
         raise ConfigError(f"--confirm must equal {CONFIRMATION_TOKEN}.")
+    if not args.capture_create_response:
+        raise ConfigError("--capture-create-response is required for the controlled one-task response capture flow.")
     duplicate = find_duplicate_submission(config, fingerprint)
     if duplicate and not args.allow_duplicate:
         raise ConfigError("Duplicate active/recent request fingerprint found. Use --allow-duplicate only after review.")
@@ -149,11 +157,37 @@ def main() -> int:
         )
         url = build_url(config, config.create_path)
         data = request_json("POST", url, config.api_key or "", config.timeout_seconds, json=payload)
+        capture_path = save_create_response_capture(
+            config,
+            local_request_id=local_request_id,
+            fingerprint=fingerprint,
+            payload=payload,
+            cost=cost,
+            response=data,
+        )
         parsed = parse_task_response(data)
         task_id = parsed.get("id")
         if not task_id:
-            save_sanitized_response(config, "unknown-task", data)
-            raise RuntimeError("Could not find verified task id field 'id' in response.")
+            append_jsonl(
+                config.task_log_path,
+                {
+                    "local_request_id": local_request_id,
+                    "request_fingerprint": fingerprint,
+                    "created_at": utc_now(),
+                    "model": payload["model"],
+                    "safe_input_identifier": input_identifier(payload),
+                    "task_id": None,
+                    "status": "response_captured_task_id_unverified",
+                    "estimated_cost": cost,
+                    "actual_usage": None,
+                    "downloaded_output_path": None,
+                    "error_category": "task_id_unverified",
+                    "capture_path": str(capture_path),
+                },
+            )
+            print(f"Create-task response captured for review: {capture_path}")
+            print("Task ID field is still unverified. No polling or download was started.")
+            return 0
         save_sanitized_response(config, str(task_id), data)
         append_jsonl(
             config.task_log_path,
@@ -169,9 +203,12 @@ def main() -> int:
                 "actual_usage": parsed.get("usage"),
                 "downloaded_output_path": None,
                 "error_category": None,
+                "capture_path": str(capture_path),
             },
         )
-        print(f"Task submitted: {task_id}")
+        print(f"Create-task response captured for review: {capture_path}")
+        print(f"Task ID candidate: {task_id}")
+        print("No polling or download was started.")
         return 0
     except (ConfigError, SchemaBlockedError, RuntimeError) as exc:
         print(f"Error: {exc}", file=sys.stderr)

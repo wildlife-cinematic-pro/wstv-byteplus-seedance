@@ -85,6 +85,8 @@ def main() -> int:
         if config.schema_sample_path.exists():
             try:
                 sample = read_json(config.schema_sample_path)
+                verified_fields = sample.get("verified_fields", {}) if isinstance(sample, dict) else {}
+                response_task_id_field = str(verified_fields.get("response_task_id_field", "UNVERIFIED"))
                 if sample.get("schema_status") == "VERIFIED_OFFICIAL_PLAYGROUND_SAMPLE":
                     checks.append(result("PASS", "Official schema fixture", str(config.schema_sample_path)))
                 else:
@@ -100,6 +102,20 @@ def main() -> int:
                         )
                     )
                     blocked = True
+                request_schema_status = "verified" if str(sample.get("schema_status", "")).startswith("VERIFIED_REDACTED_") else "blocked"
+                checks.append(result("PASS" if request_schema_status == "verified" else "BLOCKED", "Request schema verified", request_schema_status))
+                if response_task_id_field.startswith("UNVERIFIED"):
+                    checks.append(
+                        result(
+                            "BLOCKED",
+                            "Response task ID field",
+                            response_task_id_field,
+                            "Run exactly one approved response-capture submission later, then review the captured response.",
+                        )
+                    )
+                    blocked = True
+                else:
+                    checks.append(result("PASS", "Response task ID field", response_task_id_field))
             except ConfigError as exc:
                 checks.append(result("FAIL", "Official schema fixture", str(exc)))
                 failed = True
@@ -117,6 +133,7 @@ def main() -> int:
     probe = ffprobe_path()
     checks.append(result("PASS" if probe else "BLOCKED", "ffprobe", probe or "not found", "Install ffmpeg for stronger video verification."))
     checks.append(result("PASS", "Paid submission default", "locked unless --submit plus all gates pass"))
+    checks.append(result("PASS", "Paid response capture gate", "requires --submit, --max-cost-usd, --confirm, --capture-create-response, API key, schema gate, duplicate check"))
 
     print("WSTV Seedance Doctor")
     for status, name, evidence, action in checks:
