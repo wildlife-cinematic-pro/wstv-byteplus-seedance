@@ -4,13 +4,9 @@ This is a safety-first Python CLI toolkit for preparing 15-second vertical 9:16 
 
 ## Current Readiness Status
 
-Status: **BLOCKED FOR PAID SUBMISSION** until you add a redacted official Playground REST sample at:
+Status: **CONTROLLED RESPONSE CAPTURE ONLY** for the verified model `dreamina-seedance-2-0-260128`.
 
-```text
-docs/official-rest-sample.redacted.json
-```
-
-Dry runs, local validation, cost previews, tests, and documentation are ready. A real paid create-task request is locked by default and requires `--submit`, `--max-cost-usd`, `--confirm SUBMIT_ONE_PAID_TASK`, a local `ARK_API_KEY`, duplicate-check pass, writable task log, and the verified redacted sample file.
+Dry runs, local validation, cost previews, tests, and documentation are ready. A real paid create-task request is locked by default and requires `--submit`, `--capture-create-response`, `--max-cost-usd`, `--confirm SUBMIT_ONE_PAID_TASK`, a local `ARK_API_KEY`, duplicate-check pass, writable task log, and the verified redacted sample file. The response task ID field remains unverified until one manually approved response capture is reviewed.
 
 No command in the normal setup makes a paid API call.
 
@@ -96,7 +92,7 @@ Local-only check, no API request:
 python3 scripts/doctor.py
 ```
 
-Expected before adding the official sample/key: `BLOCKED`, not unsafe success.
+Expected before adding a local key or captured response: `BLOCKED`, not unsafe success.
 
 ## Dry-Run Example
 
@@ -128,7 +124,7 @@ The estimate is not final billing. Confirm actual spend in BytePlus Console and 
 
 ## Controlled One-Task Response Capture
 
-Paid submission remains blocked until request schema, billing, and model gates are manually approved. The first paid create-task call is only for capturing and redacting the official response body so the task ID field can be verified.
+Production task submission, polling, and download remain blocked until the response task ID field is verified. The first paid create-task call is allowed only as a manually approved response-capture flow for `dreamina-seedance-2-0-260128`.
 
 Do not run this command until `scripts/doctor.py` shows the expected manual approval state and you have confirmed the budget in BytePlus Console:
 

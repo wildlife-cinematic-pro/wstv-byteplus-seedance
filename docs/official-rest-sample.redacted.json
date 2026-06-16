@@ -1,7 +1,7 @@
 {
-  "schema_status": "VERIFIED_REDACTED_OFFICIAL_SAMPLE_SUBMIT_BLOCKED",
+  "schema_status": "VERIFIED_REDACTED_OFFICIAL_SAMPLE_CONTROLLED_CAPTURE",
   "source_file": "docs/official-rest-sample.redacted.txt",
-  "instructions": "This file is derived only from the redacted official sample. Paid submission remains blocked until schema, billing, and model submit gates are manually reviewed.",
+  "instructions": "This file is derived only from the redacted official sample. Controlled paid response capture is allowed only for the verified model when all explicit submit gates pass; response task ID remains unverified until one captured response is reviewed.",
   "must_not_contain": [
     "authorization header",
     "bearer token",
@@ -52,5 +52,5 @@
     },
     "response_task_id_field": "UNVERIFIED_NOT_PRESENT_IN_REDACTED_SAMPLE"
   },
-  "submit_gate": "BLOCKED"
+  "submit_gate": "CONTROLLED_CAPTURE_ONLY"
 }

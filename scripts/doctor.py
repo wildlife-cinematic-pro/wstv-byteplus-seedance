@@ -87,7 +87,10 @@ def main() -> int:
                 sample = read_json(config.schema_sample_path)
                 verified_fields = sample.get("verified_fields", {}) if isinstance(sample, dict) else {}
                 response_task_id_field = str(verified_fields.get("response_task_id_field", "UNVERIFIED"))
-                if sample.get("schema_status") == "VERIFIED_OFFICIAL_PLAYGROUND_SAMPLE":
+                if sample.get("schema_status") in {
+                    "VERIFIED_OFFICIAL_PLAYGROUND_SAMPLE",
+                    "VERIFIED_REDACTED_OFFICIAL_SAMPLE_CONTROLLED_CAPTURE",
+                }:
                     checks.append(result("PASS", "Official schema fixture", str(config.schema_sample_path)))
                 else:
                     action = "Keep paid submission blocked until schema and billing gates are manually approved."
@@ -104,6 +107,14 @@ def main() -> int:
                     blocked = True
                 request_schema_status = "verified" if str(sample.get("schema_status", "")).startswith("VERIFIED_REDACTED_") else "blocked"
                 checks.append(result("PASS" if request_schema_status == "verified" else "BLOCKED", "Request schema verified", request_schema_status))
+                checks.append(
+                    result(
+                        "PASS" if config.model.supports_submit else "BLOCKED",
+                        "Model controlled submit enabled",
+                        f"{config.model_id}: {config.model.status}",
+                        "" if config.model.supports_submit else "Keep this model blocked until its official sample is reviewed.",
+                    )
+                )
                 if response_task_id_field.startswith("UNVERIFIED"):
                     checks.append(
                         result(

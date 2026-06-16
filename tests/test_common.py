@@ -59,6 +59,21 @@ def test_submission_schema_gate_blocks_without_verified_fixture(tmp_path):
         common.require_verified_schema(blocked)
 
 
+def test_verified_model_allows_controlled_capture_schema_gate():
+    config = common.load_config(require_key=False)
+    assert config.model.model_id == "dreamina-seedance-2-0-260128"
+    assert config.model.supports_submit is True
+    common.require_verified_schema(config)
+
+
+def test_fast_model_remains_blocked_for_submit():
+    config = common.load_config(require_key=False)
+    fast = config.models["dreamina-seedance-2-0-fast-260128"]
+    patched = config.__class__(**{**config.__dict__, "model_id": fast.model_id})
+    with pytest.raises(common.SchemaBlockedError, match="model is not enabled"):
+        common.require_verified_schema(patched)
+
+
 def test_duplicate_blocking_reads_jsonl(tmp_path):
     config = common.load_config(require_key=False)
     task_log = tmp_path / "tasks.jsonl"
