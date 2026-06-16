@@ -88,6 +88,8 @@ def main() -> int:
     if config:
         for name, path in (
             ("Task log directory", config.task_log_path.parent),
+            ("Cost ledger directory", config.cost_ledger_path.parent),
+            ("Budget settings directory", config.budget_settings_path.parent),
             ("Output directory", config.outputs_dir),
             ("Private task response directory", config.private_task_response_dir),
         ):

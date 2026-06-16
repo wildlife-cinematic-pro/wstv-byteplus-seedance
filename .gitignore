@@ -8,6 +8,8 @@ venv/
 *.pyc
 .DS_Store
 data/tasks.jsonl
+data/wstv_cost_ledger.jsonl
+data/wstv_budget_settings.json
 data/dashboard/
 data/dashboard_history.json
 outputs/

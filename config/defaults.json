@@ -7,6 +7,8 @@
   "cancel_path": "/contents/generations/tasks/{id}",
   "timeout_seconds": 60,
   "task_log_path": "data/tasks.jsonl",
+  "cost_ledger_path": "data/wstv_cost_ledger.jsonl",
+  "budget_settings_path": "data/wstv_budget_settings.json",
   "request_preview_dir": "outputs/request-previews",
   "raw_response_dir": "outputs/raw-responses",
   "private_task_response_dir": "outputs/private-responses",

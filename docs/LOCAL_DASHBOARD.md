@@ -46,6 +46,52 @@ open /Users/acharyabimal/Movies/WSTV/SeedanceVideos
 
 To use a different local non-cloud folder, set `WSTV_VIDEO_OUTPUT_DIR` before starting the dashboard. Avoid iCloud, Dropbox, and Google Drive folders unless you deliberately want generated video files synced.
 
+## Cost / Budget Tracker
+
+The dashboard includes a local-only `Cost / Budget Tracker` panel. Budget settings are stored locally in:
+
+```text
+data/wstv_budget_settings.json
+```
+
+Paid generation cost entries are appended to:
+
+```text
+data/wstv_cost_ledger.jsonl
+```
+
+Both files are gitignored. The ledger stores safe metadata only: timestamp, status, model, duration, resolution, aspect ratio, audio setting, output filename, final local MP4 path, token count, token source, verified rate, calculated cost, image URL host, and optional task ID. It does not store API keys, signed output URLs, full image URLs, private task response JSON, or `.mp4` files.
+
+Cost is calculated with:
+
+```text
+tokens * rate_usd_per_million_tokens / 1000000
+```
+
+If `usage.completion_tokens` is available, the dashboard records `token_source = actual`. If not, it records the local estimate with `token_source = estimated`. Dry-runs do not append to the ledger and do not count as paid videos. Paid generation is counted only after the paid task result is recorded; duplicate task/result entries are not double-counted.
+
+The dashboard shows total spent, remaining budget, paid video count, successful/failed paid attempts, total tokens, average cost per successful video, next estimated cost, estimated remaining videos, today/month/all-time filters, and budget warnings.
+
+BytePlus Console Billing remains the final source of truth.
+
+### Manual Backfill For Previous Paid Videos
+
+If a paid video was generated before the cost tracker existed, backfill it from verified BytePlus Console usage with:
+
+```bash
+python3 scripts/backfill_cost_ledger.py --confirm BACKFILL_VERIFIED_CONSOLE_COST
+```
+
+The default backfill records the verified `2026-06-16` `elephant-mud-test.mp4` entry:
+
+- tokens: `324900`
+- token source: `actual_from_console`
+- rate: `$7.00 per 1,000,000 output tokens`
+- calculated cost: `$2.2743`
+- source note: `BytePlus Console usage screenshot`
+
+The helper is local-only, makes no BytePlus API request, stores no signed URLs or private JSON, and blocks duplicate filename/date/token entries.
+
 Safety rules:
 
 - The server binds only to `127.0.0.1`.
@@ -59,6 +105,8 @@ Safety rules:
 - Duplicate blocking remains inside `scripts/wstv_pipeline.py`.
 - Temporary prompt files are stored under gitignored `data/dashboard/`.
 - Dashboard history is stored under gitignored `data/dashboard_history.json`.
+- Cost ledger is stored under gitignored `data/wstv_cost_ledger.jsonl`.
+- Budget settings are stored under gitignored `data/wstv_budget_settings.json`.
 - Private task responses stay under `outputs/private-responses/`.
 - Task logs stay under `data/`.
 

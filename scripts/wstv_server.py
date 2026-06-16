@@ -15,7 +15,9 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qs, urlparse
 
+import cost_tracker
 from common import PROJECT_ROOT, ConfigError, load_config, redact_text, safe_url_for_logs, utc_now, write_json
 from generate_video import CONFIRMATION_TOKEN
 
@@ -29,6 +31,7 @@ HISTORY_PATH = PROJECT_ROOT / "data" / "dashboard_history.json"
 MAX_BODY_BYTES = 64 * 1024
 SAFE_FILENAME_RE = re.compile(r"[^A-Za-z0-9._-]+")
 URL_RE = re.compile(r"https?://[^\s\"'<>]+")
+VALID_COST_PERIODS = {"today", "month", "all"}
 
 
 @dataclass(frozen=True)
@@ -160,6 +163,7 @@ def run_pipeline_request(request: DashboardRequest, *, submit: bool) -> dict[str
         "log": log,
         "mp4_path": str(output_path_for(request.output_filename)) if ok and submit else "",
         "video_folder": str(load_config(require_key=False).downloads_dir.expanduser().resolve()),
+        "cost_summary": cost_summary("all"),
         "timestamp": utc_now(),
     }
     append_history(request, result)
@@ -188,6 +192,24 @@ def append_history(request: DashboardRequest, result: dict[str, Any]) -> None:
     }
     history.insert(0, entry)
     write_json(HISTORY_PATH, history[:25])
+
+
+def cost_summary(period: str = "all") -> dict[str, Any]:
+    if period not in VALID_COST_PERIODS:
+        raise ConfigError("Cost period must be today, month, or all.")
+    return cost_tracker.budget_summary(load_config(require_key=False), period=period)
+
+
+def save_budget(data: dict[str, Any]) -> dict[str, Any]:
+    config = load_config(require_key=False)
+    settings = cost_tracker.save_budget_settings(config, data)
+    return cost_tracker.budget_summary(config, period=str(data.get("period") or "all"), budget_settings=settings)
+
+
+def reset_budget() -> dict[str, Any]:
+    config = load_config(require_key=False)
+    settings = cost_tracker.reset_budget_settings(config)
+    return cost_tracker.budget_summary(config, period="all", budget_settings=settings)
 
 
 class DashboardHandler(BaseHTTPRequestHandler):
@@ -224,17 +246,28 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return data
 
     def do_GET(self) -> None:
-        if self.path in {"/", "/index.html"}:
+        parsed = urlparse(self.path)
+        if parsed.path in {"/", "/index.html"}:
             self._send_file(UI_PATH, "text/html; charset=utf-8")
             return
-        if self.path == "/api/history":
+        if parsed.path == "/api/history":
             self._send_json({"ok": True, "history": read_history()})
+            return
+        if parsed.path == "/api/cost-summary":
+            period = parse_qs(parsed.query).get("period", ["all"])[0]
+            self._send_json({"ok": True, "summary": cost_summary(period)})
             return
         self._send_json({"ok": False, "error": "Not found."}, HTTPStatus.NOT_FOUND)
 
     def do_POST(self) -> None:
         try:
             data = self._read_json_body()
+            if self.path == "/api/budget-settings":
+                if data.get("reset") is True:
+                    self._send_json({"ok": True, "summary": reset_budget()})
+                    return
+                self._send_json({"ok": True, "summary": save_budget(data)})
+                return
             request = dashboard_request(data)
             if self.path == "/api/dry-run":
                 self._send_json(run_pipeline_request(request, submit=False))

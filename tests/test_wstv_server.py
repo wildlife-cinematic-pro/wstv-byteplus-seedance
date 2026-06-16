@@ -35,6 +35,8 @@ def _server_config(tmp_path):
         **{
             **config.__dict__,
             "downloads_dir": tmp_path / "Movies" / "WSTV" / "SeedanceVideos",
+            "cost_ledger_path": tmp_path / "data" / "wstv_cost_ledger.jsonl",
+            "budget_settings_path": tmp_path / "data" / "wstv_budget_settings.json",
         }
     )
 
@@ -124,9 +126,29 @@ def test_run_pipeline_request_sanitizes_logs_and_history(monkeypatch, tmp_path):
     assert result["video_folder"] == str(config.downloads_dir)
 
 
+def test_cost_summary_and_budget_settings_are_local(monkeypatch, tmp_path):
+    config = _server_config(tmp_path)
+    monkeypatch.setattr(wstv_server, "load_config", lambda require_key=False: config)
+    summary = wstv_server.save_budget(
+        {
+            "total_budget_usd": "12.50",
+            "daily_budget_usd": "",
+            "monthly_budget_usd": "40",
+            "period": "all",
+        }
+    )
+    assert summary["budget_settings"]["total_budget_usd"] == 12.5
+    assert config.budget_settings_path.exists()
+    reset = wstv_server.reset_budget()
+    assert reset["budget_settings"]["total_budget_usd"] == 50.0
+    assert not config.budget_settings_path.exists()
+
+
 def test_ui_requires_dry_run_and_confirmation_for_paid_button():
     html = Path("web/wstv_ui.html").read_text(encoding="utf-8")
     assert "generateButton.disabled = !(dryRunOk && fields.confirm.value === CONFIRM)" in html
     assert "Generate Paid Video" in html
     assert "Dry Run" in html
     assert "Open video folder" in html
+    assert "Cost / Budget Tracker" in html
+    assert "BytePlus Console Billing remains the final source of truth" in html
