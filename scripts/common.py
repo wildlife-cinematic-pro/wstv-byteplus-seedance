@@ -513,6 +513,22 @@ def extract_task_id(data: dict[str, Any]) -> str | None:
     return str(value) if value else None
 
 
+def collect_task_id_candidates(data: Any, path: str = "$", _depth: int = 0) -> list[dict[str, str]]:
+    if _depth > 20:
+        return []
+    candidates: list[dict[str, str]] = []
+    if isinstance(data, dict):
+        for key, value in data.items():
+            child_path = f"{path}.{key}"
+            if key in {"id", "task_id", "taskId"} and value not in (None, ""):
+                candidates.append({"path": child_path, "field": key, "value": str(value)})
+            candidates.extend(collect_task_id_candidates(value, child_path, _depth + 1))
+    elif isinstance(data, list):
+        for index, item in enumerate(data):
+            candidates.extend(collect_task_id_candidates(item, f"{path}[{index}]", _depth + 1))
+    return candidates
+
+
 def parse_task_response(data: dict[str, Any]) -> dict[str, Any]:
     status = str(data.get("status", "unknown")).lower()
     content = data.get("content") if isinstance(data.get("content"), dict) else {}
@@ -536,6 +552,33 @@ def parse_task_response(data: dict[str, Any]) -> dict[str, Any]:
 def save_sanitized_response(config: AppConfig, task_id: str, data: dict[str, Any]) -> Path:
     path = config.raw_response_dir / f"{task_id}.sanitized.json"
     write_json(path, redact_json(data))
+    return path
+
+
+def save_create_response_capture(
+    config: AppConfig,
+    *,
+    local_request_id: str,
+    fingerprint: str,
+    payload: dict[str, Any],
+    cost: dict[str, Any],
+    response: dict[str, Any],
+) -> Path:
+    capture = {
+        "capture_type": "create_task_response",
+        "captured_at": utc_now(),
+        "local_request_id": local_request_id,
+        "request_fingerprint": fingerprint,
+        "model": payload.get("model"),
+        "estimated_cost": cost,
+        "redacted_request_preview": redact_json(payload),
+        "redacted_create_task_response": redact_json(response),
+        "task_id_field_candidates": collect_task_id_candidates(response),
+        "response_task_id_status": "UNVERIFIED_PENDING_HUMAN_REVIEW",
+        "no_auto_poll_or_download": True,
+    }
+    path = config.outputs_dir / "create-response-captures" / f"{local_request_id}.json"
+    write_json(path, capture)
     return path
 
 

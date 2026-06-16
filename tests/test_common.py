@@ -74,6 +74,29 @@ def test_task_response_unknown_status_is_preserved():
     assert parsed["video_url"] is None
 
 
+def test_collect_task_id_candidates():
+    candidates = common.collect_task_id_candidates({"data": {"task_id": "task_redacted_123"}})
+    assert candidates == [{"path": "$.data.task_id", "field": "task_id", "value": "task_redacted_123"}]
+
+
+def test_save_create_response_capture(tmp_path):
+    config = common.load_config(require_key=False)
+    patched = config.__class__(**{**config.__dict__, "outputs_dir": tmp_path / "outputs"})
+    response = json.loads((Path(__file__).parent / "fixtures" / "create_task_response.redacted.json").read_text())
+    path = common.save_create_response_capture(
+        patched,
+        local_request_id="local-test",
+        fingerprint="fp-test",
+        payload={"model": "dreamina-seedance-2-0-260128", "content": [{"type": "text", "text": "prompt"}]},
+        cost={"status": "ESTIMATED", "estimated_cost_usd": 1.23},
+        response=response,
+    )
+    saved = json.loads(path.read_text())
+    assert saved["model"] == "dreamina-seedance-2-0-260128"
+    assert saved["task_id_field_candidates"][0]["field"] == "id"
+    assert saved["no_auto_poll_or_download"] is True
+
+
 def test_cost_estimate_model_specific():
     config = common.load_config(require_key=False)
     estimate = common.estimate_cost_usd(config, "720p", "9:16", 15)

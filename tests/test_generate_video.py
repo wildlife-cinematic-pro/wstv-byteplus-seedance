@@ -19,6 +19,7 @@ def _args(**overrides):
         "submit": False,
         "max_cost_usd": None,
         "confirm": None,
+        "capture_create_response": False,
         "allow_duplicate": False,
     }
     base.update(overrides)
@@ -54,5 +55,19 @@ def test_submit_rejects_cost_above_limit(monkeypatch):
             submit_ready,
             {},
             {"estimated_cost_usd": 2.0},
+            "fp",
+        )
+
+
+def test_submit_requires_capture_response_flag(monkeypatch):
+    config = common.load_config(require_key=False)
+    submit_ready = config.__class__(**{**config.__dict__, "api_key": "test-key", "api_key_source": "ARK_API_KEY"})
+    monkeypatch.setattr(generate_video, "require_verified_schema", lambda _config: None)
+    with pytest.raises(common.ConfigError, match="capture-create-response"):
+        generate_video.guard_submit(
+            _args(submit=True, max_cost_usd=2.0, confirm=generate_video.CONFIRMATION_TOKEN),
+            submit_ready,
+            {},
+            {"estimated_cost_usd": 1.0},
             "fp",
         )
