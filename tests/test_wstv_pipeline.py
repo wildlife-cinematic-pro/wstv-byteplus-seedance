@@ -38,6 +38,8 @@ def _args(tmp_path, **overrides):
         "prompt_file": str(prompt),
         "out": str(tmp_path / "downloads" / "example.mp4"),
         "image_url": None,
+        "image_url_2": None,
+        "ack_storyboard_risk": False,
         "duration": 15,
         "ratio": "9:16",
         "resolution": "720p",
@@ -96,6 +98,118 @@ def test_dry_run_with_valid_image_url_does_not_call_byteplus(monkeypatch, tmp_pa
 
     assert "No network request was made." in capsys.readouterr().out
     assert byteplus_called is False
+
+
+def test_one_image_builds_old_request_shape(monkeypatch, tmp_path):
+    config = _config(tmp_path)
+    monkeypatch.setattr(common, "validate_public_image_url", lambda *args, **kwargs: {"content_type": "image/png"})
+    monkeypatch.setattr(wstv_pipeline, "load_config", lambda require_key=False: config)
+
+    payload = common.build_create_payload(
+        wstv_pipeline.generation_args(
+            _args(tmp_path, image_url="https://images.wildstoriestv.com/master.png")
+        ),
+        config,
+    )
+
+    image_items = [item for item in payload["content"] if item["type"] == "image_url"]
+    assert image_items == [
+        {
+            "type": "image_url",
+            "image_url": {"url": "https://images.wildstoriestv.com/master.png"},
+            "role": "reference_image",
+        }
+    ]
+
+
+def test_two_images_build_separate_items_in_order(monkeypatch, tmp_path, capsys):
+    config = _config(tmp_path)
+    monkeypatch.setattr(common, "validate_public_image_url", lambda *args, **kwargs: {"content_type": "image/png"})
+    monkeypatch.setattr(wstv_pipeline, "load_config", lambda require_key=False: config)
+
+    args = _args(
+        tmp_path,
+        image_url="https://images.wildstoriestv.com/master.png",
+        image_url_2="https://images.wildstoriestv.com/storyboard.png",
+    )
+    payload = common.build_create_payload(wstv_pipeline.generation_args(args), config)
+    image_items = [item for item in payload["content"] if item["type"] == "image_url"]
+
+    assert [item["image_url"]["url"] for item in image_items] == [
+        "https://images.wildstoriestv.com/master.png",
+        "https://images.wildstoriestv.com/storyboard.png",
+    ]
+    assert all(item["role"] == "reference_image" for item in image_items)
+
+    assert wstv_pipeline.run_pipeline(args) == 0
+    output = capsys.readouterr().out
+    assert "Reference images: 2" in output
+    assert "Storyboard warning" in output
+    assert "No network request was made." in output
+
+
+def test_invalid_second_image_url_rejected_before_paid_call(monkeypatch, tmp_path):
+    config = _config(tmp_path, api_key="test-key")
+    byteplus_called = False
+
+    def fake_request(*args, **kwargs):
+        nonlocal byteplus_called
+        byteplus_called = True
+
+    monkeypatch.setattr(wstv_pipeline, "load_config", lambda require_key=False: config)
+    monkeypatch.setattr(wstv_pipeline, "request_json", fake_request)
+
+    with pytest.raises(common.ConfigError, match="--image-url-2 must use https"):
+        wstv_pipeline.run_pipeline(
+            _args(
+                tmp_path,
+                image_url="https://images.wildstoriestv.com/master.png",
+                image_url_2="http://images.wildstoriestv.com/storyboard.png",
+                submit=True,
+                max_cost_usd=3.0,
+                confirm=generate_video.CONFIRMATION_TOKEN,
+                ack_storyboard_risk=True,
+            )
+        )
+
+    assert byteplus_called is False
+
+
+def test_comma_separated_reference_url_rejected(tmp_path):
+    with pytest.raises(common.ConfigError, match="one URL only"):
+        wstv_pipeline.generation_args(
+            _args(
+                tmp_path,
+                image_url="https://images.wildstoriestv.com/a.png,https://images.wildstoriestv.com/b.png",
+            )
+        )
+
+
+def test_paid_with_second_image_requires_storyboard_ack(monkeypatch, tmp_path):
+    config = _config(tmp_path, api_key="test-key")
+    called = False
+
+    def fake_request(*args, **kwargs):
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(common, "validate_public_image_url", lambda *args, **kwargs: {"content_type": "image/png"})
+    monkeypatch.setattr(wstv_pipeline, "load_config", lambda require_key=False: config)
+    monkeypatch.setattr(wstv_pipeline, "request_json", fake_request)
+
+    with pytest.raises(common.ConfigError, match="ack-storyboard-risk"):
+        wstv_pipeline.run_pipeline(
+            _args(
+                tmp_path,
+                image_url="https://images.wildstoriestv.com/master.png",
+                image_url_2="https://images.wildstoriestv.com/storyboard.png",
+                submit=True,
+                max_cost_usd=3.0,
+                confirm=generate_video.CONFIRMATION_TOKEN,
+            )
+        )
+
+    assert called is False
 
 
 def test_paid_submit_invalid_image_url_blocks_before_paid_call(monkeypatch, tmp_path):

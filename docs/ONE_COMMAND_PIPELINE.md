@@ -20,12 +20,36 @@ python3 scripts/wstv_pipeline.py \
   --out example.mp4
 ```
 
+Optional two-reference-image dry-run:
+
+```bash
+python3 scripts/wstv_pipeline.py \
+  --prompt-file data/example.txt \
+  --out example.mp4 \
+  --image-url https://images.wildstoriestv.com/elephant_mud_master.png \
+  --image-url-2 https://images.wildstoriestv.com/elephant_storyboard.png
+```
+
 Paid submit requires all explicit gates:
 
 ```bash
 python3 scripts/wstv_pipeline.py \
   --prompt-file data/example.txt \
   --out example.mp4 \
+  --submit \
+  --max-cost-usd 3 \
+  --confirm SUBMIT_ONE_PAID_TASK
+```
+
+If `--image-url-2` is used for paid generation, add the explicit storyboard-risk acknowledgement:
+
+```bash
+python3 scripts/wstv_pipeline.py \
+  --prompt-file data/example.txt \
+  --out example.mp4 \
+  --image-url https://images.wildstoriestv.com/elephant_mud_master.png \
+  --image-url-2 https://images.wildstoriestv.com/elephant_storyboard.png \
+  --ack-storyboard-risk \
   --submit \
   --max-cost-usd 3 \
   --confirm SUBMIT_ONE_PAID_TASK
@@ -45,10 +69,18 @@ Defaults:
 - polling interval: `30`
 - polling timeout: `900`
 - video output folder: `/Users/acharyabimal/Movies/WSTV/SeedanceVideos/`
+- reference image 1: master identity/environment anchor
+- reference image 2: optional storyboard/motion guide only
 
 Safety rules:
 
 - Dry-run prints `No network request was made.`
+- Dry-run preview prints the reference image count and host-only image summary.
+- One reference image is the safest production default.
+- Two reference images are supported cautiously using two separate `image_url` content items.
+- 3-5 reference images are not enabled for paid workflow yet.
+- Comma-separated image URLs are rejected.
+- Storyboard/grid/captions may be copied by the model; paid generation with `--image-url-2` requires `--ack-storyboard-risk`.
 - Paid submit still uses the same gates as `scripts/generate_video.py`.
 - Duplicate blocking is enabled by default.
 - The pipeline intentionally does not expose `--allow-duplicate`.

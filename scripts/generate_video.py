@@ -26,6 +26,7 @@ from common import (
     require_verified_schema,
     save_create_response_capture,
     save_sanitized_response,
+    url_host_for_logs,
     utc_now,
     write_json,
 )
@@ -84,12 +85,22 @@ def save_preview(config: AppConfig, payload: dict, cost: dict, fingerprint: str,
 
 
 def print_summary(payload: dict, cost: dict, preview_path: str) -> None:
+    image_items = [
+        item for item in payload.get("content", [])
+        if isinstance(item, dict) and item.get("type") == "image_url"
+    ]
     print("Dry run: no network request was made.")
     print(f"Model: {payload['model']}")
     print(f"Duration: {payload['duration']}s")
     print(f"Resolution: {payload['resolution']}")
     print(f"Aspect ratio: {payload['ratio']}")
     print(f"Generate audio: {payload['generate_audio']}")
+    print(f"Reference images: {len(image_items)}")
+    for index, item in enumerate(image_items, 1):
+        host = url_host_for_logs(item.get("image_url", {}).get("url", ""))
+        print(f"Reference image {index} host: {host or 'unknown'}")
+    if len(image_items) > 1:
+        print("Storyboard warning: storyboard/grid/captions may be copied by the model. Use with caution.")
     print(f"Estimated maximum cost: {json.dumps(cost, ensure_ascii=False)}")
     print(f"Redacted request preview: {preview_path}")
 

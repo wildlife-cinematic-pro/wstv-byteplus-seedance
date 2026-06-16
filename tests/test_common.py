@@ -53,6 +53,43 @@ def test_request_construction_uses_official_content_schema(monkeypatch):
     assert "input_image" not in payload
 
 
+def test_request_construction_supports_two_reference_images(monkeypatch):
+    monkeypatch.setattr(common, "validate_public_image_url", lambda *args, **kwargs: {"content_type": "image/jpeg"})
+    config = common.load_config(require_key=False)
+    args = argparse.Namespace(
+        prompt="A clean wildlife video",
+        prompt_file=None,
+        image_url="https://images.wildstoriestv.com/master.jpg",
+        image_path=None,
+        image_role="reference_image",
+        reference_image_url=["https://images.wildstoriestv.com/storyboard.jpg"],
+        reference_video_url=None,
+        reference_audio_url=None,
+        duration=15,
+        ratio="9:16",
+        resolution="720p",
+        generate_audio=True,
+        watermark=False,
+        seed=None,
+        frames=None,
+        execution_expires_after=None,
+        safety_identifier=None,
+    )
+    payload = common.build_create_payload(args, config)
+    image_items = [item for item in payload["content"] if item["type"] == "image_url"]
+    assert [item["image_url"]["url"] for item in image_items] == [
+        "https://images.wildstoriestv.com/master.jpg",
+        "https://images.wildstoriestv.com/storyboard.jpg",
+    ]
+
+
+def test_image_url_structure_rejects_comma_separated_values():
+    with pytest.raises(common.ConfigError, match="one URL only"):
+        common.validate_public_image_url_structure(
+            "https://images.wildstoriestv.com/a.jpg,https://images.wildstoriestv.com/b.jpg"
+        )
+
+
 def test_submission_schema_gate_blocks_without_verified_fixture(tmp_path):
     config = common.load_config(require_key=False)
     blocked = config.__class__(**{**config.__dict__, "schema_sample_path": tmp_path / "missing.json"})

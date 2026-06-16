@@ -26,6 +26,7 @@ from common import (
     input_identifier,
     load_config,
     new_local_request_id,
+    normalize_reference_image_urls,
     parse_task_response,
     request_fingerprint,
     request_json,
@@ -47,6 +48,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Output filename or path under the configured video output directory.",
     )
     parser.add_argument("--image-url", help="Optional approved reference image URL.")
+    parser.add_argument("--image-url-2", help="Optional storyboard or motion-guide reference image URL.")
+    parser.add_argument(
+        "--ack-storyboard-risk",
+        action="store_true",
+        help="Required with --submit when --image-url-2 is used.",
+    )
     parser.add_argument("--duration", type=int, default=15)
     parser.add_argument("--ratio", default="9:16")
     parser.add_argument("--resolution", default="720p")
@@ -64,13 +71,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def generation_args(args: argparse.Namespace) -> argparse.Namespace:
+    image_url, reference_image_urls = normalize_reference_image_urls(args.image_url, args.image_url_2)
     return argparse.Namespace(
         prompt=None,
         prompt_file=args.prompt_file,
-        image_url=args.image_url,
+        image_url=image_url,
         image_path=None,
         image_role="reference_image",
-        reference_image_url=None,
+        reference_image_url=reference_image_urls,
         reference_video_url=None,
         reference_audio_url=None,
         duration=args.duration,
@@ -257,6 +265,8 @@ def record_cost_entry(
 def run_pipeline(args: argparse.Namespace) -> int:
     config = load_config(require_key=args.submit)
     out_path = validate_output_path(config, args.out)
+    if args.submit and args.image_url_2 and not args.ack_storyboard_risk:
+        raise ConfigError("--ack-storyboard-risk is required with --submit when --image-url-2 is used.")
     payload = build_create_payload(generation_args(args), config)
     fingerprint = request_fingerprint(payload)
     cost = estimate_cost_usd(config, payload["resolution"], payload["ratio"], payload["duration"])
