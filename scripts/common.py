@@ -470,19 +470,44 @@ def validate_public_image_url_structure(value: str, label: str = "--image-url") 
     return value.strip()
 
 
-def normalize_reference_image_urls(primary: str | None, secondary: str | None = None) -> tuple[str | None, list[str]]:
-    """Return primary image URL plus optional second reference image URL.
+MAX_REFERENCE_IMAGES = 9
 
-    The official redacted Playground sample verifies two separate image_url
-    content items. This helper intentionally caps WSTV production flow at two.
+
+def normalize_reference_image_urls(
+    primary: str | None,
+    extras: "str | Iterable[str] | None" = None,
+) -> tuple[str | None, list[str]]:
+    """Return the primary image URL plus an ordered list of additional reference
+    image URLs.
+
+    Image 1 is the master identity image; images 2..N are additional reference
+    images. The flow is capped at ``MAX_REFERENCE_IMAGES`` total. ``extras`` may
+    be a single URL string (legacy single second image) or an iterable of URLs.
     """
     primary_value = (primary or "").strip() or None
-    secondary_value = (secondary or "").strip() or None
     if primary_value:
         validate_public_image_url_structure(primary_value, "--image-url")
-    if secondary_value:
-        validate_public_image_url_structure(secondary_value, "--image-url-2")
-    return primary_value, [secondary_value] if secondary_value else []
+
+    if extras is None:
+        extra_inputs: list[str | None] = []
+    elif isinstance(extras, str):
+        extra_inputs = [extras]
+    else:
+        extra_inputs = list(extras)
+
+    extra_values: list[str] = []
+    for raw in extra_inputs:
+        value = (raw or "").strip()
+        if not value:
+            continue
+        label = f"--image-url-{len(extra_values) + 2}"
+        validate_public_image_url_structure(value, label)
+        extra_values.append(value)
+
+    total = (1 if primary_value else 0) + len(extra_values)
+    if total > MAX_REFERENCE_IMAGES:
+        raise ConfigError(f"At most {MAX_REFERENCE_IMAGES} reference images are allowed.")
+    return primary_value, extra_values
 
 
 def _close_response(response: Any) -> None:

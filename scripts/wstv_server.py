@@ -35,7 +35,13 @@ from generate_video import CONFIRMATION_TOKEN
 HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
 WEB_ROOT = PROJECT_ROOT / "web"
-UI_PATH = WEB_ROOT / "wstv_ui.html"
+# Built React/Vite single-file bundle; falls back to the legacy static page.
+DIST_INDEX = WEB_ROOT / "dist" / "index.html"
+LEGACY_UI_PATH = WEB_ROOT / "wstv_ui.html"
+
+
+def dashboard_ui_path() -> Path:
+    return DIST_INDEX if DIST_INDEX.exists() else LEGACY_UI_PATH
 DASHBOARD_DATA_DIR = PROJECT_ROOT / "data" / "dashboard"
 HISTORY_PATH = PROJECT_ROOT / "data" / "dashboard_history.json"
 MAX_BODY_BYTES = 64 * 1024
@@ -47,12 +53,16 @@ PROMPT_CHARACTER_LIMIT = 3500
 MANUAL_USAGE_CONFIRMATION = "ADD_CONSOLE_USAGE"
 
 
+MAX_DASHBOARD_REFERENCE_IMAGES = 9
+
+
 @dataclass(frozen=True)
 class DashboardRequest:
     scene_idea: str
     prompt: str
     image_url: str
     image_url_2: str
+    extra_image_urls: tuple[str, ...]
     output_filename: str
     resolution: str
     max_cost_usd: float
@@ -101,12 +111,25 @@ def dashboard_request(data: dict[str, Any]) -> DashboardRequest:
     scene_idea = str(data.get("scene_idea") or "").strip()
     if not prompt and not scene_idea:
         raise ConfigError("Enter a final prompt or scene idea.")
-    image_url = str(data.get("image_url") or "").strip()
-    image_url_2 = str(data.get("image_url_2") or "").strip()
-    if image_url:
-        validate_public_image_url_structure(image_url, "Reference Image URL 1")
-    if image_url_2:
-        validate_public_image_url_structure(image_url_2, "Reference Image URL 2")
+
+    raw_list = data.get("image_urls")
+    if isinstance(raw_list, list):
+        cleaned = [str(item or "").strip() for item in raw_list]
+        cleaned = [item for item in cleaned if item]
+        image_url = cleaned[0] if cleaned else ""
+        image_url_2 = cleaned[1] if len(cleaned) > 1 else ""
+        extra_image_urls = tuple(cleaned[2:])
+    else:
+        image_url = str(data.get("image_url") or "").strip()
+        image_url_2 = str(data.get("image_url_2") or "").strip()
+        extra_image_urls = ()
+
+    ordered_images = [url for url in (image_url, image_url_2, *extra_image_urls) if url]
+    if len(ordered_images) > MAX_DASHBOARD_REFERENCE_IMAGES:
+        raise ConfigError(f"At most {MAX_DASHBOARD_REFERENCE_IMAGES} reference images are allowed.")
+    for index, value in enumerate(ordered_images, start=1):
+        validate_public_image_url_structure(value, f"Reference Image URL {index}")
+
     resolution = str(data.get("resolution") or "720p").strip()
     if resolution not in VALID_DASHBOARD_RESOLUTIONS:
         raise ConfigError("Resolution must be 720p or 1080p.")
@@ -115,6 +138,7 @@ def dashboard_request(data: dict[str, Any]) -> DashboardRequest:
         prompt=prompt or scene_idea,
         image_url=image_url,
         image_url_2=image_url_2,
+        extra_image_urls=extra_image_urls,
         output_filename=sanitize_output_filename(str(data.get("output_filename") or "wstv-output.mp4")),
         resolution=resolution,
         max_cost_usd=max_cost,
@@ -147,8 +171,10 @@ def pipeline_command(request: DashboardRequest, *, submit: bool) -> list[str]:
         cmd.extend(["--image-url", request.image_url])
     if request.image_url_2:
         cmd.extend(["--image-url-2", request.image_url_2])
-        if request.storyboard_ack:
-            cmd.append("--ack-storyboard-risk")
+    for extra in request.extra_image_urls:
+        cmd.extend(["--reference-image-url", extra])
+    if (request.image_url_2 or request.extra_image_urls) and request.storyboard_ack:
+        cmd.append("--ack-storyboard-risk")
     if submit:
         cmd.extend(
             [
@@ -180,8 +206,10 @@ def run_pipeline_request(request: DashboardRequest, *, submit: bool) -> dict[str
     if submit and request.confirm != CONFIRMATION_TOKEN:
         raise ConfigError(f"Confirmation must equal {CONFIRMATION_TOKEN}.")
     if submit:
-        if request.image_url_2 and not request.storyboard_ack:
-            raise ConfigError("Storyboard acknowledgement is required before paid generation with Reference Image 2.")
+        if (request.image_url_2 or request.extra_image_urls) and not request.storyboard_ack:
+            raise ConfigError(
+                "Storyboard acknowledgement is required before paid generation with additional reference images."
+            )
         if len(request.prompt) > PROMPT_CHARACTER_LIMIT:
             raise ConfigError("Prompt exceeds 3,500-character limit. Shorten before paid generation.")
         status = budget_status(request.resolution)
@@ -235,7 +263,9 @@ def append_history(request: DashboardRequest, result: dict[str, Any]) -> None:
         "mp4_path": result.get("mp4_path", ""),
         "image_url_host": safe_url_for_logs(request.image_url) if request.image_url else "",
         "image_url_2_host": safe_url_for_logs(request.image_url_2) if request.image_url_2 else "",
-        "reference_image_count": 2 if request.image_url_2 else 1 if request.image_url else 0,
+        "reference_image_count": len(
+            [url for url in (request.image_url, request.image_url_2, *request.extra_image_urls) if url]
+        ),
         "resolution": request.resolution,
     }
     history.insert(0, entry)
@@ -389,6 +419,63 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _serve_video(self, name: str) -> None:
+        """Stream an mp4 from the configured downloads dir, with Range support
+        so the browser <video> element can seek. Local content only."""
+        try:
+            safe_name = sanitize_output_filename(name)
+        except ConfigError:
+            self._send_json({"ok": False, "error": "Invalid video name."}, HTTPStatus.BAD_REQUEST)
+            return
+        folder = load_config(require_key=False).downloads_dir.expanduser().resolve()
+        path = (folder / safe_name).resolve()
+        if folder != path and folder not in path.parents:
+            self._send_json({"ok": False, "error": "Forbidden."}, HTTPStatus.FORBIDDEN)
+            return
+        if not path.is_file():
+            self._send_json({"ok": False, "error": "Video not found."}, HTTPStatus.NOT_FOUND)
+            return
+
+        file_size = path.stat().st_size
+        start, end = 0, file_size - 1
+        status = HTTPStatus.OK
+        range_header = self.headers.get("Range", "")
+        if range_header.startswith("bytes="):
+            spec = range_header[len("bytes="):].split(",")[0].strip()
+            first, _, last = spec.partition("-")
+            try:
+                if first == "":
+                    start = max(0, file_size - int(last))
+                    end = file_size - 1
+                else:
+                    start = int(first)
+                    end = int(last) if last else file_size - 1
+            except ValueError:
+                start, end = 0, file_size - 1
+            else:
+                end = min(end, file_size - 1)
+                if start > end or start >= file_size:
+                    self.send_response(HTTPStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
+                    self.send_header("Content-Range", f"bytes */{file_size}")
+                    self.send_header("Content-Length", "0")
+                    self.end_headers()
+                    return
+                status = HTTPStatus.PARTIAL_CONTENT
+
+        length = end - start + 1
+        with path.open("rb") as handle:
+            handle.seek(start)
+            body = handle.read(length)
+        self.send_response(status)
+        self.send_header("Content-Type", "video/mp4")
+        self.send_header("Accept-Ranges", "bytes")
+        self.send_header("Content-Length", str(len(body)))
+        if status == HTTPStatus.PARTIAL_CONTENT:
+            self.send_header("Content-Range", f"bytes {start}-{end}/{file_size}")
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
+
     def _read_json_body(self) -> dict[str, Any]:
         length = int(self.headers.get("content-length", "0"))
         if length <= 0 or length > MAX_BODY_BYTES:
@@ -405,7 +492,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
         if parsed.path in {"/", "/index.html"}:
-            self._send_file(UI_PATH, "text/html; charset=utf-8")
+            self._send_file(dashboard_ui_path(), "text/html; charset=utf-8")
             return
         if parsed.path == "/api/history":
             self._send_json({"ok": True, "history": read_history()})
@@ -422,6 +509,16 @@ class DashboardHandler(BaseHTTPRequestHandler):
         if parsed.path == "/api/token-pack-summary":
             resolution = parse_qs(parsed.query).get("resolution", ["720p"])[0]
             self._send_json({"ok": True, "summary": token_pack_summary(resolution)})
+            return
+        if parsed.path == "/api/latest-video":
+            try:
+                path = latest_video_path()
+                self._send_json({"ok": True, "exists": True, "name": path.name})
+            except ConfigError:
+                self._send_json({"ok": True, "exists": False})
+            return
+        if parsed.path == "/api/video":
+            self._serve_video(parse_qs(parsed.query).get("name", [""])[0])
             return
         self._send_json({"ok": False, "error": "Not found."}, HTTPStatus.NOT_FOUND)
 

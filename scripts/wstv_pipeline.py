@@ -47,12 +47,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         required=True,
         help="Output filename or path under the configured video output directory.",
     )
-    parser.add_argument("--image-url", help="Optional approved reference image URL.")
+    parser.add_argument("--image-url", help="Optional approved master reference image URL.")
     parser.add_argument("--image-url-2", help="Optional storyboard or motion-guide reference image URL.")
+    parser.add_argument(
+        "--reference-image-url",
+        action="append",
+        default=[],
+        help="Additional reference image URL beyond image 2. Repeatable, up to 9 images total.",
+    )
     parser.add_argument(
         "--ack-storyboard-risk",
         action="store_true",
-        help="Required with --submit when --image-url-2 is used.",
+        help="Required with --submit when any additional reference image is used.",
     )
     parser.add_argument("--duration", type=int, default=15)
     parser.add_argument("--ratio", default="9:16")
@@ -71,7 +77,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def generation_args(args: argparse.Namespace) -> argparse.Namespace:
-    image_url, reference_image_urls = normalize_reference_image_urls(args.image_url, args.image_url_2)
+    extra_images = ([args.image_url_2] if args.image_url_2 else []) + list(
+        getattr(args, "reference_image_url", None) or []
+    )
+    image_url, reference_image_urls = normalize_reference_image_urls(args.image_url, extra_images)
     return argparse.Namespace(
         prompt=None,
         prompt_file=args.prompt_file,
@@ -265,8 +274,11 @@ def record_cost_entry(
 def run_pipeline(args: argparse.Namespace) -> int:
     config = load_config(require_key=args.submit)
     out_path = validate_output_path(config, args.out)
-    if args.submit and args.image_url_2 and not args.ack_storyboard_risk:
-        raise ConfigError("--ack-storyboard-risk is required with --submit when --image-url-2 is used.")
+    has_extra_reference = bool(args.image_url_2) or bool(getattr(args, "reference_image_url", None))
+    if args.submit and has_extra_reference and not args.ack_storyboard_risk:
+        raise ConfigError(
+            "--ack-storyboard-risk is required with --submit when additional reference images are used."
+        )
     payload = build_create_payload(generation_args(args), config)
     fingerprint = request_fingerprint(payload)
     cost = estimate_cost_usd(config, payload["resolution"], payload["ratio"], payload["duration"])
