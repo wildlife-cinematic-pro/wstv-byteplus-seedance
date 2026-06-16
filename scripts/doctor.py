@@ -36,6 +36,12 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def is_inside(path: Path, parent: Path) -> bool:
+    resolved = path.expanduser().resolve()
+    root = parent.expanduser().resolve()
+    return resolved == root or root in resolved.parents
+
+
 def main() -> int:
     parse_args()
     checks: list[tuple[str, str, str, str]] = []
@@ -84,7 +90,6 @@ def main() -> int:
             ("Task log directory", config.task_log_path.parent),
             ("Output directory", config.outputs_dir),
             ("Private task response directory", config.private_task_response_dir),
-            ("Download directory", config.downloads_dir),
         ):
             try:
                 ensure_writable_directory(path)
@@ -92,6 +97,25 @@ def main() -> int:
             except OSError as exc:
                 checks.append(result("FAIL", name, str(exc)))
                 failed = True
+        if is_inside(config.downloads_dir, PROJECT_ROOT):
+            checks.append(
+                result(
+                    "FAIL",
+                    "Video output directory",
+                    str(config.downloads_dir),
+                    "Generated MP4 output must default outside the Git repository.",
+                )
+            )
+            failed = True
+        else:
+            checks.append(
+                result(
+                    "PASS",
+                    "Video output directory",
+                    str(config.downloads_dir),
+                    "Folder is outside the repo and is created by the dashboard/pipeline when needed.",
+                )
+            )
         if config.schema_sample_path.exists():
             try:
                 sample = read_json(config.schema_sample_path)

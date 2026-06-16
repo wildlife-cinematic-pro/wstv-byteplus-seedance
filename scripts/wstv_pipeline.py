@@ -40,7 +40,11 @@ from common import (
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the safe one-command WSTV Seedance workflow.")
     parser.add_argument("--prompt-file", required=True, help="Prompt text file.")
-    parser.add_argument("--out", required=True, help="Output path under downloads/, for example downloads/example.mp4.")
+    parser.add_argument(
+        "--out",
+        required=True,
+        help="Output filename or path under the configured video output directory.",
+    )
     parser.add_argument("--image-url", help="Optional approved reference image URL.")
     parser.add_argument("--duration", type=int, default=15)
     parser.add_argument("--ratio", default="9:16")
@@ -91,15 +95,24 @@ def submit_guard_args(args: argparse.Namespace) -> argparse.Namespace:
 
 
 def validate_output_path(config: AppConfig, out: str) -> Path:
-    out_path = Path(out)
-    if not out_path.is_absolute():
-        out_path = PROJECT_ROOT / out_path
-    downloads_dir = config.downloads_dir.resolve()
+    raw = Path(out)
+    if not str(out).strip():
+        raise ConfigError("Pipeline --out is required.")
+    if raw.is_absolute():
+        out_path = raw
+    elif raw.parent == Path("."):
+        out_path = config.downloads_dir / raw.name
+    else:
+        raise ConfigError(
+            "Pipeline --out must be a simple filename or an absolute path inside the configured video output directory."
+        )
+    downloads_dir = config.downloads_dir.expanduser().resolve()
     resolved = out_path.resolve()
     if downloads_dir != resolved and downloads_dir not in resolved.parents:
-        raise ConfigError("Pipeline --out must be inside the gitignored downloads/ directory.")
+        raise ConfigError("Pipeline --out must stay inside the configured video output directory.")
     if resolved.suffix.lower() != ".mp4":
         raise ConfigError("Pipeline --out must end with .mp4.")
+    resolved.parent.mkdir(parents=True, exist_ok=True)
     return resolved
 
 

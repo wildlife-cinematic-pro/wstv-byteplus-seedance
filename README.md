@@ -151,7 +151,7 @@ See `docs/ONE_PAID_RESPONSE_CAPTURE.md`.
 Dry-run only by default:
 
 ```bash
-python3 scripts/wstv_pipeline.py --prompt-file data/example.txt --out downloads/example.mp4
+python3 scripts/wstv_pipeline.py --prompt-file data/example.txt --out example.mp4
 ```
 
 Paid submit still requires explicit approval:
@@ -159,7 +159,7 @@ Paid submit still requires explicit approval:
 ```bash
 python3 scripts/wstv_pipeline.py \
   --prompt-file data/example.txt \
-  --out downloads/example.mp4 \
+  --out example.mp4 \
   --submit \
   --max-cost-usd 3 \
   --confirm SUBMIT_ONE_PAID_TASK
@@ -181,7 +181,13 @@ Then open:
 http://127.0.0.1:8765
 ```
 
-The dashboard calls `scripts/wstv_pipeline.py` locally and keeps the same paid safety gates. It is not deployed publicly. See `docs/LOCAL_DASHBOARD.md`.
+The dashboard calls `scripts/wstv_pipeline.py` locally and keeps the same paid safety gates. Generated MP4 files default to `/Users/acharyabimal/Movies/WSTV/SeedanceVideos/`, outside this Git repository. Open that folder in Finder with:
+
+```bash
+open /Users/acharyabimal/Movies/WSTV/SeedanceVideos
+```
+
+It is not deployed publicly. See `docs/LOCAL_DASHBOARD.md`.
 
 ## Reference Image URLs
 
@@ -218,7 +224,7 @@ After a task succeeds, use the verified `$.content.video_url` promptly:
 ```bash
 python3 scripts/download_video.py \
   --url "SIGNED_OUTPUT_URL" \
-  --out downloads/wstv-output.mp4 \
+  --out /Users/acharyabimal/Movies/WSTV/SeedanceVideos/wstv-output.mp4 \
   --expect-duration 15 \
   --expect-width 720 \
   --expect-height 1280
@@ -229,7 +235,7 @@ Or pass a local completed task response JSON that still contains `content.video_
 ```bash
 python3 scripts/download_video.py \
   --response-json outputs/private-responses/TASK_ID.json \
-  --out downloads/wstv-output.mp4 \
+  --out /Users/acharyabimal/Movies/WSTV/SeedanceVideos/wstv-output.mp4 \
   --expect-duration 15 \
   --expect-width 720 \
   --expect-height 1280
@@ -247,7 +253,7 @@ The downloader streams to a temporary file, rejects HTML/error pages, saves atom
 - `Duplicate active/recent request fingerprint found` means the same paid task may already have been submitted.
 - `Cost is UNVERIFIED` means do not submit.
 - Store private full task responses in `outputs/private-responses/`.
-- Store downloaded videos in `downloads/`.
+- Store generated videos in `/Users/acharyabimal/Movies/WSTV/SeedanceVideos/`, or set `WSTV_VIDEO_OUTPUT_DIR` to another local non-cloud folder.
 
 ## BytePlus Console Verification Checklist
 

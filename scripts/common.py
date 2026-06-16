@@ -23,7 +23,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CONFIG_DIR = PROJECT_ROOT / "config"
 DATA_DIR = PROJECT_ROOT / "data"
 OUTPUTS_DIR = PROJECT_ROOT / "outputs"
-DOWNLOADS_DIR = PROJECT_ROOT / "downloads"
+DOWNLOADS_DIR = Path("/Users/acharyabimal/Movies/WSTV/SeedanceVideos")
 TASK_LOG_PATH = DATA_DIR / "tasks.jsonl"
 REQUEST_PREVIEW_DIR = OUTPUTS_DIR / "request-previews"
 RAW_RESPONSE_DIR = OUTPUTS_DIR / "raw-responses"
@@ -220,6 +220,18 @@ def load_models() -> dict[str, ModelSpec]:
     return models
 
 
+def config_path(value: str | os.PathLike[str], *, default: Path | None = None) -> Path:
+    raw = str(value or "").strip()
+    if not raw:
+        if default is None:
+            raise ConfigError("Configured path is empty.")
+        return default
+    path = Path(os.path.expanduser(raw))
+    if path.is_absolute():
+        return path
+    return PROJECT_ROOT / path
+
+
 def load_config(require_key: bool = False) -> AppConfig:
     load_dotenv_file()
     defaults = read_json(CONFIG_DIR / "defaults.json")
@@ -254,16 +266,19 @@ def load_config(require_key: bool = False) -> AppConfig:
         list_path=os.getenv("BYTEPLUS_LIST_TASKS_PATH", defaults["list_path"]),
         cancel_path=os.getenv("BYTEPLUS_CANCEL_TASK_PATH", defaults["cancel_path"]),
         timeout_seconds=float(defaults.get("timeout_seconds", 60)),
-        task_log_path=PROJECT_ROOT / defaults.get("task_log_path", "data/tasks.jsonl"),
-        request_preview_dir=PROJECT_ROOT / defaults.get("request_preview_dir", "outputs/request-previews"),
-        raw_response_dir=PROJECT_ROOT / defaults.get("raw_response_dir", "outputs/raw-responses"),
-        private_task_response_dir=PROJECT_ROOT / defaults.get(
+        task_log_path=config_path(defaults.get("task_log_path", "data/tasks.jsonl")),
+        request_preview_dir=config_path(defaults.get("request_preview_dir", "outputs/request-previews")),
+        raw_response_dir=config_path(defaults.get("raw_response_dir", "outputs/raw-responses")),
+        private_task_response_dir=config_path(defaults.get(
             "private_task_response_dir",
             "outputs/private-responses",
+        )),
+        outputs_dir=config_path(defaults.get("outputs_dir", "outputs")),
+        downloads_dir=config_path(
+            os.getenv("WSTV_VIDEO_OUTPUT_DIR", defaults.get("downloads_dir", "")),
+            default=DOWNLOADS_DIR,
         ),
-        outputs_dir=PROJECT_ROOT / defaults.get("outputs_dir", "outputs"),
-        downloads_dir=PROJECT_ROOT / defaults.get("downloads_dir", "downloads"),
-        schema_sample_path=PROJECT_ROOT / defaults.get("schema_sample_path", "docs/official-rest-sample.redacted.json"),
+        schema_sample_path=config_path(defaults.get("schema_sample_path", "docs/official-rest-sample.redacted.json")),
         defaults=defaults,
         models=models,
     )

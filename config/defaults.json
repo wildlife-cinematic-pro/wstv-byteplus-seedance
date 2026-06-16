@@ -11,7 +11,7 @@
   "raw_response_dir": "outputs/raw-responses",
   "private_task_response_dir": "outputs/private-responses",
   "outputs_dir": "outputs",
-  "downloads_dir": "downloads",
+  "downloads_dir": "/Users/acharyabimal/Movies/WSTV/SeedanceVideos",
   "schema_sample_path": "docs/official-rest-sample.redacted.json",
   "paid_submit_default": false,
   "duplicate_window_hours": 24
