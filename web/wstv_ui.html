@@ -189,6 +189,44 @@
       <button id="resetBudgetButton">Reset Local Budget Setting Only</button>
       <div id="costWarnings" class="warn"></div>
       <div class="metrics" id="costMetrics"></div>
+      <h3>Add Token Pack</h3>
+      <p class="small">Record token resource packs locally from BytePlus Console. No payment details are stored and no API request is made.</p>
+      <div class="grid">
+        <div>
+          <label for="packModel">Model</label>
+          <input id="packModel" value="Dreamina-Seedance-2.0">
+        </div>
+        <div>
+          <label for="packPackageSize">Package size</label>
+          <select id="packPackageSize">
+            <option value="1M" selected>1M</option>
+            <option value="10M">10M</option>
+            <option value="100M">100M</option>
+          </select>
+        </div>
+        <div>
+          <label for="packQuantity">Quantity</label>
+          <input id="packQuantity" type="number" min="1" step="1" value="7">
+        </div>
+        <div>
+          <label for="packTotalPrice">Total price USD</label>
+          <input id="packTotalPrice" type="number" min="0.01" step="0.01" value="30.10">
+        </div>
+        <div>
+          <label for="packPurchaseDate">Purchase date</label>
+          <input id="packPurchaseDate" type="date" value="2026-06-16">
+        </div>
+        <div>
+          <label for="packValidityDays">Validity days</label>
+          <input id="packValidityDays" type="number" min="1" step="1" value="90">
+        </div>
+      </div>
+      <label for="packNote">Pack note</label>
+      <input id="packNote" value="manual BytePlus Console token pack entry">
+      <label for="packConfirm">Token pack confirmation</label>
+      <input id="packConfirm" placeholder="ADD_TOKEN_PACK">
+      <button id="addTokenPackButton">Add token pack</button>
+      <div id="tokenPackStatus" class="small"></div>
       <h3>Pack Summary</h3>
       <table>
         <thead>
@@ -292,6 +330,14 @@
       dailyBudget: document.getElementById("dailyBudget"),
       monthlyBudget: document.getElementById("monthlyBudget"),
       costPeriod: document.getElementById("costPeriod"),
+      packModel: document.getElementById("packModel"),
+      packPackageSize: document.getElementById("packPackageSize"),
+      packQuantity: document.getElementById("packQuantity"),
+      packTotalPrice: document.getElementById("packTotalPrice"),
+      packPurchaseDate: document.getElementById("packPurchaseDate"),
+      packValidityDays: document.getElementById("packValidityDays"),
+      packNote: document.getElementById("packNote"),
+      packConfirm: document.getElementById("packConfirm"),
       manualFilename: document.getElementById("manualFilename"),
       manualDate: document.getElementById("manualDate"),
       manualModel: document.getElementById("manualModel"),
@@ -340,11 +386,14 @@
     const usageSummaryEl = document.getElementById("usageSummary");
     const packComparisonEl = document.getElementById("packComparison");
     const paidHistoryEl = document.getElementById("paidHistory");
+    const addTokenPackButton = document.getElementById("addTokenPackButton");
+    const tokenPackStatusEl = document.getElementById("tokenPackStatus");
     const addManualUsageButton = document.getElementById("addManualUsageButton");
     const manualUsageStatusEl = document.getElementById("manualUsageStatus");
     let dryRunOk = false;
     let safeMode = true;
     let budgetBlocked = false;
+    let tokenPackBlocked = false;
     let statusBadge = "READY";
     let lastVideoPath = "";
 
@@ -416,7 +465,7 @@
     function renderBadges(extra = []) {
       const badges = [statusBadge];
       if (safeMode) badges.push("SAFE MODE");
-      if (budgetBlocked) badges.push("BUDGET LOW");
+      if (budgetBlocked || tokenPackBlocked) badges.push("BUDGET LOW");
       for (const item of extra) badges.push(item);
       badgesEl.innerHTML = badges.map(label => {
         const key = label.toLowerCase().replaceAll(" ", "-");
@@ -435,7 +484,8 @@
         invalidReferenceUrlActive() ||
         image2NeedsStoryboardAck() ||
         needsImageOverride ||
-        budgetBlocked
+        budgetBlocked ||
+        tokenPackBlocked
       );
       paidZone.style.display = safeMode ? "none" : "block";
       safeBanner.textContent = safeMode
@@ -487,14 +537,34 @@
       };
     }
 
+    function tokenPackPayload() {
+      return {
+        model: fields.packModel.value,
+        package_size: fields.packPackageSize.value,
+        quantity: Number(fields.packQuantity.value || 0),
+        total_price_usd: Number(fields.packTotalPrice.value || 0),
+        purchase_date: fields.packPurchaseDate.value,
+        validity_days: Number(fields.packValidityDays.value || 90),
+        note: fields.packNote.value,
+        confirm: fields.packConfirm.value,
+        resolution: fields.resolution.value
+      };
+    }
+
     function renderCostSummary(summary) {
       if (!summary) return;
       const settings = summary.budget_settings || {};
-      fields.totalBudget.value = settings.total_budget_usd ?? "";
-      fields.dailyBudget.value = settings.daily_budget_usd ?? "";
-      fields.monthlyBudget.value = settings.monthly_budget_usd ?? "";
+      if (summary.budget_settings) {
+        fields.totalBudget.value = settings.total_budget_usd ?? "";
+        fields.dailyBudget.value = settings.daily_budget_usd ?? "";
+        fields.monthlyBudget.value = settings.monthly_budget_usd ?? "";
+      }
       costWarningsEl.textContent = (summary.warnings || []).join(" ");
-      budgetBlocked = (summary.warnings || []).length > 0;
+      const blockingWarnings = summary.blocking_warnings || [];
+      if (summary.budget_settings) {
+        budgetBlocked = blockingWarnings.some(item => item !== "Not enough active tokens for next selected resolution.");
+      }
+      tokenPackBlocked = blockingWarnings.some(item => item === "Not enough active tokens for next selected resolution.");
       costVideoFolderEl.textContent = summary.video_folder || "";
       costLedgerFolderEl.textContent = summary.ledger_folder || "";
       const pack = summary.token_pack_tracker || {};
@@ -518,9 +588,14 @@
         metric("Est. videos left", summary.estimated_more_videos_possible ?? "unknown")
       ].join("");
       packSummaryEl.innerHTML = "";
-      for (const item of summary.pack_summary_table || []) {
+      const packRows = summary.pack_summary_table || [];
+      if (!packRows.length) {
+        packSummaryEl.innerHTML = '<tr><td colspan="9">No active token pack recorded.</td></tr>';
+      }
+      for (const item of packRows) {
         const row = document.createElement("tr");
-        row.innerHTML = `<td>${item.model || ""}</td><td>${item.package_size || ""}</td><td>${item.quantity ?? ""}</td><td>${item.total_purchased_tokens ?? ""}</td><td>${money(item.total_price_usd)}</td><td>${money(item.effective_rate_usd_per_million)}</td><td>${item.purchase_date || ""}</td><td>${item.expiry_date || ""}</td><td>${item.status || ""}</td>`;
+        const packageLabel = item.package_size || (item.package_size_tokens ? `${Number(item.package_size_tokens) / 1000000}M` : "");
+        row.innerHTML = `<td>${item.model || ""}</td><td>${packageLabel}</td><td>${item.quantity ?? ""}</td><td>${item.total_purchased_tokens ?? ""}</td><td>${money(item.total_price_usd)}</td><td>${money(item.effective_rate_usd_per_million)}</td><td>${item.purchase_date || ""}</td><td>${item.expiry_date || ""}</td><td>${item.status || ""}</td>`;
         packSummaryEl.appendChild(row);
       }
       const usageRows = [
@@ -534,13 +609,15 @@
       ];
       usageSummaryEl.innerHTML = usageRows.map(([label, value]) => `<tr><th>${label}</th><td>${value}</td></tr>`).join("");
       packComparisonEl.innerHTML = "";
-      for (const item of pack.comparison || []) {
+      const comparisonRows = summary.resolution_comparison || pack.comparison || [];
+      for (const item of comparisonRows) {
         const row = document.createElement("tr");
         row.innerHTML = `<td>${item.resolution || ""}</td><td>${item.tokens || ""}</td><td>${money(item.payg_cost_usd)}</td><td>${money(item.pack_cost_per_video_usd)}</td><td>${item.total_videos_possible ?? ""}</td><td>${item.remaining_videos_possible ?? ""}</td><td>${item.tokens_after_next ?? ""}</td><td>${item.warning || ""}</td>`;
         packComparisonEl.appendChild(row);
       }
       paidHistoryEl.innerHTML = "";
-      for (const item of summary.recent_paid_history || []) {
+      const recentRows = summary.recent_paid_history || summary.recent_usage || [];
+      for (const item of recentRows) {
         const row = document.createElement("tr");
         const tokens = Number(item.token_count || 0);
         const packRate = pack.effective_pack_rate_usd_per_million || 4.3;
@@ -554,6 +631,12 @@
     async function refreshCostSummary() {
       const result = await fetch(`/api/cost-summary?period=${encodeURIComponent(fields.costPeriod.value)}&resolution=${encodeURIComponent(fields.resolution.value)}`).then(r => r.json());
       renderCostSummary(result.summary);
+    }
+
+    async function refreshTokenPackSummary() {
+      const result = await fetch(`/api/token-pack-summary?resolution=${encodeURIComponent(fields.resolution.value)}`).then(r => r.json());
+      renderCostSummary(result.summary);
+      updateGenerateState();
     }
 
     async function refreshBudgetStatus() {
@@ -656,6 +739,7 @@
       updateGenerateState();
       refreshHistory();
       refreshCostSummary();
+      refreshTokenPackSummary();
     });
 
     generateButton.addEventListener("click", async () => {
@@ -672,16 +756,26 @@
       updateGenerateState();
       refreshHistory();
       refreshCostSummary();
+      refreshTokenPackSummary();
     });
 
     saveBudgetButton.addEventListener("click", async () => {
       const result = await postJSON("/api/budget-settings", budgetPayload());
       renderCostSummary(result.summary);
+      refreshTokenPackSummary();
     });
-    refreshCostButton.addEventListener("click", refreshCostSummary);
+    refreshCostButton.addEventListener("click", refreshTokenPackSummary);
     resetBudgetButton.addEventListener("click", async () => {
       const result = await postJSON("/api/budget-settings", {reset: true});
       renderCostSummary(result.summary);
+      refreshTokenPackSummary();
+    });
+    addTokenPackButton.addEventListener("click", async () => {
+      tokenPackStatusEl.textContent = "Recording token pack...";
+      const result = await postJSON("/api/token-pack", tokenPackPayload());
+      tokenPackStatusEl.textContent = result.ok ? result.message : result.error;
+      if (result.summary) renderCostSummary(result.summary);
+      refreshTokenPackSummary();
     });
     addManualUsageButton.addEventListener("click", async () => {
       manualUsageStatusEl.textContent = "Recording manual usage...";
@@ -689,6 +783,7 @@
       manualUsageStatusEl.textContent = result.ok ? result.message : result.error;
       if (result.summary) renderCostSummary(result.summary);
       refreshBudgetStatus();
+      refreshTokenPackSummary();
     });
     safeModeButton.addEventListener("click", () => {
       safeMode = !safeMode;
@@ -720,6 +815,7 @@
       dryRunOk = false;
       refreshCostSummary();
       refreshBudgetStatus();
+      refreshTokenPackSummary();
       updateGenerateState();
     });
     fields.confirm.addEventListener("input", updateGenerateState);
@@ -737,6 +833,7 @@
     }
     refreshHistory();
     refreshCostSummary();
+    refreshTokenPackSummary();
     refreshBudgetStatus();
     updatePromptCounter();
     updateImagePreview();

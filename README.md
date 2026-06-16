@@ -205,9 +205,15 @@ Dashboard quick safety rules:
 - Budget warnings are checked server-side before paid submit.
 - Open video folder/open latest video actions are local-only.
 
-### Cost / Budget Tracker
+### Cost / Budget And Token Pack Tracker
 
-The local dashboard keeps a private cost ledger at `data/wstv_cost_ledger.jsonl`. This file is gitignored. Dry-runs are free and are not counted. A paid generation is counted only after the paid task result is recorded by the local pipeline.
+The local dashboard keeps budget settings, usage, and token packs in separate local-only files:
+
+- `data/wstv_budget_settings.json`
+- `data/wstv_cost_ledger.jsonl`
+- `data/wstv_token_packs.jsonl`
+
+These files are gitignored. Dry-runs are free and are not counted. A paid generation is counted only after the paid task result is recorded by the local pipeline.
 
 Cost is calculated as:
 
@@ -217,14 +223,26 @@ tokens * rate_usd_per_million_tokens / 1000000
 
 When `usage.completion_tokens` is available, the ledger marks tokens as `actual`. Otherwise it uses the local estimate and marks tokens as `estimated`. The current verified estimator rate is `$7.00 per 1,000,000 output tokens`, but BytePlus Console Billing remains the final source of truth.
 
-The dashboard token/resource-pack tracker supports `720p` and `1080p` estimates. Use `720p` for testing and `1080p` only for final or high-value scenes because `1080p` uses more than 2x the tokens.
+The dashboard token/resource-pack tracker is calculated by `scripts/token_pack_tracker.py`. The dashboard uses `/api/token-pack-summary?resolution=720p` or `/api/token-pack-summary?resolution=1080p` so all pack totals, remaining tokens, warning messages, and 720p/1080p estimates come from one local module.
+
+The tracker supports `720p` and `1080p` estimates. Use `720p` for testing and `1080p` only for final or high-value scenes because `1080p` uses more than 2x the tokens.
 
 Current 9:16, 15-second presets:
 
 - `720p`: `324000` projected tokens, `$2.2680` PAYG at `$7/M`, `$1.3932` with a `$4.30/M` pack example.
 - `1080p`: `801900` projected tokens from the BytePlus UI estimate, `$5.6133` PAYG at `$7/M`, `$3.4482` with a `$4.30/M` pack example.
 
-For a 7M token pack at `$30.10`, the dashboard shows `21` possible `720p` videos or `8` possible `1080p` videos before usage. After two existing 720p videos using `649800` tokens, it shows `19` remaining `720p` videos or `7` remaining `1080p` videos. BytePlus Console Billing remains the final source of truth.
+To add the current 7M token pack from BytePlus Console, use the dashboard `Add Token Pack` form:
+
+- Package size: `1M`
+- Quantity: `7`
+- Total price USD: `30.10`
+- Validity days: `90`
+- Confirmation: `ADD_TOKEN_PACK`
+
+That records `7,000,000` tokens with an effective `$4.30/M` pack rate. For later purchases, choose `10M` or `100M`, set the quantity and Console total price, and confirm with `ADD_TOKEN_PACK`. The pack ledger stores no payment details and makes no BytePlus API request.
+
+After a 7M token pack at `$30.10` is recorded, the dashboard shows `21` possible `720p` videos or `8` possible `1080p` videos before usage. After two existing 720p videos using `649800` tokens, it shows `19` remaining `720p` videos or `7` remaining `1080p` videos. BytePlus Console Billing remains the final source of truth.
 
 To backfill a previously verified paid video from BytePlus Console usage, use the dashboard `Add Console Usage Manually` form with exact confirmation `ADD_CONSOLE_USAGE`, or run the local-only helper with explicit confirmation. Example for a missing second 720p video:
 
@@ -321,7 +339,7 @@ After any paid task, compare:
 - Console usage/billing page
 - downloaded output path
 
-Record only safe metadata in `data/tasks.jsonl` and `data/wstv_cost_ledger.jsonl`; never store API keys, full authorization headers, signed output URLs, or private response JSON in the ledger.
+Record only safe metadata in `data/tasks.jsonl`, `data/wstv_cost_ledger.jsonl`, and `data/wstv_token_packs.jsonl`; never store API keys, full authorization headers, signed output URLs, payment details, or private response JSON in the ledgers.
 
 ## Revoke A Leaked Key
 

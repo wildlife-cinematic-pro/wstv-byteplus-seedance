@@ -8,6 +8,7 @@
   "timeout_seconds": 60,
   "task_log_path": "data/tasks.jsonl",
   "cost_ledger_path": "data/wstv_cost_ledger.jsonl",
+  "token_pack_ledger_path": "data/wstv_token_packs.jsonl",
   "budget_settings_path": "data/wstv_budget_settings.json",
   "request_preview_dir": "outputs/request-previews",
   "raw_response_dir": "outputs/raw-responses",

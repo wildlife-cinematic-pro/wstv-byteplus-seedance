@@ -1,9 +1,11 @@
 import json
 import subprocess
+import datetime as dt
 from pathlib import Path
 
 import common
 import cost_tracker
+import token_pack_tracker
 
 
 TASK_ID = "cgt-20260616100710-pj5td"
@@ -15,10 +17,25 @@ def _config(tmp_path):
         **{
             **config.__dict__,
             "cost_ledger_path": tmp_path / "data" / "wstv_cost_ledger.jsonl",
+            "token_pack_ledger_path": tmp_path / "data" / "wstv_token_packs.jsonl",
             "budget_settings_path": tmp_path / "data" / "wstv_budget_settings.json",
             "downloads_dir": tmp_path / "videos",
         }
     )
+
+
+def _add_7m_pack(config):
+    entry = token_pack_tracker.build_pack_entry(
+        model="Dreamina-Seedance-2.0",
+        package_size="1M",
+        quantity=7,
+        total_price_usd=30.10,
+        purchase_date=dt.date.today().isoformat(),
+        validity_days=90,
+        note="test token pack",
+    )
+    assert token_pack_tracker.append_pack_entry(config, entry) is True
+    return entry
 
 
 def _payload():
@@ -61,30 +78,63 @@ def test_1080p_pack_preset_uses_observed_byteplus_ui_tokens():
     assert cost_tracker.cost_usd(preset["projected_tokens"], 4.30) == 3.4482
 
 
-def test_7m_pack_video_counts_by_resolution():
-    assert cost_tracker.pack_projection(resolution="720p")["total_videos_possible"] == 21
-    assert cost_tracker.pack_projection(resolution="1080p")["total_videos_possible"] == 8
+def test_7m_pack_video_counts_by_resolution(tmp_path):
+    config = _config(tmp_path)
+    _add_7m_pack(config)
+    summary_720 = token_pack_tracker.token_pack_summary(config, resolution="720p", usage_entries=[])
+    summary_1080 = token_pack_tracker.token_pack_summary(config, resolution="1080p", usage_entries=[])
+    assert summary_720["token_pack_tracker"]["comparison"][0]["total_videos_possible"] == 21
+    assert summary_1080["token_pack_tracker"]["comparison"][1]["total_videos_possible"] == 8
 
 
-def test_7m_pack_remaining_counts_after_two_720p_console_videos():
+def test_7m_pack_remaining_counts_after_two_720p_console_videos(tmp_path):
+    config = _config(tmp_path)
+    _add_7m_pack(config)
     used_tokens = 649_800
-    summary_720 = cost_tracker.pack_projection(resolution="720p", used_tokens=used_tokens)
-    summary_1080 = cost_tracker.pack_projection(resolution="1080p", used_tokens=used_tokens)
-    assert summary_720["remaining_tokens"] == 6_350_200
-    assert summary_720["remaining_videos_possible"] == 19
-    assert summary_1080["remaining_videos_possible"] == 7
+    entries = [
+        cost_tracker.manual_usage_entry(
+            date="2026-06-16",
+            filename=f"video-{index}.mp4",
+            model="Dreamina-Seedance-2.0",
+            resolution="720p",
+            tokens=324_900,
+            token_source="actual_from_console",
+            note="Console usage",
+        )
+        for index in (1, 2)
+    ]
+    assert sum(entry["token_count"] for entry in entries) == used_tokens
+    summary_720 = token_pack_tracker.token_pack_summary(config, resolution="720p", usage_entries=entries)
+    summary_1080 = token_pack_tracker.token_pack_summary(config, resolution="1080p", usage_entries=entries)
+    assert summary_720["usage_summary"]["remaining_tokens"] == 6_350_200
+    assert summary_720["token_pack_tracker"]["remaining_videos_possible"] == 19
+    assert summary_1080["token_pack_tracker"]["remaining_videos_possible"] == 7
 
 
-def test_7m_pack_remaining_counts_after_one_720p_console_video():
-    summary_720 = cost_tracker.pack_projection(resolution="720p", used_tokens=324_900)
-    summary_1080 = cost_tracker.pack_projection(resolution="1080p", used_tokens=324_900)
-    assert summary_720["remaining_tokens"] == 6_675_100
-    assert summary_720["remaining_videos_possible"] == 20
-    assert summary_1080["remaining_videos_possible"] == 8
+def test_7m_pack_remaining_counts_after_one_720p_console_video(tmp_path):
+    config = _config(tmp_path)
+    _add_7m_pack(config)
+    entries = [
+        cost_tracker.manual_usage_entry(
+            date="2026-06-16",
+            filename="video-1.mp4",
+            model="Dreamina-Seedance-2.0",
+            resolution="720p",
+            tokens=324_900,
+            token_source="actual_from_console",
+            note="Console usage",
+        )
+    ]
+    summary_720 = token_pack_tracker.token_pack_summary(config, resolution="720p", usage_entries=entries)
+    summary_1080 = token_pack_tracker.token_pack_summary(config, resolution="1080p", usage_entries=entries)
+    assert summary_720["usage_summary"]["remaining_tokens"] == 6_675_100
+    assert summary_720["token_pack_tracker"]["remaining_videos_possible"] == 20
+    assert summary_1080["token_pack_tracker"]["remaining_videos_possible"] == 8
 
 
 def test_manual_usage_entry_can_add_second_video_safely(tmp_path):
     config = _config(tmp_path)
+    _add_7m_pack(config)
     first = cost_tracker.manual_usage_entry(
         date="2026-06-16",
         filename="first.mp4",
@@ -176,6 +226,7 @@ def test_append_ledger_blocks_duplicate(tmp_path):
 
 def test_budget_summary_calculates_counts_and_remaining(tmp_path):
     config = _config(tmp_path)
+    _add_7m_pack(config)
     for filename, tokens, status in (("one.mp4", 324_900, "ok"), ("two.mp4", 324_900, "failed")):
         entry = cost_tracker.ledger_entry(
             config=config,
@@ -200,6 +251,7 @@ def test_budget_summary_calculates_counts_and_remaining(tmp_path):
 
 def test_budget_summary_warns_when_only_one_video_is_recorded(tmp_path):
     config = _config(tmp_path)
+    _add_7m_pack(config)
     assert cost_tracker.append_ledger_entry(
         config,
         cost_tracker.manual_usage_entry(
@@ -219,6 +271,7 @@ def test_budget_summary_warns_when_only_one_video_is_recorded(tmp_path):
 
 def test_failed_estimated_attempt_does_not_count_as_pack_usage(tmp_path):
     config = _config(tmp_path)
+    _add_7m_pack(config)
     entry = cost_tracker.ledger_entry(
         config=config,
         payload=_payload(),
@@ -254,4 +307,5 @@ def test_path_and_signed_url_are_not_stored_in_ledger(tmp_path):
 def test_no_paid_byteplus_request_in_cost_tests():
     files = subprocess.check_output(["git", "ls-files"], text=True).splitlines()
     assert "data/wstv_cost_ledger.jsonl" not in files
+    assert "data/wstv_token_packs.jsonl" not in files
     assert not any(path.endswith(".mp4") for path in files)
