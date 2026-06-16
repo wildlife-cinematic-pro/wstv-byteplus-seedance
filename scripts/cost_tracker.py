@@ -29,6 +29,44 @@ DEFAULT_BUDGET_SETTINGS = {
 DEFAULT_PACK_TOTAL_TOKENS = 7_000_000
 DEFAULT_PACK_PRICE_USD = 30.10
 DEFAULT_PACK_RATE_USD_PER_MILLION = 4.30
+DEFAULT_PACK_MODEL = "Dreamina-Seedance-2.0"
+DEFAULT_PACK_PURCHASE_DATE = "2026-06-16"
+DEFAULT_PACK_EXPIRY_DATE = "2027-06-16"
+TOKEN_PACK_OPTIONS = [
+    {
+        "model": DEFAULT_PACK_MODEL,
+        "package_size": "1M tokens",
+        "quantity": 7,
+        "total_purchased_tokens": 7_000_000,
+        "total_price_usd": 30.10,
+        "effective_rate_usd_per_million": 4.30,
+        "purchase_date": DEFAULT_PACK_PURCHASE_DATE,
+        "expiry_date": DEFAULT_PACK_EXPIRY_DATE,
+        "status": "active",
+    },
+    {
+        "model": DEFAULT_PACK_MODEL,
+        "package_size": "10M tokens",
+        "quantity": 1,
+        "total_purchased_tokens": 10_000_000,
+        "total_price_usd": 43.00,
+        "effective_rate_usd_per_million": 4.30,
+        "purchase_date": "",
+        "expiry_date": "",
+        "status": "example",
+    },
+    {
+        "model": DEFAULT_PACK_MODEL,
+        "package_size": "100M tokens",
+        "quantity": 1,
+        "total_purchased_tokens": 100_000_000,
+        "total_price_usd": 430.00,
+        "effective_rate_usd_per_million": 4.30,
+        "purchase_date": "",
+        "expiry_date": "",
+        "status": "example",
+    },
+]
 RESOLUTION_PRESETS: dict[str, dict[str, Any]] = {
     "720p": {
         "width": 720,
@@ -62,6 +100,13 @@ def cost_usd(tokens: int | float, rate_usd_per_million_tokens: int | float) -> f
     return round(float(tokens) * float(rate_usd_per_million_tokens) / 1_000_000, 4)
 
 
+def active_pack() -> dict[str, Any] | None:
+    for item in TOKEN_PACK_OPTIONS:
+        if item.get("status") == "active":
+            return dict(item)
+    return None
+
+
 def resolution_preset(resolution: str) -> dict[str, Any]:
     try:
         return dict(RESOLUTION_PRESETS[resolution])
@@ -77,6 +122,26 @@ def pack_projection(
     pack_price_usd: float = DEFAULT_PACK_PRICE_USD,
 ) -> dict[str, Any]:
     selected = resolution_preset(resolution)
+    if int(pack_total_tokens) <= 0:
+        selected_tokens = int(selected["projected_tokens"])
+        return {
+            "selected_resolution": resolution,
+            "pack_total_tokens": 0,
+            "pack_price_usd": 0,
+            "effective_pack_rate_usd_per_million": None,
+            "used_tokens": int(used_tokens),
+            "remaining_tokens": 0,
+            "tokens_after_next_video": -selected_tokens,
+            "selected": selected,
+            "selected_projected_tokens": selected_tokens,
+            "selected_payg_cost_usd": selected["payg_cost_usd"],
+            "selected_pack_cost_per_video_usd": None,
+            "total_videos_possible": 0,
+            "remaining_videos_possible": 0,
+            "comparison": [],
+            "warning_1080p": "1080p uses more than 2x the tokens of 720p. Use 720p for testing and 1080p only for final/high-value scenes.",
+            "insufficient_tokens": True,
+        }
     remaining_tokens = max(0, int(pack_total_tokens) - int(used_tokens))
     effective_rate = round(float(pack_price_usd) / (int(pack_total_tokens) / 1_000_000), 2)
     comparison = []
@@ -91,6 +156,8 @@ def pack_projection(
                 "pack_cost_per_video_usd": cost_usd(tokens, effective_rate),
                 "total_videos_possible": math.floor(int(pack_total_tokens) / tokens),
                 "remaining_videos_possible": math.floor(remaining_tokens / tokens),
+                "tokens_after_next": remaining_tokens - tokens,
+                "warning": "Not enough active tokens for next selected resolution." if remaining_tokens < tokens else "",
             }
         )
     selected_tokens = int(selected["projected_tokens"])
@@ -212,6 +279,56 @@ def manual_backfill_entry(
     }
 
 
+def manual_usage_entry(
+    *,
+    date: str,
+    filename: str,
+    model: str,
+    resolution: str,
+    tokens: int,
+    token_source: str,
+    note: str,
+    status: str = "ok",
+    rate_usd_per_million_tokens: float = 7.0,
+) -> dict[str, Any]:
+    if resolution not in RESOLUTION_PRESETS:
+        raise ConfigError("Manual usage resolution must be 720p or 1080p.")
+    if token_source not in {"actual_from_console", "estimated"}:
+        raise ConfigError("Manual usage token_source must be actual_from_console or estimated.")
+    if status not in {"ok", "failed", "unknown"}:
+        raise ConfigError("Manual usage status must be ok, failed, or unknown.")
+    parsed_date = dt.date.fromisoformat(date)
+    safe_filename = Path(filename).name
+    if not safe_filename or safe_filename in {".", ".."} or Path(filename).name != filename:
+        raise ConfigError("Manual usage filename must be a simple filename.")
+    if not safe_filename.lower().endswith(".mp4"):
+        raise ConfigError("Manual usage filename must end with .mp4.")
+    if int(tokens) <= 0:
+        raise ConfigError("Manual usage tokens must be positive.")
+    return {
+        "timestamp": f"{parsed_date.isoformat()}T00:00:00+00:00",
+        "action": "paid",
+        "entry_type": "manual_usage",
+        "status": status,
+        "model": model,
+        "duration": 15,
+        "resolution": resolution,
+        "aspect_ratio": "9:16",
+        "generate_audio": True,
+        "output_filename": safe_filename,
+        "final_downloaded_mp4_path": "",
+        "token_count": int(tokens),
+        "token_source": token_source,
+        "rate_usd_per_million_tokens": float(rate_usd_per_million_tokens),
+        "calculated_cost_usd": cost_usd(tokens, rate_usd_per_million_tokens),
+        "image_url_host": "",
+        "task_id": None,
+        "error_category": None,
+        "source_note": note,
+        "billing_note": "Manual local usage entry. BytePlus Console Billing remains final.",
+    }
+
+
 def read_ledger(config: AppConfig) -> list[dict[str, Any]]:
     return read_jsonl(config.cost_ledger_path)
 
@@ -242,6 +359,39 @@ def append_ledger_entry(config: AppConfig, entry: dict[str, Any]) -> bool:
             return False
     append_jsonl(config.cost_ledger_path, entry)
     return True
+
+
+def counts_toward_token_pack(entry: dict[str, Any]) -> bool:
+    if entry.get("action") != "paid":
+        return False
+    if entry.get("status") == "ok":
+        return True
+    return entry.get("token_source") in {"actual", "actual_from_console"}
+
+
+def usage_summary(entries: list[dict[str, Any]], *, pack_total_tokens: int, pack_rate: float) -> dict[str, Any]:
+    usage_entries = [entry for entry in entries if counts_toward_token_pack(entry)]
+    actual_tokens = sum(
+        int(entry.get("token_count") or 0)
+        for entry in usage_entries
+        if str(entry.get("token_source")) in {"actual", "actual_from_console"}
+    )
+    estimated_tokens = sum(
+        int(entry.get("token_count") or 0)
+        for entry in usage_entries
+        if str(entry.get("token_source")) == "estimated"
+    )
+    total_used = actual_tokens + estimated_tokens
+    remaining = max(0, int(pack_total_tokens) - total_used)
+    return {
+        "videos_recorded": len(usage_entries),
+        "actual_tokens_used": actual_tokens,
+        "estimated_tokens_used": estimated_tokens,
+        "total_used_tokens": total_used,
+        "remaining_tokens": remaining,
+        "used_value_usd": cost_usd(total_used, pack_rate),
+        "remaining_value_usd": cost_usd(remaining, pack_rate),
+    }
 
 
 def load_budget_settings(config: AppConfig) -> dict[str, float | None]:
@@ -321,11 +471,17 @@ def budget_summary(
     settings = normalize_budget_settings(budget_settings or load_budget_settings(config))
     entries = filter_entries(read_ledger(config), period)
     paid = [entry for entry in entries if entry.get("action") == "paid"]
+    billable = [entry for entry in paid if counts_toward_token_pack(entry)]
     successes = [entry for entry in paid if entry.get("status") == "ok"]
     failed = [entry for entry in paid if entry.get("status") == "failed"]
-    spent = round(sum(float(entry.get("calculated_cost_usd") or 0) for entry in paid), 4)
+    spent = round(sum(float(entry.get("calculated_cost_usd") or 0) for entry in billable), 4)
     success_spent = round(sum(float(entry.get("calculated_cost_usd") or 0) for entry in successes), 4)
-    total_tokens = sum(int(entry.get("token_count") or 0) for entry in paid)
+    active = active_pack()
+    pack_total_tokens = int(active["total_purchased_tokens"]) if active else 0
+    pack_price_usd = float(active["total_price_usd"]) if active else 0.0
+    pack_rate = float(active["effective_rate_usd_per_million"]) if active else DEFAULT_PACK_RATE_USD_PER_MILLION
+    usage = usage_summary(paid, pack_total_tokens=pack_total_tokens, pack_rate=pack_rate)
+    total_tokens = usage["total_used_tokens"]
     average = round(success_spent / len(successes), 4) if successes else None
     estimate = next_video_estimate(config, resolution)
     next_cost = estimate.get("estimated_cost_usd")
@@ -336,23 +492,53 @@ def budget_summary(
     if remaining is not None and basis:
         estimated_more = max(0, math.floor(remaining / float(basis)))
     warnings: list[str] = []
+    blocking_warnings: list[str] = []
     if remaining is not None and next_cost is not None and float(next_cost) > remaining:
-        warnings.append("Next estimated video cost is higher than remaining total budget.")
+        message = "Next estimated video cost is higher than remaining total budget."
+        warnings.append(message)
+        blocking_warnings.append(message)
     today_spent = round(
-        sum(float(entry.get("calculated_cost_usd") or 0) for entry in filter_entries(read_ledger(config), "today")),
+        sum(
+            float(entry.get("calculated_cost_usd") or 0)
+            for entry in filter_entries(read_ledger(config), "today")
+            if counts_toward_token_pack(entry)
+        ),
         4,
     )
     month_spent = round(
-        sum(float(entry.get("calculated_cost_usd") or 0) for entry in filter_entries(read_ledger(config), "month")),
+        sum(
+            float(entry.get("calculated_cost_usd") or 0)
+            for entry in filter_entries(read_ledger(config), "month")
+            if counts_toward_token_pack(entry)
+        ),
         4,
     )
     if settings.get("daily_budget_usd") is not None and today_spent > float(settings["daily_budget_usd"]):
-        warnings.append("Daily budget is exceeded.")
+        message = "Daily budget is exceeded."
+        warnings.append(message)
+        blocking_warnings.append(message)
     if settings.get("monthly_budget_usd") is not None and month_spent > float(settings["monthly_budget_usd"]):
-        warnings.append("Monthly budget is exceeded.")
-    token_pack = pack_projection(resolution=resolution, used_tokens=total_tokens)
+        message = "Monthly budget is exceeded."
+        warnings.append(message)
+        blocking_warnings.append(message)
+    token_pack = pack_projection(
+        resolution=resolution,
+        used_tokens=total_tokens,
+        pack_total_tokens=pack_total_tokens,
+        pack_price_usd=pack_price_usd,
+    )
+    if not active:
+        message = "Add a token resource pack to track remaining videos."
+        warnings.append(message)
+        blocking_warnings.append(message)
+    if usage["videos_recorded"] == 1:
+        warnings.append("Only 1 paid video is recorded locally. Add missing Console usage if you already made more videos.")
+    if resolution == "1080p":
+        warnings.append("1080p uses more than 2x 720p tokens. Use 720p for testing.")
     if token_pack["insufficient_tokens"]:
-        warnings.append("Active token pack does not have enough remaining tokens for the selected resolution.")
+        message = "Not enough active tokens for next selected resolution."
+        warnings.append(message)
+        blocking_warnings.append(message)
     return {
         "period": period,
         "selected_resolution": resolution,
@@ -363,6 +549,7 @@ def budget_summary(
         "successful_paid_videos": len(successes),
         "failed_paid_attempts": len(failed),
         "total_tokens_used": total_tokens,
+        "usage_summary": usage,
         "average_cost_per_successful_video": average,
         "next_video_estimated_cost_usd": next_cost,
         "next_video_estimate": estimate,
@@ -370,6 +557,8 @@ def budget_summary(
         "today_spent_usd": today_spent,
         "month_spent_usd": month_spent,
         "warnings": warnings,
+        "blocking_warnings": blocking_warnings,
+        "pack_summary_table": TOKEN_PACK_OPTIONS,
         "token_pack_tracker": token_pack,
         "ledger_path": str(config.cost_ledger_path),
         "ledger_folder": str(config.cost_ledger_path.parent),

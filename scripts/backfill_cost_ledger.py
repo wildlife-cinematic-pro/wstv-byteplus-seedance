@@ -18,36 +18,42 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Append one verified manual cost ledger backfill entry.")
     parser.add_argument("--date", default="2026-06-16", help="Console usage date in YYYY-MM-DD format.")
     parser.add_argument("--model", default="Dreamina-Seedance-2.0")
-    parser.add_argument("--output-filename", default="elephant-mud-test.mp4")
+    parser.add_argument("--output-filename", required=True, help="Simple MP4 filename to record.")
     parser.add_argument(
         "--output-path",
-        default="/Users/acharyabimal/Movies/WSTV/SeedanceVideos/elephant-mud-test.mp4",
+        help="Optional local MP4 path; only the basename is used for duplicate safety checks.",
     )
+    parser.add_argument("--resolution", default="720p", choices=["720p", "1080p"])
     parser.add_argument("--tokens", type=int, default=324900)
+    parser.add_argument("--token-source", default="actual_from_console", choices=["actual_from_console", "estimated"])
     parser.add_argument("--rate-usd-per-million-tokens", type=float, default=7.0)
-    parser.add_argument("--source-note", default="BytePlus Console usage screenshot")
+    parser.add_argument("--note", default="BytePlus Console usage entry")
+    parser.add_argument("--source-note", help="Deprecated alias for --note.")
     parser.add_argument("--status", default="ok", choices=["ok", "failed", "unknown"])
     parser.add_argument("--confirm", help=f"Required. Must equal {CONFIRM_BACKFILL}.")
     return parser.parse_args(argv)
 
 
 def build_entry(args: argparse.Namespace) -> dict:
-    output_path = Path(args.output_path)
-    if output_path.name != args.output_filename:
-        raise ConfigError("--output-filename must match the basename of --output-path.")
-    if output_path.suffix.lower() != ".mp4":
-        raise ConfigError("--output-path must be an .mp4 path.")
+    if args.output_path:
+        output_path = Path(args.output_path)
+        if output_path.name != args.output_filename:
+            raise ConfigError("--output-filename must match the basename of --output-path.")
+        if output_path.suffix.lower() != ".mp4":
+            raise ConfigError("--output-path must be an .mp4 path.")
     if args.tokens <= 0:
         raise ConfigError("--tokens must be positive.")
     if args.rate_usd_per_million_tokens <= 0:
         raise ConfigError("--rate-usd-per-million-tokens must be positive.")
-    return cost_tracker.manual_backfill_entry(
+    return cost_tracker.manual_usage_entry(
         date=args.date,
+        filename=args.output_filename,
         model=args.model,
-        output_path=output_path,
+        resolution=args.resolution,
         tokens=args.tokens,
+        token_source=args.token_source,
         rate_usd_per_million_tokens=args.rate_usd_per_million_tokens,
-        source_note=args.source_note,
+        note=args.source_note or args.note,
         status=args.status,
     )
 

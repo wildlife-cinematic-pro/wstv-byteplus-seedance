@@ -143,6 +143,22 @@ def test_paid_requires_exact_confirmation_before_subprocess(monkeypatch):
     assert called is False
 
 
+def test_prompt_over_3500_still_hard_blocks_paid_submit(monkeypatch):
+    called = False
+
+    def fake_run(*args, **kwargs):
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(wstv_server.subprocess, "run", fake_run)
+    with pytest.raises(ConfigError, match="3,500-character limit"):
+        wstv_server.run_pipeline_request(
+            _request(prompt="x" * 3501, confirm=CONFIRMATION_TOKEN),
+            submit=True,
+        )
+    assert called is False
+
+
 def test_paid_requires_storyboard_ack_before_subprocess(monkeypatch):
     called = False
 
@@ -217,6 +233,55 @@ def test_cost_summary_and_budget_settings_are_local(monkeypatch, tmp_path):
     assert not config.budget_settings_path.exists()
 
 
+def test_manual_usage_endpoint_appends_and_blocks_duplicate(monkeypatch, tmp_path):
+    config = _server_config(tmp_path)
+    monkeypatch.setattr(wstv_server, "load_config", lambda require_key=False: config)
+    data = {
+        "filename": "second-video.mp4",
+        "date": "2026-06-16",
+        "model": "Dreamina-Seedance-2.0",
+        "resolution": "720p",
+        "tokens": 324900,
+        "token_source": "actual_from_console",
+        "note": "second BytePlus Console usage entry",
+        "confirm": "ADD_CONSOLE_USAGE",
+    }
+    first = wstv_server.add_manual_usage(data)
+    second = wstv_server.add_manual_usage(data)
+    assert first["recorded"] is True
+    assert second["recorded"] is False
+    assert first["summary"]["usage_summary"]["total_used_tokens"] == 324900
+    assert "Already recorded" in second["message"]
+
+
+def test_manual_usage_requires_explicit_confirmation(monkeypatch, tmp_path):
+    config = _server_config(tmp_path)
+    monkeypatch.setattr(wstv_server, "load_config", lambda require_key=False: config)
+    with pytest.raises(ConfigError, match="ADD_CONSOLE_USAGE"):
+        wstv_server.add_manual_usage(
+            {
+                "filename": "second-video.mp4",
+                "date": "2026-06-16",
+                "model": "Dreamina-Seedance-2.0",
+                "resolution": "720p",
+                "tokens": 324900,
+                "token_source": "actual_from_console",
+                "note": "second BytePlus Console usage entry",
+            }
+        )
+
+
+def test_switching_resolution_updates_api_summary(monkeypatch, tmp_path):
+    config = _server_config(tmp_path)
+    monkeypatch.setattr(wstv_server, "load_config", lambda require_key=False: config)
+    summary_720 = wstv_server.cost_summary("all", "720p")
+    summary_1080 = wstv_server.cost_summary("all", "1080p")
+    assert summary_720["token_pack_tracker"]["selected_projected_tokens"] == 324000
+    assert summary_720["token_pack_tracker"]["selected_payg_cost_usd"] == 2.2680
+    assert summary_1080["token_pack_tracker"]["selected_projected_tokens"] == 801900
+    assert summary_1080["token_pack_tracker"]["selected_payg_cost_usd"] == 5.6133
+
+
 def test_budget_insufficient_blocks_paid_before_subprocess(monkeypatch, tmp_path):
     config = _server_config(tmp_path)
     monkeypatch.setattr(wstv_server, "load_config", lambda require_key=False: config)
@@ -255,7 +320,7 @@ def test_token_pack_insufficient_blocks_paid_before_subprocess(monkeypatch, tmp_
         called = True
 
     monkeypatch.setattr(wstv_server.subprocess, "run", fake_run)
-    with pytest.raises(ConfigError, match="token pack"):
+    with pytest.raises(ConfigError, match="selected resolution"):
         wstv_server.run_pipeline_request(
             _request(resolution="1080p", confirm=CONFIRMATION_TOKEN),
             submit=True,
@@ -313,8 +378,17 @@ def test_ui_requires_dry_run_and_confirmation_for_paid_button():
     assert "Reference images:" in html
     assert 'id="resolution"' in html
     assert "1080p uses more than 2x the tokens of 720p" in html
-    assert "Token resource pack comparison" in html
+    assert "Resolution Comparison" in html
+    assert "Pack Summary" in html
+    assert "Usage Summary" in html
+    assert "Resolution Comparison" in html
+    assert "Recent Usage" in html
+    assert "Add Console Usage Manually" in html
+    assert "ADD_CONSOLE_USAGE" in html
     assert "packComparison" in html
+    assert "packSummary" in html
+    assert "usageSummary" in html
+    assert "/api/manual-usage" in html
     assert "/api/cost-summary?period=" in html
     assert "resolution=" in html
     assert "Characters:" in html
@@ -323,7 +397,7 @@ def test_ui_requires_dry_run_and_confirmation_for_paid_button():
     assert '<input type="checkbox" checked' not in html
     assert "max-height: 200px; overflow-y: auto" in html
     assert "Est. videos left" in html
-    assert "Tokens (actual/est.)" in html
+    assert "Token source" in html
     assert "/api/budget_status" in html
     assert "/api/open-video-folder" in html
     assert "/api/open-latest-video" in html

@@ -189,20 +189,71 @@
       <button id="resetBudgetButton">Reset Local Budget Setting Only</button>
       <div id="costWarnings" class="warn"></div>
       <div class="metrics" id="costMetrics"></div>
-      <h3>Token resource pack comparison</h3>
+      <h3>Pack Summary</h3>
       <table>
         <thead>
-          <tr><th>Resolution</th><th>Tokens/video</th><th>PAYG cost/video</th><th>Pack cost/video</th><th>Total videos possible</th><th>Remaining videos possible</th></tr>
+          <tr><th>Model</th><th>Package size</th><th>Quantity</th><th>Total purchased tokens</th><th>Total price</th><th>Effective rate / 1M</th><th>Purchase date</th><th>Expiry date</th><th>Status</th></tr>
+        </thead>
+        <tbody id="packSummary"></tbody>
+      </table>
+      <h3>Usage Summary</h3>
+      <table>
+        <tbody id="usageSummary"></tbody>
+      </table>
+      <h3>Resolution Comparison</h3>
+      <table>
+        <thead>
+          <tr><th>Resolution</th><th>Tokens/video</th><th>PAYG cost/video</th><th>Pack cost/video</th><th>Total videos from pack</th><th>Remaining videos now</th><th>Tokens after next</th><th>Warning</th></tr>
         </thead>
         <tbody id="packComparison"></tbody>
       </table>
+      <h3>Add Console Usage Manually</h3>
+      <p class="small">Use this for previous paid videos that appear in BytePlus Console but are missing from the local ledger. No BytePlus API request is made.</p>
+      <div class="grid">
+        <div>
+          <label for="manualFilename">Filename</label>
+          <input id="manualFilename" placeholder="second-video.mp4">
+        </div>
+        <div>
+          <label for="manualDate">Date</label>
+          <input id="manualDate" type="date" value="2026-06-16">
+        </div>
+        <div>
+          <label for="manualModel">Model</label>
+          <input id="manualModel" value="Dreamina-Seedance-2.0">
+        </div>
+        <div>
+          <label for="manualResolution">Resolution</label>
+          <select id="manualResolution">
+            <option value="720p" selected>720p</option>
+            <option value="1080p">1080p</option>
+          </select>
+        </div>
+        <div>
+          <label for="manualTokens">Tokens</label>
+          <input id="manualTokens" type="number" min="1" step="1" value="324900">
+        </div>
+        <div>
+          <label for="manualTokenSource">Token source</label>
+          <select id="manualTokenSource">
+            <option value="actual_from_console" selected>actual_from_console</option>
+            <option value="estimated">estimated</option>
+          </select>
+        </div>
+      </div>
+      <label for="manualNote">Note</label>
+      <input id="manualNote" value="second BytePlus Console usage entry">
+      <label for="manualConfirm">Manual usage confirmation</label>
+      <input id="manualConfirm" placeholder="ADD_CONSOLE_USAGE">
+      <button id="addManualUsageButton">Add manual Console usage</button>
+      <div id="manualUsageStatus" class="small"></div>
       <h3>Manual tools</h3>
       <p class="small">Open video folder: <code id="costVideoFolder">/Users/acharyabimal/Movies/WSTV/SeedanceVideos</code></p>
       <p class="small">Open local ledger folder: <code id="costLedgerFolder">data</code></p>
-      <h3>Recent paid history</h3>
+      <h3>Recent Usage</h3>
       <table>
         <thead>
-          <tr><th>Date/time</th><th>Filename</th><th>Status</th><th>Tokens (actual/est.)</th><th>Cost USD</th><th>Output path</th></tr>
+          <tr><th>Date</th><th>Filename</th><th>Resolution</th><th>Token source</th><th>Tokens</th><th>Cost at PAYG</th><th>Cost at pack rate</th><th>Note</th></tr>
         </thead>
         <tbody id="paidHistory"></tbody>
       </table>
@@ -240,7 +291,15 @@
       totalBudget: document.getElementById("totalBudget"),
       dailyBudget: document.getElementById("dailyBudget"),
       monthlyBudget: document.getElementById("monthlyBudget"),
-      costPeriod: document.getElementById("costPeriod")
+      costPeriod: document.getElementById("costPeriod"),
+      manualFilename: document.getElementById("manualFilename"),
+      manualDate: document.getElementById("manualDate"),
+      manualModel: document.getElementById("manualModel"),
+      manualResolution: document.getElementById("manualResolution"),
+      manualTokens: document.getElementById("manualTokens"),
+      manualTokenSource: document.getElementById("manualTokenSource"),
+      manualNote: document.getElementById("manualNote"),
+      manualConfirm: document.getElementById("manualConfirm")
     };
     const dryRunButton = document.getElementById("dryRunButton");
     const generateButton = document.getElementById("generateButton");
@@ -277,8 +336,12 @@
     const costWarningsEl = document.getElementById("costWarnings");
     const costVideoFolderEl = document.getElementById("costVideoFolder");
     const costLedgerFolderEl = document.getElementById("costLedgerFolder");
+    const packSummaryEl = document.getElementById("packSummary");
+    const usageSummaryEl = document.getElementById("usageSummary");
     const packComparisonEl = document.getElementById("packComparison");
     const paidHistoryEl = document.getElementById("paidHistory");
+    const addManualUsageButton = document.getElementById("addManualUsageButton");
+    const manualUsageStatusEl = document.getElementById("manualUsageStatus");
     let dryRunOk = false;
     let safeMode = true;
     let budgetBlocked = false;
@@ -411,6 +474,19 @@
       };
     }
 
+    function manualUsagePayload() {
+      return {
+        filename: fields.manualFilename.value,
+        date: fields.manualDate.value,
+        model: fields.manualModel.value,
+        resolution: fields.manualResolution.value,
+        tokens: Number(fields.manualTokens.value || 0),
+        token_source: fields.manualTokenSource.value,
+        note: fields.manualNote.value,
+        confirm: fields.manualConfirm.value
+      };
+    }
+
     function renderCostSummary(summary) {
       if (!summary) return;
       const settings = summary.budget_settings || {};
@@ -422,6 +498,7 @@
       costVideoFolderEl.textContent = summary.video_folder || "";
       costLedgerFolderEl.textContent = summary.ledger_folder || "";
       const pack = summary.token_pack_tracker || {};
+      const usage = summary.usage_summary || {};
       costMetricsEl.innerHTML = [
         metric("Total budget", money(settings.total_budget_usd)),
         metric("Total spent", money(summary.total_spent_usd)),
@@ -440,17 +517,35 @@
         metric("Pack videos left", pack.remaining_videos_possible ?? "unknown"),
         metric("Est. videos left", summary.estimated_more_videos_possible ?? "unknown")
       ].join("");
+      packSummaryEl.innerHTML = "";
+      for (const item of summary.pack_summary_table || []) {
+        const row = document.createElement("tr");
+        row.innerHTML = `<td>${item.model || ""}</td><td>${item.package_size || ""}</td><td>${item.quantity ?? ""}</td><td>${item.total_purchased_tokens ?? ""}</td><td>${money(item.total_price_usd)}</td><td>${money(item.effective_rate_usd_per_million)}</td><td>${item.purchase_date || ""}</td><td>${item.expiry_date || ""}</td><td>${item.status || ""}</td>`;
+        packSummaryEl.appendChild(row);
+      }
+      const usageRows = [
+        ["Videos recorded", usage.videos_recorded ?? 0],
+        ["Actual tokens used", usage.actual_tokens_used ?? 0],
+        ["Estimated tokens used", usage.estimated_tokens_used ?? 0],
+        ["Total used tokens", usage.total_used_tokens ?? 0],
+        ["Remaining tokens", usage.remaining_tokens ?? 0],
+        ["Used value USD", money(usage.used_value_usd)],
+        ["Remaining value USD", money(usage.remaining_value_usd)]
+      ];
+      usageSummaryEl.innerHTML = usageRows.map(([label, value]) => `<tr><th>${label}</th><td>${value}</td></tr>`).join("");
       packComparisonEl.innerHTML = "";
       for (const item of pack.comparison || []) {
         const row = document.createElement("tr");
-        row.innerHTML = `<td>${item.resolution || ""}</td><td>${item.tokens || ""}</td><td>${money(item.payg_cost_usd)}</td><td>${money(item.pack_cost_per_video_usd)}</td><td>${item.total_videos_possible ?? ""}</td><td>${item.remaining_videos_possible ?? ""}</td>`;
+        row.innerHTML = `<td>${item.resolution || ""}</td><td>${item.tokens || ""}</td><td>${money(item.payg_cost_usd)}</td><td>${money(item.pack_cost_per_video_usd)}</td><td>${item.total_videos_possible ?? ""}</td><td>${item.remaining_videos_possible ?? ""}</td><td>${item.tokens_after_next ?? ""}</td><td>${item.warning || ""}</td>`;
         packComparisonEl.appendChild(row);
       }
       paidHistoryEl.innerHTML = "";
       for (const item of summary.recent_paid_history || []) {
         const row = document.createElement("tr");
-        const tokenText = `${item.token_count || ""} (${item.token_source || "unknown"})`;
-        row.innerHTML = `<td>${item.timestamp || ""}</td><td>${item.output_filename || ""}</td><td>${item.status || ""}</td><td>${tokenText}</td><td>${item.calculated_cost_usd ?? ""}</td><td>${item.final_downloaded_mp4_path || ""}</td>`;
+        const tokens = Number(item.token_count || 0);
+        const packRate = pack.effective_pack_rate_usd_per_million || 4.3;
+        const paygRate = item.rate_usd_per_million_tokens || 7.0;
+        row.innerHTML = `<td>${String(item.timestamp || "").slice(0, 10)}</td><td>${item.output_filename || ""}</td><td>${item.resolution || ""}</td><td>${item.token_source || "unknown"}</td><td>${tokens}</td><td>${money(tokens * paygRate / 1000000)}</td><td>${money(tokens * packRate / 1000000)}</td><td>${item.source_note || item.error_category || ""}</td>`;
         paidHistoryEl.appendChild(row);
       }
       updateGenerateState();
@@ -587,6 +682,13 @@
     resetBudgetButton.addEventListener("click", async () => {
       const result = await postJSON("/api/budget-settings", {reset: true});
       renderCostSummary(result.summary);
+    });
+    addManualUsageButton.addEventListener("click", async () => {
+      manualUsageStatusEl.textContent = "Recording manual usage...";
+      const result = await postJSON("/api/manual-usage", manualUsagePayload());
+      manualUsageStatusEl.textContent = result.ok ? result.message : result.error;
+      if (result.summary) renderCostSummary(result.summary);
+      refreshBudgetStatus();
     });
     safeModeButton.addEventListener("click", () => {
       safeMode = !safeMode;
