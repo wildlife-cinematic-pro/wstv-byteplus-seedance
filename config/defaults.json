@@ -9,6 +9,7 @@
   "task_log_path": "data/tasks.jsonl",
   "request_preview_dir": "outputs/request-previews",
   "raw_response_dir": "outputs/raw-responses",
+  "private_task_response_dir": "outputs/private-responses",
   "outputs_dir": "outputs",
   "downloads_dir": "downloads",
   "schema_sample_path": "docs/official-rest-sample.redacted.json",

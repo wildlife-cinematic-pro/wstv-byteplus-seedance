@@ -56,8 +56,17 @@
       "json_path": "$.id",
       "source_capture": "outputs/create-response-captures/local-418bcd786157.json",
       "verified_on": "2026-06-16"
+    },
+    "output_video_url_field": {
+      "status": "VERIFIED_SUCCEEDED_TASK_RESPONSE",
+      "field": "video_url",
+      "json_path": "$.content.video_url",
+      "source_task_id": "cgt-20260616100710-pj5td",
+      "verified_on": "2026-06-16",
+      "note": "Full signed URL is private and must remain only under outputs/private-responses/."
     }
   },
   "submit_gate": "CONTROLLED_CAPTURE_ONLY",
-  "status_check_gate": "MANUAL_EXISTING_TASK_ID_ONLY"
+  "status_check_gate": "MANUAL_EXISTING_TASK_ID_ONLY",
+  "download_gate": "MANUAL_COMPLETED_TASK_OR_VERIFIED_URL_ONLY"
 }

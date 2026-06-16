@@ -1,0 +1,11 @@
+{
+  "id": "cgt-20260616100710-pj5td",
+  "status": "succeeded",
+  "model": "dreamina-seedance-2-0-260128",
+  "resolution": "720p",
+  "ratio": "9:16",
+  "duration": 15,
+  "content": {
+    "video_url": "https://example.com/sea-lion-test-001.mp4?signature=redacted"
+  }
+}

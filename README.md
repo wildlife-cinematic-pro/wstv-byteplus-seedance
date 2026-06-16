@@ -4,9 +4,9 @@ This is a safety-first Python CLI toolkit for preparing 15-second vertical 9:16 
 
 ## Current Readiness Status
 
-Status: **SAFE MANUAL STATUS CHECKING ENABLED** for existing verified Seedance task IDs.
+Status: **SAFE MANUAL STATUS CHECKING AND DOWNLOAD ENABLED** for existing verified Seedance task IDs and completed task outputs.
 
-Dry runs, local validation, cost previews, tests, and documentation are ready. A real paid create-task request is locked by default and requires `--submit`, `--capture-create-response`, `--max-cost-usd`, `--confirm SUBMIT_ONE_PAID_TASK`, a local `ARK_API_KEY`, duplicate-check pass, writable task log, and the verified redacted sample file. The create-task response task ID field is verified as `$.id`.
+Dry runs, local validation, cost previews, tests, and documentation are ready. A real paid create-task request is locked by default and requires `--submit`, `--capture-create-response`, `--max-cost-usd`, `--confirm SUBMIT_ONE_PAID_TASK`, a local `ARK_API_KEY`, duplicate-check pass, writable task log, and the verified redacted sample file. The create-task response task ID field is verified as `$.id`, and succeeded task output URL is verified as `$.content.video_url`.
 
 No command in the normal setup makes a paid API call.
 
@@ -21,7 +21,7 @@ No command in the normal setup makes a paid API call.
 - Cancel/delete task: `DELETE /contents/generations/tasks/{id}`
 - Model IDs: `dreamina-seedance-2-0-260128`, `dreamina-seedance-2-0-fast-260128`
 - Task statuses: `queued`, `running`, `cancelled`, `succeeded`, `failed`, `expired`
-- Output URL field: `content.video_url`
+- Output URL field: `$.content.video_url`
 - Output video URL is deleted after 24 hours; download promptly after success.
 
 Console billing and returned `usage.completion_tokens` are final.
@@ -164,7 +164,9 @@ Unknown statuses are treated cautiously and never as success.
 
 ## Download Process
 
-After a task succeeds, use the verified `content.video_url` promptly:
+Save full private completed task responses only under `outputs/private-responses/`; this path is gitignored. Do not commit signed output URLs.
+
+After a task succeeds, use the verified `$.content.video_url` promptly:
 
 ```bash
 python3 scripts/download_video.py \
@@ -179,11 +181,14 @@ Or pass a local completed task response JSON that still contains `content.video_
 
 ```bash
 python3 scripts/download_video.py \
-  --response-json /path/to/completed-response.json \
-  --out downloads/wstv-output.mp4
+  --response-json outputs/private-responses/TASK_ID.json \
+  --out downloads/wstv-output.mp4 \
+  --expect-duration 15 \
+  --expect-width 720 \
+  --expect-height 1280
 ```
 
-Do not commit raw task responses that contain signed URLs.
+Do not commit raw task responses that contain signed URLs. Do not commit downloaded `.mp4` files or verification sidecars.
 
 The downloader streams to a temporary file, rejects HTML/error pages, saves atomically, and writes verification metadata.
 
@@ -194,6 +199,8 @@ The downloader streams to a temporary file, rejects HTML/error pages, saves atom
 - `ARK_API_KEY is missing` means no API call can run.
 - `Duplicate active/recent request fingerprint found` means the same paid task may already have been submitted.
 - `Cost is UNVERIFIED` means do not submit.
+- Store private full task responses in `outputs/private-responses/`.
+- Store downloaded videos in `downloads/`.
 
 ## BytePlus Console Verification Checklist
 
