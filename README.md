@@ -146,6 +146,27 @@ The command saves a redacted request preview and a redacted create-task response
 
 See `docs/ONE_PAID_RESPONSE_CAPTURE.md`.
 
+## One-Command Pipeline
+
+Dry-run only by default:
+
+```bash
+python3 scripts/wstv_pipeline.py --prompt-file data/example.txt --out downloads/example.mp4
+```
+
+Paid submit still requires explicit approval:
+
+```bash
+python3 scripts/wstv_pipeline.py \
+  --prompt-file data/example.txt \
+  --out downloads/example.mp4 \
+  --submit \
+  --max-cost-usd 3 \
+  --confirm SUBMIT_ONE_PAID_TASK
+```
+
+See `docs/ONE_COMMAND_PIPELINE.md`.
+
 ## Task Status Process
 
 One-shot status check for an existing task ID:

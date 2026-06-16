@@ -35,14 +35,19 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def fetch_task_response(config, task_id: str) -> dict:
+    task_id = validate_task_id(task_id)
+    verified_response_task_id_field(config)
+    url = build_url(config, config.retrieve_path, id=task_id)
+    return request_json("GET", url, config.api_key or "", config.timeout_seconds)
+
+
 def fetch_once(task_id: str):
     task_id = validate_task_id(task_id)
     config = load_config(require_key=True)
-    verified_response_task_id_field(config)
     if config.used_deprecated_key:
         print("Warning: BYTEPLUS_API_KEY fallback is deprecated. Use ARK_API_KEY.", file=sys.stderr)
-    url = build_url(config, config.retrieve_path, id=task_id)
-    data = request_json("GET", url, config.api_key or "", config.timeout_seconds)
+    data = fetch_task_response(config, task_id)
     parsed = parse_task_response(data)
     save_sanitized_response(config, task_id, data)
     append_jsonl(
