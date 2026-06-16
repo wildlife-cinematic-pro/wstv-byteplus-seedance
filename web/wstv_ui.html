@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WSTV Seedance Local Dashboard</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { margin: 0; background: #0b1020; color: #e9eefc; }
+    main { max-width: 1120px; margin: 0 auto; padding: 32px; }
+    h1 { margin: 0 0 8px; font-size: 32px; }
+    p { color: #aeb9d8; }
+    label { display: block; margin: 16px 0 8px; font-weight: 700; }
+    input, textarea { box-sizing: border-box; width: 100%; border: 1px solid #32405f; border-radius: 10px; background: #121a31; color: #f6f8ff; padding: 12px; font: inherit; }
+    textarea { min-height: 112px; resize: vertical; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .card { border: 1px solid #263555; border-radius: 18px; background: #11182b; padding: 20px; box-shadow: 0 18px 50px rgba(0,0,0,.25); }
+    button { border: 0; border-radius: 999px; padding: 12px 18px; margin: 16px 10px 0 0; font-weight: 800; cursor: pointer; }
+    button.primary { background: #5f8cff; color: white; }
+    button.danger { background: #ff6b6b; color: #240707; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    pre { white-space: pre-wrap; word-break: break-word; min-height: 180px; background: #060914; border-radius: 12px; padding: 16px; color: #d5e1ff; }
+    .status { margin-top: 10px; color: #9ee493; font-weight: 800; }
+    .warn { color: #ffd166; }
+    .history li { margin: 10px 0; color: #ccd6f6; }
+    .small { font-size: 13px; color: #9eaccd; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>WSTV Seedance Local Dashboard</h1>
+    <p>Local-only dashboard bound to <code>127.0.0.1</code>. It never shows API keys, signed output URLs, or private response JSON.</p>
+
+    <section class="grid">
+      <div class="card">
+        <label for="sceneIdea">Scene idea</label>
+        <textarea id="sceneIdea" placeholder="A young sea lion looks toward cinematic sunset surf..."></textarea>
+
+        <label for="prompt">Final Seedance prompt</label>
+        <textarea id="prompt" placeholder="Final production prompt. If empty, the scene idea is used."></textarea>
+
+        <label for="imageUrl">Reference image URL</label>
+        <input id="imageUrl" placeholder="https://images.wildstoriestv.com/elephant_mud_master.png">
+
+        <div class="grid">
+          <div>
+            <label for="outputFilename">Output filename</label>
+            <input id="outputFilename" value="wstv-output.mp4">
+          </div>
+          <div>
+            <label for="maxCost">Max cost USD</label>
+            <input id="maxCost" type="number" min="0" step="0.01" value="3">
+          </div>
+        </div>
+
+        <button class="primary" id="dryRunButton">Dry Run</button>
+        <p class="small">Dry run validates inputs, including public image URL checks, and makes no paid BytePlus request.</p>
+
+        <label for="confirm">Paid confirmation</label>
+        <input id="confirm" placeholder="SUBMIT_ONE_PAID_TASK">
+        <button class="danger" id="generateButton" disabled>Generate Paid Video</button>
+        <p class="small warn">Generate is disabled until dry-run succeeds and exact confirmation is typed. Paid clicks disable immediately.</p>
+      </div>
+
+      <div class="card">
+        <h2>Status / Log</h2>
+        <div id="status" class="status">Ready.</div>
+        <pre id="log"></pre>
+        <h2>Downloaded MP4 path</h2>
+        <pre id="mp4Path"></pre>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:18px">
+      <h2>Recent history</h2>
+      <ul id="history" class="history"></ul>
+    </section>
+  </main>
+
+  <script>
+    const CONFIRM = "SUBMIT_ONE_PAID_TASK";
+    const fields = {
+      sceneIdea: document.getElementById("sceneIdea"),
+      prompt: document.getElementById("prompt"),
+      imageUrl: document.getElementById("imageUrl"),
+      outputFilename: document.getElementById("outputFilename"),
+      maxCost: document.getElementById("maxCost"),
+      confirm: document.getElementById("confirm")
+    };
+    const dryRunButton = document.getElementById("dryRunButton");
+    const generateButton = document.getElementById("generateButton");
+    const statusEl = document.getElementById("status");
+    const logEl = document.getElementById("log");
+    const mp4PathEl = document.getElementById("mp4Path");
+    const historyEl = document.getElementById("history");
+    let dryRunOk = false;
+
+    function payload() {
+      return {
+        scene_idea: fields.sceneIdea.value,
+        prompt: fields.prompt.value,
+        image_url: fields.imageUrl.value,
+        output_filename: fields.outputFilename.value,
+        max_cost_usd: Number(fields.maxCost.value || 3),
+        confirm: fields.confirm.value
+      };
+    }
+
+    function updateGenerateState() {
+      generateButton.disabled = !(dryRunOk && fields.confirm.value === CONFIRM);
+    }
+
+    async function postJSON(path, body) {
+      const response = await fetch(path, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(body)
+      });
+      return await response.json();
+    }
+
+    function showResult(result, action) {
+      statusEl.textContent = result.ok ? `${action} succeeded.` : `${action} failed.`;
+      logEl.textContent = result.log || result.error || "";
+      mp4PathEl.textContent = result.mp4_path || "";
+    }
+
+    async function refreshHistory() {
+      const result = await fetch("/api/history").then(r => r.json());
+      historyEl.innerHTML = "";
+      for (const item of result.history || []) {
+        const li = document.createElement("li");
+        li.textContent = `${item.timestamp} | ${item.submitted ? "paid" : "dry-run"} | ${item.ok ? "ok" : "failed"} | ${item.output_filename || ""} | ${item.mp4_path || ""}`;
+        historyEl.appendChild(li);
+      }
+    }
+
+    dryRunButton.addEventListener("click", async () => {
+      dryRunOk = false;
+      updateGenerateState();
+      statusEl.textContent = "Running dry run...";
+      logEl.textContent = "";
+      mp4PathEl.textContent = "";
+      const result = await postJSON("/api/dry-run", payload());
+      dryRunOk = !!result.ok;
+      showResult(result, "Dry run");
+      updateGenerateState();
+      refreshHistory();
+    });
+
+    generateButton.addEventListener("click", async () => {
+      generateButton.disabled = true;
+      statusEl.textContent = "Generating paid video...";
+      const result = await postJSON("/api/generate", payload());
+      showResult(result, "Paid generation");
+      dryRunOk = false;
+      updateGenerateState();
+      refreshHistory();
+    });
+
+    fields.confirm.addEventListener("input", updateGenerateState);
+    for (const key of ["sceneIdea", "prompt", "imageUrl", "outputFilename", "maxCost"]) {
+      fields[key].addEventListener("input", () => {
+        dryRunOk = false;
+        updateGenerateState();
+      });
+    }
+    refreshHistory();
+  </script>
+</body>
+</html>

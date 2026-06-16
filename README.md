@@ -167,6 +167,22 @@ python3 scripts/wstv_pipeline.py \
 
 See `docs/ONE_COMMAND_PIPELINE.md`.
 
+## Local Browser Dashboard
+
+Start the private local dashboard:
+
+```bash
+./start_wstv_dashboard.command
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8765
+```
+
+The dashboard calls `scripts/wstv_pipeline.py` locally and keeps the same paid safety gates. It is not deployed publicly. See `docs/LOCAL_DASHBOARD.md`.
+
 ## Reference Image URLs
 
 Use public HTTPS direct image URLs only, for example:
