@@ -10,6 +10,7 @@ def _config(tmp_path):
         **{
             **config.__dict__,
             "cost_ledger_path": tmp_path / "data" / "wstv_cost_ledger.jsonl",
+            "token_pack_ledger_path": tmp_path / "data" / "wstv_token_packs.jsonl",
             "budget_settings_path": tmp_path / "data" / "wstv_budget_settings.json",
         }
     )

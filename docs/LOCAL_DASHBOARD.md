@@ -82,7 +82,13 @@ Paid generation cost entries are appended to:
 data/wstv_cost_ledger.jsonl
 ```
 
-Both files are gitignored. The ledger stores safe metadata only: timestamp, status, model, duration, resolution, aspect ratio, audio setting, output filename, final local MP4 path, token count, token source, verified rate, calculated cost, image URL host, and optional task ID. It does not store API keys, signed output URLs, full image URLs, private task response JSON, or `.mp4` files.
+Token resource packs are stored separately in:
+
+```text
+data/wstv_token_packs.jsonl
+```
+
+All three files are gitignored. The usage ledger stores safe metadata only: timestamp, status, model, duration, resolution, aspect ratio, audio setting, output filename, final local MP4 path, token count, token source, verified rate, calculated cost, image URL host, and optional task ID. It does not store API keys, signed output URLs, full image URLs, private task response JSON, or `.mp4` files.
 
 Cost is calculated with:
 
@@ -91,6 +97,8 @@ tokens * rate_usd_per_million_tokens / 1000000
 ```
 
 If `usage.completion_tokens` is available, the dashboard records `token_source = actual`. If not, it records the local estimate with `token_source = estimated`. Dry-runs do not append to the ledger and do not count as paid videos. Paid generation is counted only after the paid task result is recorded; duplicate task/result entries are not double-counted.
+
+The dashboard uses `scripts/token_pack_tracker.py` as the single source of truth for pack math, resolution presets, remaining-video calculations, and token warnings. The dashboard asks the backend for `/api/token-pack-summary?resolution=720p` or `/api/token-pack-summary?resolution=1080p` whenever the page loads, the resolution changes, a pack is added, manual usage is added, budget is saved, or a dry-run completes.
 
 The dashboard shows:
 
@@ -102,6 +110,27 @@ The dashboard shows:
 Dry-runs do not append usage. Failed paid attempts do not count against the token pack unless actual Console usage is explicitly entered.
 
 BytePlus Console Billing remains the final source of truth.
+
+### Add A Token Resource Pack
+
+If no local pack ledger exists, the dashboard shows:
+
+```text
+No active token pack recorded
+Add token resource pack to track remaining videos
+```
+
+To record the current 7M example pack from BytePlus Console, use the dashboard `Add Token Pack` form:
+
+- Model: `Dreamina-Seedance-2.0`
+- Package size: `1M`
+- Quantity: `7`
+- Total price USD: `30.10`
+- Purchase date: the Console purchase date
+- Validity days: `90`
+- Confirmation: `ADD_TOKEN_PACK`
+
+This creates `7,000,000` purchased tokens and an effective rate of `$4.30/M`. It stores no payment details and makes no BytePlus API request. For later purchases, choose `10M` or `100M`, set the quantity and Console total price, and confirm with `ADD_TOKEN_PACK`.
 
 ### Resolution And Token Pack Estimates
 
@@ -118,7 +147,7 @@ Current BytePlus UI screenshot-backed presets:
 | `720p` | `324000` | `$7.00/M` | `$2.2680` | `$4.30/M` | `$1.3932` |
 | `1080p` | `801900` | `$7.00/M` | `$5.6133` | `$4.30/M` | `$3.4482` |
 
-For a 7M token resource pack at `$30.10`, the effective pack rate is `$4.30/M`.
+After adding a 7M token resource pack at `$30.10`, the effective pack rate is `$4.30/M`.
 
 - Total possible `720p` videos: `floor(7000000 / 324000) = 21`
 - Total possible `1080p` videos: `floor(7000000 / 801900) = 8`
@@ -162,6 +191,7 @@ Safety rules:
 - Dashboard history is stored under gitignored `data/dashboard_history.json`.
 - Cost ledger is stored under gitignored `data/wstv_cost_ledger.jsonl`.
 - Budget settings are stored under gitignored `data/wstv_budget_settings.json`.
+- Token pack ledger is stored under gitignored `data/wstv_token_packs.jsonl`.
 - Private task responses stay under `outputs/private-responses/`.
 - Task logs stay under `data/`.
 

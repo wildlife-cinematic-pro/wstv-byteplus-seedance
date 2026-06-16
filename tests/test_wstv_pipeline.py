@@ -21,6 +21,7 @@ def _config(tmp_path, api_key=None):
             "api_key_source": "ARK_API_KEY" if api_key else None,
             "task_log_path": tmp_path / "data" / "tasks.jsonl",
             "cost_ledger_path": tmp_path / "data" / "wstv_cost_ledger.jsonl",
+            "token_pack_ledger_path": tmp_path / "data" / "wstv_token_packs.jsonl",
             "budget_settings_path": tmp_path / "data" / "wstv_budget_settings.json",
             "request_preview_dir": tmp_path / "outputs" / "request-previews",
             "raw_response_dir": tmp_path / "outputs" / "raw-responses",

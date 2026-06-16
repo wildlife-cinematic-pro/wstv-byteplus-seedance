@@ -18,6 +18,7 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 import cost_tracker
+import token_pack_tracker
 from common import (
     PROJECT_ROOT,
     ConfigError,
@@ -186,6 +187,9 @@ def run_pipeline_request(request: DashboardRequest, *, submit: bool) -> dict[str
         status = budget_status(request.resolution)
         if status["blocked"]:
             raise ConfigError("Budget check blocked paid submit: " + " ".join(status["warnings"]))
+        token_status = token_pack_summary(request.resolution)
+        if token_status["blocking_warnings"]:
+            raise ConfigError("Budget check blocked paid submit: " + " ".join(token_status["blocking_warnings"]))
     cmd = pipeline_command(request, submit=submit)
     completed = subprocess.run(
         cmd,
@@ -256,6 +260,13 @@ def budget_status(resolution: str = "720p") -> dict[str, Any]:
     }
 
 
+def token_pack_summary(resolution: str = "720p") -> dict[str, Any]:
+    if resolution not in VALID_DASHBOARD_RESOLUTIONS:
+        raise ConfigError("Resolution must be 720p or 1080p.")
+    config = load_config(require_key=False)
+    return cost_tracker.budget_summary(config, period="all", resolution=resolution)
+
+
 def save_budget(data: dict[str, Any]) -> dict[str, Any]:
     config = load_config(require_key=False)
     settings = cost_tracker.save_budget_settings(config, data)
@@ -295,6 +306,34 @@ def add_manual_usage(data: dict[str, Any]) -> dict[str, Any]:
         "recorded": recorded,
         "message": "Manual usage recorded." if recorded else "Already recorded in cost ledger.",
         "summary": cost_tracker.budget_summary(config, period="all", resolution=str(data.get("resolution") or "720p")),
+    }
+
+
+def add_token_pack(data: dict[str, Any]) -> dict[str, Any]:
+    if str(data.get("confirm") or "").strip() != token_pack_tracker.ADD_TOKEN_PACK_CONFIRMATION:
+        raise ConfigError(f"Token pack entry requires confirmation: {token_pack_tracker.ADD_TOKEN_PACK_CONFIRMATION}.")
+    config = load_config(require_key=False)
+    try:
+        quantity = int(data.get("quantity") or 0)
+        total_price = float(data.get("total_price_usd") or 0)
+        validity_days = int(data.get("validity_days") or 90)
+    except (TypeError, ValueError) as exc:
+        raise ConfigError("Token pack quantity, total price, and validity days must be valid numbers.") from exc
+    entry = token_pack_tracker.build_pack_entry(
+        model=str(data.get("model") or "Dreamina-Seedance-2.0").strip(),
+        package_size=str(data.get("package_size") or "1M").strip(),
+        quantity=quantity,
+        total_price_usd=total_price,
+        purchase_date=str(data.get("purchase_date") or "").strip(),
+        validity_days=validity_days,
+        note=str(data.get("note") or "").strip(),
+    )
+    recorded = token_pack_tracker.append_pack_entry(config, entry)
+    return {
+        "recorded": recorded,
+        "message": "Token pack recorded." if recorded else "Already recorded in token pack ledger.",
+        "entry": entry,
+        "summary": token_pack_summary(str(data.get("resolution") or "720p")),
     }
 
 
@@ -380,6 +419,10 @@ class DashboardHandler(BaseHTTPRequestHandler):
             resolution = parse_qs(parsed.query).get("resolution", ["720p"])[0]
             self._send_json({"ok": True, **budget_status(resolution)})
             return
+        if parsed.path == "/api/token-pack-summary":
+            resolution = parse_qs(parsed.query).get("resolution", ["720p"])[0]
+            self._send_json({"ok": True, "summary": token_pack_summary(resolution)})
+            return
         self._send_json({"ok": False, "error": "Not found."}, HTTPStatus.NOT_FOUND)
 
     def do_POST(self) -> None:
@@ -402,6 +445,10 @@ class DashboardHandler(BaseHTTPRequestHandler):
             if self.path == "/api/manual-usage":
                 self._require_local_client()
                 self._send_json({"ok": True, **add_manual_usage(data)})
+                return
+            if self.path == "/api/token-pack":
+                self._require_local_client()
+                self._send_json({"ok": True, **add_token_pack(data)})
                 return
             request = dashboard_request(data)
             if self.path == "/api/dry-run":

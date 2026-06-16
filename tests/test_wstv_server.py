@@ -1,10 +1,12 @@
 import json
 import subprocess
+import datetime as dt
 from pathlib import Path
 
 import pytest
 
 import cost_tracker
+import token_pack_tracker
 import wstv_server
 from common import ConfigError
 from generate_video import CONFIRMATION_TOKEN
@@ -40,9 +42,24 @@ def _server_config(tmp_path):
             **config.__dict__,
             "downloads_dir": tmp_path / "Movies" / "WSTV" / "SeedanceVideos",
             "cost_ledger_path": tmp_path / "data" / "wstv_cost_ledger.jsonl",
+            "token_pack_ledger_path": tmp_path / "data" / "wstv_token_packs.jsonl",
             "budget_settings_path": tmp_path / "data" / "wstv_budget_settings.json",
         }
     )
+
+
+def _add_7m_pack(config):
+    entry = token_pack_tracker.build_pack_entry(
+        model="Dreamina-Seedance-2.0",
+        package_size="1M",
+        quantity=7,
+        total_price_usd=30.10,
+        purchase_date=dt.date.today().isoformat(),
+        validity_days=90,
+        note="test token pack",
+    )
+    assert token_pack_tracker.append_pack_entry(config, entry) is True
+    return entry
 
 
 def test_output_filename_is_sanitized_and_kept_in_video_folder(monkeypatch, tmp_path):
@@ -235,6 +252,7 @@ def test_cost_summary_and_budget_settings_are_local(monkeypatch, tmp_path):
 
 def test_manual_usage_endpoint_appends_and_blocks_duplicate(monkeypatch, tmp_path):
     config = _server_config(tmp_path)
+    _add_7m_pack(config)
     monkeypatch.setattr(wstv_server, "load_config", lambda require_key=False: config)
     data = {
         "filename": "second-video.mp4",
@@ -273,6 +291,7 @@ def test_manual_usage_requires_explicit_confirmation(monkeypatch, tmp_path):
 
 def test_switching_resolution_updates_api_summary(monkeypatch, tmp_path):
     config = _server_config(tmp_path)
+    _add_7m_pack(config)
     monkeypatch.setattr(wstv_server, "load_config", lambda require_key=False: config)
     summary_720 = wstv_server.cost_summary("all", "720p")
     summary_1080 = wstv_server.cost_summary("all", "1080p")
@@ -303,6 +322,7 @@ def test_budget_insufficient_blocks_paid_before_subprocess(monkeypatch, tmp_path
 
 def test_token_pack_insufficient_blocks_paid_before_subprocess(monkeypatch, tmp_path):
     config = _server_config(tmp_path)
+    _add_7m_pack(config)
     monkeypatch.setattr(wstv_server, "load_config", lambda require_key=False: config)
     entry = cost_tracker.manual_backfill_entry(
         date="2026-06-16",
@@ -388,7 +408,12 @@ def test_ui_requires_dry_run_and_confirmation_for_paid_button():
     assert "packComparison" in html
     assert "packSummary" in html
     assert "usageSummary" in html
+    assert "Add Token Pack" in html
+    assert "ADD_TOKEN_PACK" in html
     assert "/api/manual-usage" in html
+    assert "/api/token-pack" in html
+    assert "/api/token-pack-summary" in html
+    assert "function refreshTokenPackSummary()" in html
     assert "/api/cost-summary?period=" in html
     assert "resolution=" in html
     assert "Characters:" in html
