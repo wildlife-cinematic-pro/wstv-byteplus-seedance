@@ -47,6 +47,34 @@ def test_cost_formula_calculation():
     assert cost_tracker.cost_usd(324_900, 7.0) == 2.2743
 
 
+def test_720p_pack_preset_calculation():
+    preset = cost_tracker.resolution_preset("720p")
+    assert preset["projected_tokens"] == 324_000
+    assert cost_tracker.cost_usd(preset["projected_tokens"], 7.0) == 2.2680
+    assert cost_tracker.cost_usd(preset["projected_tokens"], 4.30) == 1.3932
+
+
+def test_1080p_pack_preset_uses_observed_byteplus_ui_tokens():
+    preset = cost_tracker.resolution_preset("1080p")
+    assert preset["projected_tokens"] == 801_900
+    assert cost_tracker.cost_usd(preset["projected_tokens"], 7.0) == 5.6133
+    assert cost_tracker.cost_usd(preset["projected_tokens"], 4.30) == 3.4482
+
+
+def test_7m_pack_video_counts_by_resolution():
+    assert cost_tracker.pack_projection(resolution="720p")["total_videos_possible"] == 21
+    assert cost_tracker.pack_projection(resolution="1080p")["total_videos_possible"] == 8
+
+
+def test_7m_pack_remaining_counts_after_two_720p_console_videos():
+    used_tokens = 649_800
+    summary_720 = cost_tracker.pack_projection(resolution="720p", used_tokens=used_tokens)
+    summary_1080 = cost_tracker.pack_projection(resolution="1080p", used_tokens=used_tokens)
+    assert summary_720["remaining_tokens"] == 6_350_200
+    assert summary_720["remaining_videos_possible"] == 19
+    assert summary_1080["remaining_videos_possible"] == 7
+
+
 def test_actual_tokens_produce_actual_cost(tmp_path):
     config = _config(tmp_path)
     entry = cost_tracker.ledger_entry(

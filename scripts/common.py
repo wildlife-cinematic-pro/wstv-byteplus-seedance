@@ -55,6 +55,13 @@ CONTROLLED_CAPTURE_SCHEMA_STATUSES = {
 }
 ALLOWED_IMAGE_CONTENT_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
 HEAD_FALLBACK_STATUSES = {403, 405, 501}
+PROJECTED_TOKEN_OVERRIDES = {
+    # BytePlus UI screenshot on 2026-06-16 shows 1080p 9:16 15s pay-as-you-go
+    # cost as $5.6133 at $7/M, which implies 801,900 tokens. Use the UI value
+    # for WSTV estimates instead of the raw width * height * fps * duration / 1024
+    # formula because the UI is the billing-facing estimate.
+    ("dreamina-seedance-2-0-260128", "1080p", "9:16", 15, 0): 801_900,
+}
 
 
 class ConfigError(RuntimeError):
@@ -670,6 +677,11 @@ def request_fingerprint(payload: dict[str, Any]) -> str:
 
 
 def estimate_tokens(config: AppConfig, resolution: str, ratio: str, duration: int, input_video_seconds: int = 0) -> int:
+    override = PROJECTED_TOKEN_OVERRIDES.get(
+        (config.model_id, resolution, ratio, int(duration), int(input_video_seconds))
+    )
+    if override is not None:
+        return override
     model = config.model
     try:
         width, height = model.dimensions[resolution][ratio]

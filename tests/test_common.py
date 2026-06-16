@@ -178,6 +178,14 @@ def test_cost_estimate_model_specific():
     assert estimate["estimated_cost_usd"] > 0
 
 
+def test_1080p_estimate_uses_observed_byteplus_ui_projection():
+    config = common.load_config(require_key=False)
+    estimate = common.estimate_cost_usd(config, "1080p", "9:16", 15)
+    assert estimate["estimated_tokens"] == 801_900
+    assert estimate["rate_usd_per_million_tokens"] == 7.0
+    assert estimate["estimated_cost_usd"] == 5.6133
+
+
 def test_malformed_json_raises(tmp_path):
     path = tmp_path / "bad.json"
     path.write_text("{bad", encoding="utf-8")

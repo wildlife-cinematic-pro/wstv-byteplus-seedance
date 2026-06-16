@@ -96,6 +96,31 @@ The dashboard shows total spent, remaining budget, paid video count, successful/
 
 BytePlus Console Billing remains the final source of truth.
 
+### Resolution And Token Pack Estimates
+
+The dashboard token tracker supports `720p` and `1080p` estimates for 9:16, 15-second WSTV Seedance videos.
+
+- Use `720p` for testing and normal iteration.
+- Use `1080p` only for final or high-value scenes.
+- `1080p` uses more than 2x the tokens of `720p`.
+
+Current BytePlus UI screenshot-backed presets:
+
+| Resolution | Projected tokens | Pay-as-you-go rate | PAYG cost/video | Example pack rate | Pack cost/video |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `720p` | `324000` | `$7.00/M` | `$2.2680` | `$4.30/M` | `$1.3932` |
+| `1080p` | `801900` | `$7.00/M` | `$5.6133` | `$4.30/M` | `$3.4482` |
+
+For a 7M token resource pack at `$30.10`, the effective pack rate is `$4.30/M`.
+
+- Total possible `720p` videos: `floor(7000000 / 324000) = 21`
+- Total possible `1080p` videos: `floor(7000000 / 801900) = 8`
+- After two existing 720p videos using `649800` tokens, remaining tokens are `6350200`.
+- Remaining `720p` videos: `floor(6350200 / 324000) = 19`
+- Remaining `1080p` videos: `floor(6350200 / 801900) = 7`
+
+When the dashboard resolution selector changes, the estimated next-video tokens, PAYG cost, pack cost/video, total videos possible, remaining videos possible, and token warnings update automatically. Paid submit is blocked when the active token pack cannot cover the selected resolution. Dry-run remains free and does not append pack usage.
+
 ### Manual Backfill For Previous Paid Videos
 
 If a paid video was generated before the cost tracker existed, backfill it from verified BytePlus Console usage with:
