@@ -56,7 +56,11 @@ To use a different local non-cloud folder, set `WSTV_VIDEO_OUTPUT_DIR` before st
 - After a successful paid flow, the confirmation input is cleared and the paid button stays disabled until the phrase is retyped.
 - The prompt counter shows `Characters: X / 3500`; paid submit is blocked above 3,500 characters.
 - Reference image preview requires a direct HTTPS image URL.
-- If the reference host is not `images.wildstoriestv.com` or under `wildstoriestv.com`, the UI shows a warning before paid generation.
+- The dashboard has two separate reference image fields. `Reference Image 1` is the master identity/environment anchor. `Reference Image 2` is optional storyboard/motion guide only.
+- Comma-separated image URLs are rejected. Use separate boxes.
+- If a reference host is not `images.wildstoriestv.com` or under `wildstoriestv.com`, the UI shows a warning before paid generation.
+- If `Reference Image 2` is filled, paid generation is blocked until `I understand storyboard text/grid may be copied.` is checked.
+- 3-5 reference images are not enabled for paid workflow yet.
 - The log box is capped to about 200px high and scrolls for long output.
 - QA checklist items are unchecked by default, including `Loop ending clean`.
 - Status badges show states such as `READY`, `DRY RUN OK`, `GENERATING`, `BUDGET LOW`, `ERROR`, `PAID RECORDED`, and `SAFE MODE`.
@@ -129,3 +133,20 @@ Safety rules:
 - Task logs stay under `data/`.
 
 The backend calls `scripts/wstv_pipeline.py` as a subprocess. Paid safety logic remains in the existing pipeline.
+
+## Two Reference Images
+
+Use one image for normal production when possible. Add a second image only when it is useful as a storyboard or motion guide.
+
+- `Reference Image 1 - Master identity / environment`: animal anatomy, identity, setting, lighting, realism, and composition anchor.
+- `Reference Image 2 - Storyboard / motion guide`: shot order, framing, pacing, or motion guide only.
+
+When Image 2 is used, include this intent in the final prompt:
+
+```text
+Use Image 1 as the master identity, animal anatomy, environment, lighting, and realism anchor.
+Use Image 2 only as storyboard shot order, framing, pacing, and motion guide.
+Do not copy storyboard grid, borders, frame numbers, captions, text, logo, or watermark.
+```
+
+Storyboard grids, captions, labels, text, logos, or watermarks can be copied by the model. Review the dry-run preview first. Paid generation still requires exact `SUBMIT_ONE_PAID_TASK`, budget checks, duplicate blocking, API key gate, and the storyboard acknowledgement checkbox.

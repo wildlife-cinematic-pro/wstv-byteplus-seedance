@@ -15,6 +15,8 @@ def _request(**overrides):
         "scene_idea": "A sea lion watches the surf",
         "prompt": "Final cinematic sea lion prompt",
         "image_url": "https://images.wildstoriestv.com/sea_lion.png",
+        "image_url_2": "",
+        "storyboard_ack": False,
         "output_filename": "sea-lion-test.mp4",
         "max_cost_usd": 3,
         "confirm": "",
@@ -72,6 +74,18 @@ def test_dry_run_command_has_no_paid_flags(monkeypatch, tmp_path):
     assert "--image-url" in cmd
 
 
+def test_dry_run_command_accepts_second_image(monkeypatch, tmp_path):
+    config = _server_config(tmp_path)
+    monkeypatch.setattr(wstv_server, "load_config", lambda require_key=False: config)
+    monkeypatch.setattr(wstv_server, "DASHBOARD_DATA_DIR", tmp_path / "dashboard")
+    request = _request(image_url_2="https://images.wildstoriestv.com/storyboard.png")
+    cmd = wstv_server.pipeline_command(request, submit=False)
+    assert "--submit" not in cmd
+    assert "--image-url" in cmd
+    assert "--image-url-2" in cmd
+    assert "https://images.wildstoriestv.com/storyboard.png" in cmd
+
+
 def test_paid_command_keeps_required_gates(monkeypatch, tmp_path):
     config = _server_config(tmp_path)
     monkeypatch.setattr(wstv_server, "load_config", lambda require_key=False: config)
@@ -85,6 +99,20 @@ def test_paid_command_keeps_required_gates(monkeypatch, tmp_path):
     assert "--allow-duplicate" not in cmd
 
 
+def test_paid_command_passes_storyboard_ack_when_checked(monkeypatch, tmp_path):
+    config = _server_config(tmp_path)
+    monkeypatch.setattr(wstv_server, "load_config", lambda require_key=False: config)
+    monkeypatch.setattr(wstv_server, "DASHBOARD_DATA_DIR", tmp_path / "dashboard")
+    request = _request(
+        image_url_2="https://images.wildstoriestv.com/storyboard.png",
+        storyboard_ack=True,
+        confirm=CONFIRMATION_TOKEN,
+    )
+    cmd = wstv_server.pipeline_command(request, submit=True)
+    assert "--image-url-2" in cmd
+    assert "--ack-storyboard-risk" in cmd
+
+
 def test_paid_requires_exact_confirmation_before_subprocess(monkeypatch):
     called = False
 
@@ -96,6 +124,33 @@ def test_paid_requires_exact_confirmation_before_subprocess(monkeypatch):
     with pytest.raises(ConfigError, match="Confirmation"):
         wstv_server.run_pipeline_request(_request(confirm="wrong"), submit=True)
     assert called is False
+
+
+def test_paid_requires_storyboard_ack_before_subprocess(monkeypatch):
+    called = False
+
+    def fake_run(*args, **kwargs):
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(wstv_server.subprocess, "run", fake_run)
+    with pytest.raises(ConfigError, match="Storyboard acknowledgement"):
+        wstv_server.run_pipeline_request(
+            _request(
+                image_url_2="https://images.wildstoriestv.com/storyboard.png",
+                storyboard_ack=False,
+                confirm=CONFIRMATION_TOKEN,
+            ),
+            submit=True,
+        )
+    assert called is False
+
+
+def test_dashboard_rejects_comma_and_non_https_second_image():
+    with pytest.raises(ConfigError, match="one URL only"):
+        _request(image_url_2="https://images.wildstoriestv.com/a.png,https://images.wildstoriestv.com/b.png")
+    with pytest.raises(ConfigError, match="https"):
+        _request(image_url_2="http://images.wildstoriestv.com/storyboard.png")
 
 
 def test_run_pipeline_request_sanitizes_logs_and_history(monkeypatch, tmp_path):
@@ -206,6 +261,12 @@ def test_ui_requires_dry_run_and_confirmation_for_paid_button():
     assert "Cost / Budget Tracker" in html
     assert "Reference image host:" in html
     assert "imagePreview" in html
+    assert "Reference Image URL 1" in html
+    assert "Reference Image URL 2" in html
+    assert "imagePreview2" in html
+    assert "I understand storyboard text/grid may be copied." in html
+    assert "Use Image 1 as the master identity" in html
+    assert "Reference images:" in html
     assert "Characters:" in html
     assert "Loop ending clean" in html
     assert 'id="qaDuration"> Duration verified' in html

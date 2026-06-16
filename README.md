@@ -196,7 +196,12 @@ Dashboard quick safety rules:
 - Paid Zone uses danger styling and requires exact `SUBMIT_ONE_PAID_TASK`.
 - The paid button disables immediately while submitting and clears the confirmation after a successful paid flow.
 - Prompt counter warns at 3,000+ characters and blocks paid submit above 3,500 characters.
-- Reference image preview requires HTTPS and warns when the host is not `images.wildstoriestv.com` or under `wildstoriestv.com`.
+- Reference Image 1 is the master identity/environment anchor.
+- Reference Image 2 is optional and should be used only as a storyboard or motion guide.
+- Reference image previews require HTTPS and warn when the host is not `images.wildstoriestv.com` or under `wildstoriestv.com`.
+- Comma-separated image URLs are rejected; use separate boxes.
+- If Reference Image 2 is used, paid generation requires the storyboard-risk acknowledgement checkbox.
+- 3-5 reference images are not enabled for paid workflow yet.
 - Budget warnings are checked server-side before paid submit.
 - Open video folder/open latest video actions are local-only.
 
@@ -228,7 +233,7 @@ Use public HTTPS direct image URLs only, for example:
 https://images.wildstoriestv.com/elephant_mud_master.png
 ```
 
-The toolkit validates `--image-url` before dry-run preview or paid submit. Local image upload and BytePlus Files API upload are intentionally not implemented yet. See `docs/REFERENCE_IMAGE_URLS.md`.
+The toolkit validates `--image-url` before dry-run preview or paid submit. The WSTV dashboard and one-command pipeline support a cautious second reference image via `--image-url-2` for storyboard/motion guidance only. Local image upload, BytePlus Files API upload, and 3-5 image paid workflow are intentionally not implemented yet. See `docs/REFERENCE_IMAGE_URLS.md`.
 
 ## Task Status Process
 

@@ -40,6 +40,7 @@
     .char-amber { color: #ffd166; }
     .char-red { color: #ff8f8f; }
     .preview-img { display: none; width: 200px; max-height: 140px; object-fit: cover; border-radius: 12px; border: 1px solid #32405f; margin-top: 10px; }
+    .helper-box { border: 1px solid #32405f; border-radius: 12px; background: #0a1021; padding: 12px; margin-top: 10px; }
     .qa label { font-weight: 500; margin: 8px 0; }
     .qa input { width: auto; margin-right: 8px; }
     .metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
@@ -78,11 +79,26 @@
         <button id="copyPromptButton">Copy final prompt</button>
         <span id="copyStatus" class="small"></span>
 
-        <label for="imageUrl">Reference image URL</label>
+        <label for="imageUrl">Reference Image URL 1 — Master identity / environment</label>
         <input id="imageUrl" placeholder="https://images.wildstoriestv.com/elephant_mud_master.png">
+        <div class="small">Use for subject identity, animal anatomy, setting, lighting, and composition anchor. Do not paste comma-separated URLs.</div>
         <div id="imageHostStatus" class="small"></div>
-        <img id="imagePreview" class="preview-img" alt="Reference image preview">
+        <img id="imagePreview" class="preview-img" alt="Reference Image 1 preview">
         <div id="imagePreviewError" class="small error"></div>
+
+        <label for="imageUrl2">Reference Image URL 2 — Storyboard / motion guide</label>
+        <input id="imageUrl2" placeholder="https://images.wildstoriestv.com/elephant_storyboard.png">
+        <div class="small warn">Storyboard/grid/captions may be copied by the model. Use with caution.</div>
+        <div id="imageHostStatus2" class="small"></div>
+        <img id="imagePreview2" class="preview-img" alt="Reference Image 2 preview">
+        <div id="imagePreviewError2" class="small error"></div>
+        <label class="small"><input id="storyboardAck" type="checkbox"> I understand storyboard text/grid may be copied.</label>
+        <div id="multiImageHelper" class="helper-box small" style="display:none">
+          Use Image 1 as the master identity, animal anatomy, environment, lighting, and realism anchor.<br>
+          Use Image 2 only as storyboard shot order, framing, pacing, and motion guide.<br>
+          Do not copy storyboard grid, borders, frame numbers, captions, text, logo, or watermark.
+        </div>
+        <div id="referenceImageCount" class="small">Reference images: 0</div>
         <label class="small"><input id="imageHostOverride" type="checkbox"> I reviewed this non-WSTV image host for paid generation.</label>
 
         <div class="grid">
@@ -199,7 +215,9 @@
       prompt: document.getElementById("prompt"),
       promptPreset: document.getElementById("promptPreset"),
       imageUrl: document.getElementById("imageUrl"),
+      imageUrl2: document.getElementById("imageUrl2"),
       imageHostOverride: document.getElementById("imageHostOverride"),
+      storyboardAck: document.getElementById("storyboardAck"),
       outputFilename: document.getElementById("outputFilename"),
       maxCost: document.getElementById("maxCost"),
       confirm: document.getElementById("confirm"),
@@ -224,6 +242,11 @@
     const imageHostStatusEl = document.getElementById("imageHostStatus");
     const imagePreviewEl = document.getElementById("imagePreview");
     const imagePreviewErrorEl = document.getElementById("imagePreviewError");
+    const imageHostStatusEl2 = document.getElementById("imageHostStatus2");
+    const imagePreviewEl2 = document.getElementById("imagePreview2");
+    const imagePreviewErrorEl2 = document.getElementById("imagePreviewError2");
+    const multiImageHelperEl = document.getElementById("multiImageHelper");
+    const referenceImageCountEl = document.getElementById("referenceImageCount");
     const copyPromptButton = document.getElementById("copyPromptButton");
     const copyStatusEl = document.getElementById("copyStatus");
     const historyEl = document.getElementById("history");
@@ -250,6 +273,8 @@
         scene_idea: fields.sceneIdea.value,
         prompt: fields.prompt.value,
         image_url: fields.imageUrl.value,
+        image_url_2: fields.imageUrl2.value,
+        storyboard_ack: fields.storyboardAck.checked,
         output_filename: fields.outputFilename.value,
         max_cost_usd: Number(fields.maxCost.value || 3),
         confirm: fields.confirm.value
@@ -264,15 +289,47 @@
       return finalPromptText().length > PROMPT_LIMIT;
     }
 
+    function isWstvHost(hostname) {
+      return hostname === WSTV_HOST || hostname === "wildstoriestv.com" || hostname.endsWith(".wildstoriestv.com");
+    }
+
+    function referenceImageCount() {
+      return (fields.imageUrl.value.trim() ? 1 : 0) + (fields.imageUrl2.value.trim() ? 1 : 0);
+    }
+
     function imageHostWarningActive() {
-      const value = fields.imageUrl.value.trim();
-      if (!value) return false;
-      try {
-        const url = new URL(value);
-        return url.protocol === "https:" && url.hostname !== WSTV_HOST && url.hostname !== "wildstoriestv.com" && !url.hostname.endsWith(".wildstoriestv.com");
-      } catch {
-        return false;
+      const values = [fields.imageUrl.value.trim(), fields.imageUrl2.value.trim()].filter(Boolean);
+      for (const value of values) {
+        try {
+          const url = new URL(value);
+          if (url.protocol === "https:" && !isWstvHost(url.hostname)) return true;
+        } catch {
+          continue;
+        }
       }
+      return false;
+    }
+
+    function commaSeparatedReferenceActive() {
+      return fields.imageUrl.value.includes(",") || fields.imageUrl2.value.includes(",");
+    }
+
+    function image2NeedsStoryboardAck() {
+      return !!fields.imageUrl2.value.trim() && !fields.storyboardAck.checked;
+    }
+
+    function invalidReferenceUrlActive() {
+      const values = [fields.imageUrl.value.trim(), fields.imageUrl2.value.trim()].filter(Boolean);
+      if (commaSeparatedReferenceActive()) return true;
+      for (const value of values) {
+        try {
+          const url = new URL(value);
+          if (url.protocol !== "https:") return true;
+        } catch {
+          return true;
+        }
+      }
+      return false;
     }
 
     function renderBadges(extra = []) {
@@ -294,6 +351,8 @@
         !dryRunOk ||
         fields.confirm.value !== CONFIRM ||
         promptTooLong() ||
+        invalidReferenceUrlActive() ||
+        image2NeedsStoryboardAck() ||
         needsImageOverride ||
         budgetBlocked
       );
@@ -385,35 +444,44 @@
       updateGenerateState();
     }
 
-    function updateImagePreview() {
-      const value = fields.imageUrl.value.trim();
-      imagePreviewEl.style.display = "none";
-      imagePreviewErrorEl.textContent = "";
-      imageHostStatusEl.textContent = "";
+    function updateSingleImagePreview(inputEl, hostEl, previewEl, errorEl, label) {
+      const value = inputEl.value.trim();
+      previewEl.style.display = "none";
+      errorEl.textContent = "";
+      hostEl.textContent = "";
       if (!value) {
-        updateGenerateState();
+        return;
+      }
+      if (value.includes(",")) {
+        errorEl.textContent = `${label} must contain one URL only. Use separate boxes, not commas.`;
         return;
       }
       try {
         const url = new URL(value);
-        imageHostStatusEl.textContent = `Reference image host: ${url.hostname}`;
+        hostEl.textContent = `Reference image host: ${url.hostname} (${label})`;
         if (url.protocol !== "https:") {
-          imagePreviewErrorEl.textContent = "Preview requires HTTPS direct image URL.";
-          updateGenerateState();
+          errorEl.textContent = "Preview requires HTTPS direct image URL.";
           return;
         }
-        if (imageHostWarningActive()) {
-          imageHostStatusEl.textContent += " Warning: URL is not from images.wildstoriestv.com. Confirm before paid generation.";
+        if (!isWstvHost(url.hostname)) {
+          hostEl.textContent += " Warning: URL is not from images.wildstoriestv.com. Confirm before paid generation.";
         }
-        imagePreviewEl.onload = () => { imagePreviewEl.style.display = "block"; };
-        imagePreviewEl.onerror = () => {
-          imagePreviewEl.style.display = "none";
-          imagePreviewErrorEl.textContent = "Image preview failed. Check the direct image URL.";
+        previewEl.onload = () => { previewEl.style.display = "block"; };
+        previewEl.onerror = () => {
+          previewEl.style.display = "none";
+          errorEl.textContent = "Image preview failed. Check the direct image URL.";
         };
-        imagePreviewEl.src = value;
+        previewEl.src = value;
       } catch {
-        imagePreviewErrorEl.textContent = "Image preview failed. Check the direct image URL.";
+        errorEl.textContent = "Image preview failed. Check the direct image URL.";
       }
+    }
+
+    function updateImagePreview() {
+      updateSingleImagePreview(fields.imageUrl, imageHostStatusEl, imagePreviewEl, imagePreviewErrorEl, "Reference Image 1");
+      updateSingleImagePreview(fields.imageUrl2, imageHostStatusEl2, imagePreviewEl2, imagePreviewErrorEl2, "Reference Image 2");
+      multiImageHelperEl.style.display = fields.imageUrl2.value.trim() ? "block" : "none";
+      referenceImageCountEl.textContent = `Reference images: ${referenceImageCount()}`;
       updateGenerateState();
     }
 
@@ -423,6 +491,10 @@
       logEl.textContent = result.log || result.error || "";
       mp4PathEl.textContent = result.mp4_path || "";
       videoFolderEl.textContent = result.video_folder || "/Users/acharyabimal/Movies/WSTV/SeedanceVideos";
+      if (result.log && result.log.includes("Reference images:")) {
+        const match = result.log.match(/Reference images: \d+/);
+        if (match) referenceImageCountEl.textContent = match[0];
+      }
       if (result.mp4_path) {
         lastVideoPath = result.mp4_path;
         openThisVideoButton.style.display = "inline-block";
@@ -512,10 +584,12 @@
     fields.costPeriod.addEventListener("change", refreshCostSummary);
     fields.confirm.addEventListener("input", updateGenerateState);
     fields.imageHostOverride.addEventListener("change", updateGenerateState);
+    fields.storyboardAck.addEventListener("change", updateGenerateState);
     fields.imageUrl.addEventListener("input", updateImagePreview);
+    fields.imageUrl2.addEventListener("input", updateImagePreview);
     fields.prompt.addEventListener("input", () => { dryRunOk = false; updatePromptCounter(); });
     fields.sceneIdea.addEventListener("input", () => { dryRunOk = false; updatePromptCounter(); });
-    for (const key of ["sceneIdea", "prompt", "imageUrl", "outputFilename", "maxCost"]) {
+    for (const key of ["sceneIdea", "prompt", "imageUrl", "imageUrl2", "outputFilename", "maxCost"]) {
       fields[key].addEventListener("input", () => {
         dryRunOk = false;
         updateGenerateState();

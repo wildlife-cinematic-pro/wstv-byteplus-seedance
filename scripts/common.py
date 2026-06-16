@@ -181,6 +181,11 @@ def safe_url_for_logs(value: str) -> str:
     return urlunparse((parsed.scheme, parsed.netloc, parsed.path, "", query, ""))
 
 
+def url_host_for_logs(value: str) -> str:
+    parsed = urlparse(value)
+    return (parsed.hostname or "").strip().lower()
+
+
 def redact_text(value: str) -> str:
     return SECRET_VALUE_RE.sub("[REDACTED]", value)
 
@@ -421,6 +426,8 @@ def _normalized_hostname(parsed: Any, label: str) -> str:
 def validate_public_image_url_structure(value: str, label: str = "--image-url") -> str:
     if not value or not value.strip():
         raise ConfigError(f"{label} is empty. Use a public HTTPS direct image URL.")
+    if "," in value:
+        raise ConfigError(f"{label} must contain one URL only. Use separate reference image fields, not commas.")
     parsed = urlparse(value.strip())
     if parsed.scheme != "https":
         raise ConfigError(f"{label} must use https.")
@@ -451,6 +458,21 @@ def validate_public_image_url_structure(value: str, label: str = "--image-url") 
     if host in {"facebook.com", "www.facebook.com", "m.facebook.com", "instagram.com", "www.instagram.com"}:
         raise ConfigError(f"{label} must be a direct image URL, not a social media page URL.")
     return value.strip()
+
+
+def normalize_reference_image_urls(primary: str | None, secondary: str | None = None) -> tuple[str | None, list[str]]:
+    """Return primary image URL plus optional second reference image URL.
+
+    The official redacted Playground sample verifies two separate image_url
+    content items. This helper intentionally caps WSTV production flow at two.
+    """
+    primary_value = (primary or "").strip() or None
+    secondary_value = (secondary or "").strip() or None
+    if primary_value:
+        validate_public_image_url_structure(primary_value, "--image-url")
+    if secondary_value:
+        validate_public_image_url_structure(secondary_value, "--image-url-2")
+    return primary_value, [secondary_value] if secondary_value else []
 
 
 def _close_response(response: Any) -> None:

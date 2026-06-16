@@ -18,7 +18,16 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 import cost_tracker
-from common import PROJECT_ROOT, ConfigError, load_config, redact_text, safe_url_for_logs, utc_now, write_json
+from common import (
+    PROJECT_ROOT,
+    ConfigError,
+    load_config,
+    redact_text,
+    safe_url_for_logs,
+    utc_now,
+    validate_public_image_url_structure,
+    write_json,
+)
 from generate_video import CONFIRMATION_TOKEN
 
 
@@ -40,9 +49,11 @@ class DashboardRequest:
     scene_idea: str
     prompt: str
     image_url: str
+    image_url_2: str
     output_filename: str
     max_cost_usd: float
     confirm: str
+    storyboard_ack: bool
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -86,13 +97,21 @@ def dashboard_request(data: dict[str, Any]) -> DashboardRequest:
     scene_idea = str(data.get("scene_idea") or "").strip()
     if not prompt and not scene_idea:
         raise ConfigError("Enter a final prompt or scene idea.")
+    image_url = str(data.get("image_url") or "").strip()
+    image_url_2 = str(data.get("image_url_2") or "").strip()
+    if image_url:
+        validate_public_image_url_structure(image_url, "Reference Image URL 1")
+    if image_url_2:
+        validate_public_image_url_structure(image_url_2, "Reference Image URL 2")
     return DashboardRequest(
         scene_idea=scene_idea,
         prompt=prompt or scene_idea,
-        image_url=str(data.get("image_url") or "").strip(),
+        image_url=image_url,
+        image_url_2=image_url_2,
         output_filename=sanitize_output_filename(str(data.get("output_filename") or "wstv-output.mp4")),
         max_cost_usd=max_cost,
         confirm=str(data.get("confirm") or "").strip(),
+        storyboard_ack=bool(data.get("storyboard_ack")),
     )
 
 
@@ -116,6 +135,10 @@ def pipeline_command(request: DashboardRequest, *, submit: bool) -> list[str]:
     ]
     if request.image_url:
         cmd.extend(["--image-url", request.image_url])
+    if request.image_url_2:
+        cmd.extend(["--image-url-2", request.image_url_2])
+        if request.storyboard_ack:
+            cmd.append("--ack-storyboard-risk")
     if submit:
         cmd.extend(
             [
@@ -147,6 +170,8 @@ def run_pipeline_request(request: DashboardRequest, *, submit: bool) -> dict[str
     if submit and request.confirm != CONFIRMATION_TOKEN:
         raise ConfigError(f"Confirmation must equal {CONFIRMATION_TOKEN}.")
     if submit:
+        if request.image_url_2 and not request.storyboard_ack:
+            raise ConfigError("Storyboard acknowledgement is required before paid generation with Reference Image 2.")
         if len(request.prompt) > PROMPT_CHARACTER_LIMIT:
             raise ConfigError("Prompt exceeds 3,500-character limit. Shorten before paid generation.")
         status = budget_status()
@@ -196,6 +221,8 @@ def append_history(request: DashboardRequest, result: dict[str, Any]) -> None:
         "output_filename": request.output_filename,
         "mp4_path": result.get("mp4_path", ""),
         "image_url_host": safe_url_for_logs(request.image_url) if request.image_url else "",
+        "image_url_2_host": safe_url_for_logs(request.image_url_2) if request.image_url_2 else "",
+        "reference_image_count": 2 if request.image_url_2 else 1 if request.image_url else 0,
     }
     history.insert(0, entry)
     write_json(HISTORY_PATH, history[:25])
