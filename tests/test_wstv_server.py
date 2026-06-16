@@ -18,6 +18,7 @@ def _request(**overrides):
         "image_url_2": "",
         "storyboard_ack": False,
         "output_filename": "sea-lion-test.mp4",
+        "resolution": "720p",
         "max_cost_usd": 3,
         "confirm": "",
     }
@@ -72,6 +73,22 @@ def test_dry_run_command_has_no_paid_flags(monkeypatch, tmp_path):
     assert "--submit" not in cmd
     assert "--allow-duplicate" not in cmd
     assert "--image-url" in cmd
+    assert "--resolution" in cmd
+    assert "720p" in cmd
+
+
+def test_dashboard_resolution_selector_passes_1080p_to_pipeline(monkeypatch, tmp_path):
+    config = _server_config(tmp_path)
+    monkeypatch.setattr(wstv_server, "load_config", lambda require_key=False: config)
+    monkeypatch.setattr(wstv_server, "DASHBOARD_DATA_DIR", tmp_path / "dashboard")
+    request = _request(resolution="1080p")
+    cmd = wstv_server.pipeline_command(request, submit=False)
+    assert cmd[cmd.index("--resolution") + 1] == "1080p"
+
+
+def test_dashboard_rejects_unknown_resolution():
+    with pytest.raises(ConfigError, match="Resolution"):
+        _request(resolution="4k")
 
 
 def test_dry_run_command_accepts_second_image(monkeypatch, tmp_path):
@@ -219,6 +236,33 @@ def test_budget_insufficient_blocks_paid_before_subprocess(monkeypatch, tmp_path
     assert called is False
 
 
+def test_token_pack_insufficient_blocks_paid_before_subprocess(monkeypatch, tmp_path):
+    config = _server_config(tmp_path)
+    monkeypatch.setattr(wstv_server, "load_config", lambda require_key=False: config)
+    entry = cost_tracker.manual_backfill_entry(
+        date="2026-06-16",
+        model="Dreamina-Seedance-2.0",
+        output_path=tmp_path / "videos" / "already-used.mp4",
+        tokens=6_500_000,
+        rate_usd_per_million_tokens=7.0,
+        source_note="test fixture",
+    )
+    assert cost_tracker.append_ledger_entry(config, entry) is True
+    called = False
+
+    def fake_run(*args, **kwargs):
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(wstv_server.subprocess, "run", fake_run)
+    with pytest.raises(ConfigError, match="token pack"):
+        wstv_server.run_pipeline_request(
+            _request(resolution="1080p", confirm=CONFIRMATION_TOKEN),
+            submit=True,
+        )
+    assert called is False
+
+
 def test_open_video_folder_and_latest_video_are_local_safe(monkeypatch, tmp_path):
     config = _server_config(tmp_path)
     monkeypatch.setattr(wstv_server, "load_config", lambda require_key=False: config)
@@ -267,6 +311,12 @@ def test_ui_requires_dry_run_and_confirmation_for_paid_button():
     assert "I understand storyboard text/grid may be copied." in html
     assert "Use Image 1 as the master identity" in html
     assert "Reference images:" in html
+    assert 'id="resolution"' in html
+    assert "1080p uses more than 2x the tokens of 720p" in html
+    assert "Token resource pack comparison" in html
+    assert "packComparison" in html
+    assert "/api/cost-summary?period=" in html
+    assert "resolution=" in html
     assert "Characters:" in html
     assert "Loop ending clean" in html
     assert 'id="qaDuration"> Duration verified' in html

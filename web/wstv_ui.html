@@ -107,6 +107,14 @@
             <input id="outputFilename" value="wstv-output.mp4">
           </div>
           <div>
+            <label for="resolution">Resolution</label>
+            <select id="resolution">
+              <option value="720p" selected>720p</option>
+              <option value="1080p">1080p</option>
+            </select>
+            <div class="small warn">1080p uses more than 2x the tokens of 720p. Use 720p for testing and 1080p only for final/high-value scenes.</div>
+          </div>
+          <div>
             <label for="maxCost">Max cost USD</label>
             <input id="maxCost" type="number" min="0" step="0.01" value="3">
           </div>
@@ -181,6 +189,13 @@
       <button id="resetBudgetButton">Reset Local Budget Setting Only</button>
       <div id="costWarnings" class="warn"></div>
       <div class="metrics" id="costMetrics"></div>
+      <h3>Token resource pack comparison</h3>
+      <table>
+        <thead>
+          <tr><th>Resolution</th><th>Tokens/video</th><th>PAYG cost/video</th><th>Pack cost/video</th><th>Total videos possible</th><th>Remaining videos possible</th></tr>
+        </thead>
+        <tbody id="packComparison"></tbody>
+      </table>
       <h3>Manual tools</h3>
       <p class="small">Open video folder: <code id="costVideoFolder">/Users/acharyabimal/Movies/WSTV/SeedanceVideos</code></p>
       <p class="small">Open local ledger folder: <code id="costLedgerFolder">data</code></p>
@@ -219,6 +234,7 @@
       imageHostOverride: document.getElementById("imageHostOverride"),
       storyboardAck: document.getElementById("storyboardAck"),
       outputFilename: document.getElementById("outputFilename"),
+      resolution: document.getElementById("resolution"),
       maxCost: document.getElementById("maxCost"),
       confirm: document.getElementById("confirm"),
       totalBudget: document.getElementById("totalBudget"),
@@ -261,6 +277,7 @@
     const costWarningsEl = document.getElementById("costWarnings");
     const costVideoFolderEl = document.getElementById("costVideoFolder");
     const costLedgerFolderEl = document.getElementById("costLedgerFolder");
+    const packComparisonEl = document.getElementById("packComparison");
     const paidHistoryEl = document.getElementById("paidHistory");
     let dryRunOk = false;
     let safeMode = true;
@@ -276,6 +293,7 @@
         image_url_2: fields.imageUrl2.value,
         storyboard_ack: fields.storyboardAck.checked,
         output_filename: fields.outputFilename.value,
+        resolution: fields.resolution.value,
         max_cost_usd: Number(fields.maxCost.value || 3),
         confirm: fields.confirm.value
       };
@@ -388,7 +406,8 @@
         total_budget_usd: fields.totalBudget.value,
         daily_budget_usd: fields.dailyBudget.value,
         monthly_budget_usd: fields.monthlyBudget.value,
-        period: fields.costPeriod.value
+        period: fields.costPeriod.value,
+        resolution: fields.resolution.value
       };
     }
 
@@ -402,6 +421,7 @@
       budgetBlocked = (summary.warnings || []).length > 0;
       costVideoFolderEl.textContent = summary.video_folder || "";
       costLedgerFolderEl.textContent = summary.ledger_folder || "";
+      const pack = summary.token_pack_tracker || {};
       costMetricsEl.innerHTML = [
         metric("Total budget", money(settings.total_budget_usd)),
         metric("Total spent", money(summary.total_spent_usd)),
@@ -411,9 +431,21 @@
         metric("Failed attempts", summary.failed_paid_attempts ?? 0),
         metric("Total tokens", summary.total_tokens_used ?? 0),
         metric("Avg / success", money(summary.average_cost_per_successful_video)),
-        metric("Next estimate", money(summary.next_video_estimated_cost_usd)),
+        metric("Selected resolution", summary.selected_resolution || fields.resolution.value),
+        metric("Next tokens", pack.selected_projected_tokens ?? summary.next_video_estimate?.estimated_tokens ?? "unknown"),
+        metric("PAYG next cost", money(pack.selected_payg_cost_usd ?? summary.next_video_estimated_cost_usd)),
+        metric("Pack cost/video", money(pack.selected_pack_cost_per_video_usd)),
+        metric("Pack tokens left", pack.remaining_tokens ?? "unknown"),
+        metric("Tokens after next", pack.tokens_after_next_video ?? "unknown"),
+        metric("Pack videos left", pack.remaining_videos_possible ?? "unknown"),
         metric("Est. videos left", summary.estimated_more_videos_possible ?? "unknown")
       ].join("");
+      packComparisonEl.innerHTML = "";
+      for (const item of pack.comparison || []) {
+        const row = document.createElement("tr");
+        row.innerHTML = `<td>${item.resolution || ""}</td><td>${item.tokens || ""}</td><td>${money(item.payg_cost_usd)}</td><td>${money(item.pack_cost_per_video_usd)}</td><td>${item.total_videos_possible ?? ""}</td><td>${item.remaining_videos_possible ?? ""}</td>`;
+        packComparisonEl.appendChild(row);
+      }
       paidHistoryEl.innerHTML = "";
       for (const item of summary.recent_paid_history || []) {
         const row = document.createElement("tr");
@@ -425,12 +457,12 @@
     }
 
     async function refreshCostSummary() {
-      const result = await fetch(`/api/cost-summary?period=${encodeURIComponent(fields.costPeriod.value)}`).then(r => r.json());
+      const result = await fetch(`/api/cost-summary?period=${encodeURIComponent(fields.costPeriod.value)}&resolution=${encodeURIComponent(fields.resolution.value)}`).then(r => r.json());
       renderCostSummary(result.summary);
     }
 
     async function refreshBudgetStatus() {
-      const result = await fetch("/api/budget_status").then(r => r.json());
+      const result = await fetch(`/api/budget_status?resolution=${encodeURIComponent(fields.resolution.value)}`).then(r => r.json());
       if (result.summary) renderCostSummary(result.summary);
       budgetBlocked = !!result.blocked;
       updateGenerateState();
@@ -582,6 +614,12 @@
       openStatusEl.textContent = result.ok ? `Opened: ${lastVideoPath || result.opened}` : (result.error || "No generated video found yet.");
     });
     fields.costPeriod.addEventListener("change", refreshCostSummary);
+    fields.resolution.addEventListener("change", () => {
+      dryRunOk = false;
+      refreshCostSummary();
+      refreshBudgetStatus();
+      updateGenerateState();
+    });
     fields.confirm.addEventListener("input", updateGenerateState);
     fields.imageHostOverride.addEventListener("change", updateGenerateState);
     fields.storyboardAck.addEventListener("change", updateGenerateState);
@@ -589,7 +627,7 @@
     fields.imageUrl2.addEventListener("input", updateImagePreview);
     fields.prompt.addEventListener("input", () => { dryRunOk = false; updatePromptCounter(); });
     fields.sceneIdea.addEventListener("input", () => { dryRunOk = false; updatePromptCounter(); });
-    for (const key of ["sceneIdea", "prompt", "imageUrl", "imageUrl2", "outputFilename", "maxCost"]) {
+    for (const key of ["sceneIdea", "prompt", "imageUrl", "imageUrl2", "outputFilename", "resolution", "maxCost"]) {
       fields[key].addEventListener("input", () => {
         dryRunOk = false;
         updateGenerateState();

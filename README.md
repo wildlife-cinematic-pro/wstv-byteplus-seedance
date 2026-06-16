@@ -217,6 +217,15 @@ tokens * rate_usd_per_million_tokens / 1000000
 
 When `usage.completion_tokens` is available, the ledger marks tokens as `actual`. Otherwise it uses the local estimate and marks tokens as `estimated`. The current verified estimator rate is `$7.00 per 1,000,000 output tokens`, but BytePlus Console Billing remains the final source of truth.
 
+The dashboard token/resource-pack tracker supports `720p` and `1080p` estimates. Use `720p` for testing and `1080p` only for final or high-value scenes because `1080p` uses more than 2x the tokens.
+
+Current 9:16, 15-second presets:
+
+- `720p`: `324000` projected tokens, `$2.2680` PAYG at `$7/M`, `$1.3932` with a `$4.30/M` pack example.
+- `1080p`: `801900` projected tokens from the BytePlus UI estimate, `$5.6133` PAYG at `$7/M`, `$3.4482` with a `$4.30/M` pack example.
+
+For a 7M token pack at `$30.10`, the dashboard shows `21` possible `720p` videos or `8` possible `1080p` videos before usage. After two existing 720p videos using `649800` tokens, it shows `19` remaining `720p` videos or `7` remaining `1080p` videos. BytePlus Console Billing remains the final source of truth.
+
 To backfill a previously verified paid video from BytePlus Console usage, run the local-only helper with explicit confirmation:
 
 ```bash

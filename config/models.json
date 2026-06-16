@@ -20,7 +20,7 @@
       "rates_without_video": {
         "480p": 7.0,
         "720p": 7.0,
-        "1080p": 7.7
+        "1080p": 7.0
       },
       "rates_with_video": {
         "480p": 4.3,

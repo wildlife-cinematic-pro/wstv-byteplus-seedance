@@ -41,6 +41,7 @@ MAX_BODY_BYTES = 64 * 1024
 SAFE_FILENAME_RE = re.compile(r"[^A-Za-z0-9._-]+")
 URL_RE = re.compile(r"https?://[^\s\"'<>]+")
 VALID_COST_PERIODS = {"today", "month", "all"}
+VALID_DASHBOARD_RESOLUTIONS = {"720p", "1080p"}
 PROMPT_CHARACTER_LIMIT = 3500
 
 
@@ -51,6 +52,7 @@ class DashboardRequest:
     image_url: str
     image_url_2: str
     output_filename: str
+    resolution: str
     max_cost_usd: float
     confirm: str
     storyboard_ack: bool
@@ -103,12 +105,16 @@ def dashboard_request(data: dict[str, Any]) -> DashboardRequest:
         validate_public_image_url_structure(image_url, "Reference Image URL 1")
     if image_url_2:
         validate_public_image_url_structure(image_url_2, "Reference Image URL 2")
+    resolution = str(data.get("resolution") or "720p").strip()
+    if resolution not in VALID_DASHBOARD_RESOLUTIONS:
+        raise ConfigError("Resolution must be 720p or 1080p.")
     return DashboardRequest(
         scene_idea=scene_idea,
         prompt=prompt or scene_idea,
         image_url=image_url,
         image_url_2=image_url_2,
         output_filename=sanitize_output_filename(str(data.get("output_filename") or "wstv-output.mp4")),
+        resolution=resolution,
         max_cost_usd=max_cost,
         confirm=str(data.get("confirm") or "").strip(),
         storyboard_ack=bool(data.get("storyboard_ack")),
@@ -132,6 +138,8 @@ def pipeline_command(request: DashboardRequest, *, submit: bool) -> list[str]:
         str(prompt_path),
         "--out",
         str(out_path),
+        "--resolution",
+        request.resolution,
     ]
     if request.image_url:
         cmd.extend(["--image-url", request.image_url])
@@ -174,7 +182,7 @@ def run_pipeline_request(request: DashboardRequest, *, submit: bool) -> dict[str
             raise ConfigError("Storyboard acknowledgement is required before paid generation with Reference Image 2.")
         if len(request.prompt) > PROMPT_CHARACTER_LIMIT:
             raise ConfigError("Prompt exceeds 3,500-character limit. Shorten before paid generation.")
-        status = budget_status()
+        status = budget_status(request.resolution)
         if status["blocked"]:
             raise ConfigError("Budget check blocked paid submit: " + " ".join(status["warnings"]))
     cmd = pipeline_command(request, submit=submit)
@@ -195,7 +203,7 @@ def run_pipeline_request(request: DashboardRequest, *, submit: bool) -> dict[str
         "log": log,
         "mp4_path": str(output_path_for(request.output_filename)) if ok and submit else "",
         "video_folder": str(load_config(require_key=False).downloads_dir.expanduser().resolve()),
-        "cost_summary": cost_summary("all"),
+        "cost_summary": cost_summary("all", request.resolution),
         "timestamp": utc_now(),
     }
     append_history(request, result)
@@ -223,19 +231,22 @@ def append_history(request: DashboardRequest, result: dict[str, Any]) -> None:
         "image_url_host": safe_url_for_logs(request.image_url) if request.image_url else "",
         "image_url_2_host": safe_url_for_logs(request.image_url_2) if request.image_url_2 else "",
         "reference_image_count": 2 if request.image_url_2 else 1 if request.image_url else 0,
+        "resolution": request.resolution,
     }
     history.insert(0, entry)
     write_json(HISTORY_PATH, history[:25])
 
 
-def cost_summary(period: str = "all") -> dict[str, Any]:
+def cost_summary(period: str = "all", resolution: str = "720p") -> dict[str, Any]:
     if period not in VALID_COST_PERIODS:
         raise ConfigError("Cost period must be today, month, or all.")
-    return cost_tracker.budget_summary(load_config(require_key=False), period=period)
+    if resolution not in VALID_DASHBOARD_RESOLUTIONS:
+        raise ConfigError("Resolution must be 720p or 1080p.")
+    return cost_tracker.budget_summary(load_config(require_key=False), period=period, resolution=resolution)
 
 
-def budget_status() -> dict[str, Any]:
-    summary = cost_summary("all")
+def budget_status(resolution: str = "720p") -> dict[str, Any]:
+    summary = cost_summary("all", resolution)
     warnings = list(summary.get("warnings") or [])
     return {
         "blocked": bool(warnings),
@@ -247,7 +258,12 @@ def budget_status() -> dict[str, Any]:
 def save_budget(data: dict[str, Any]) -> dict[str, Any]:
     config = load_config(require_key=False)
     settings = cost_tracker.save_budget_settings(config, data)
-    return cost_tracker.budget_summary(config, period=str(data.get("period") or "all"), budget_settings=settings)
+    return cost_tracker.budget_summary(
+        config,
+        period=str(data.get("period") or "all"),
+        budget_settings=settings,
+        resolution=str(data.get("resolution") or "720p"),
+    )
 
 
 def reset_budget() -> dict[str, Any]:
@@ -331,10 +347,12 @@ class DashboardHandler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/api/cost-summary":
             period = parse_qs(parsed.query).get("period", ["all"])[0]
-            self._send_json({"ok": True, "summary": cost_summary(period)})
+            resolution = parse_qs(parsed.query).get("resolution", ["720p"])[0]
+            self._send_json({"ok": True, "summary": cost_summary(period, resolution)})
             return
         if parsed.path == "/api/budget_status":
-            self._send_json({"ok": True, **budget_status()})
+            resolution = parse_qs(parsed.query).get("resolution", ["720p"])[0]
+            self._send_json({"ok": True, **budget_status(resolution)})
             return
         self._send_json({"ok": False, "error": "Not found."}, HTTPStatus.NOT_FOUND)
 
