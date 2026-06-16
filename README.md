@@ -167,6 +167,16 @@ python3 scripts/wstv_pipeline.py \
 
 See `docs/ONE_COMMAND_PIPELINE.md`.
 
+## Reference Image URLs
+
+Use public HTTPS direct image URLs only, for example:
+
+```text
+https://images.wildstoriestv.com/elephant_mud_master.png
+```
+
+The toolkit validates `--image-url` before dry-run preview or paid submit. Local image upload and BytePlus Files API upload are intentionally not implemented yet. See `docs/REFERENCE_IMAGE_URLS.md`.
+
 ## Task Status Process
 
 One-shot status check for an existing task ID:

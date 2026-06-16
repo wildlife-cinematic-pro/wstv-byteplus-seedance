@@ -23,7 +23,8 @@ def test_secret_redaction_removes_bearer_and_signed_query():
     assert redacted["content"]["video_url"] == "https://example.com/out.mp4?..."
 
 
-def test_request_construction_uses_official_content_schema():
+def test_request_construction_uses_official_content_schema(monkeypatch):
+    monkeypatch.setattr(common, "validate_public_image_url", lambda *args, **kwargs: {"content_type": "image/jpeg"})
     config = common.load_config(require_key=False)
     args = argparse.Namespace(
         prompt="A clean wildlife video",
