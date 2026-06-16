@@ -226,13 +226,20 @@ Current 9:16, 15-second presets:
 
 For a 7M token pack at `$30.10`, the dashboard shows `21` possible `720p` videos or `8` possible `1080p` videos before usage. After two existing 720p videos using `649800` tokens, it shows `19` remaining `720p` videos or `7` remaining `1080p` videos. BytePlus Console Billing remains the final source of truth.
 
-To backfill a previously verified paid video from BytePlus Console usage, run the local-only helper with explicit confirmation:
+To backfill a previously verified paid video from BytePlus Console usage, use the dashboard `Add Console Usage Manually` form with exact confirmation `ADD_CONSOLE_USAGE`, or run the local-only helper with explicit confirmation. Example for a missing second 720p video:
 
 ```bash
-python3 scripts/backfill_cost_ledger.py --confirm BACKFILL_VERIFIED_CONSOLE_COST
+python3 scripts/backfill_cost_ledger.py \
+  --output-filename second-wstv-video.mp4 \
+  --date 2026-06-16 \
+  --resolution 720p \
+  --tokens 324900 \
+  --token-source actual_from_console \
+  --note "second BytePlus Console usage entry" \
+  --confirm BACKFILL_VERIFIED_CONSOLE_COST
 ```
 
-This records the verified `2026-06-16` `elephant-mud-test.mp4` usage entry with `324900` actual Console tokens and `$2.2743` calculated cost. It makes no BytePlus API request and blocks duplicate filename/date/token entries.
+This records safe local metadata only. It makes no BytePlus API request and blocks duplicate filename/date/token entries. Failed paid attempts are not counted unless actual Console usage is explicitly entered.
 
 ## Reference Image URLs
 

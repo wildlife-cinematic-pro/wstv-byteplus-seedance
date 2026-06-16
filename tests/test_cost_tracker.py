@@ -75,6 +75,58 @@ def test_7m_pack_remaining_counts_after_two_720p_console_videos():
     assert summary_1080["remaining_videos_possible"] == 7
 
 
+def test_7m_pack_remaining_counts_after_one_720p_console_video():
+    summary_720 = cost_tracker.pack_projection(resolution="720p", used_tokens=324_900)
+    summary_1080 = cost_tracker.pack_projection(resolution="1080p", used_tokens=324_900)
+    assert summary_720["remaining_tokens"] == 6_675_100
+    assert summary_720["remaining_videos_possible"] == 20
+    assert summary_1080["remaining_videos_possible"] == 8
+
+
+def test_manual_usage_entry_can_add_second_video_safely(tmp_path):
+    config = _config(tmp_path)
+    first = cost_tracker.manual_usage_entry(
+        date="2026-06-16",
+        filename="first.mp4",
+        model="Dreamina-Seedance-2.0",
+        resolution="720p",
+        tokens=324_900,
+        token_source="actual_from_console",
+        note="first Console usage",
+    )
+    second = cost_tracker.manual_usage_entry(
+        date="2026-06-16",
+        filename="second.mp4",
+        model="Dreamina-Seedance-2.0",
+        resolution="720p",
+        tokens=324_900,
+        token_source="actual_from_console",
+        note="second BytePlus Console usage entry",
+    )
+    assert cost_tracker.append_ledger_entry(config, first) is True
+    assert cost_tracker.append_ledger_entry(config, second) is True
+    summary = cost_tracker.budget_summary(config, resolution="720p")
+    assert summary["usage_summary"]["videos_recorded"] == 2
+    assert summary["usage_summary"]["total_used_tokens"] == 649_800
+    assert summary["usage_summary"]["remaining_tokens"] == 6_350_200
+    assert summary["token_pack_tracker"]["remaining_videos_possible"] == 19
+
+
+def test_duplicate_manual_usage_is_blocked(tmp_path):
+    config = _config(tmp_path)
+    entry = cost_tracker.manual_usage_entry(
+        date="2026-06-16",
+        filename="duplicate.mp4",
+        model="Dreamina-Seedance-2.0",
+        resolution="720p",
+        tokens=324_900,
+        token_source="actual_from_console",
+        note="Console usage",
+    )
+    assert cost_tracker.append_ledger_entry(config, entry) is True
+    assert cost_tracker.append_ledger_entry(config, entry) is False
+
+
 def test_actual_tokens_produce_actual_cost(tmp_path):
     config = _config(tmp_path)
     entry = cost_tracker.ledger_entry(
@@ -142,6 +194,44 @@ def test_budget_summary_calculates_counts_and_remaining(tmp_path):
     assert summary["remaining_budget_usd"] == 5.4514
     assert summary["average_cost_per_successful_video"] == 2.2743
     assert summary["estimated_more_videos_possible"] == 2
+    assert summary["usage_summary"]["total_used_tokens"] == 649_800
+    assert summary["token_pack_tracker"]["remaining_tokens"] == 6_350_200
+
+
+def test_budget_summary_warns_when_only_one_video_is_recorded(tmp_path):
+    config = _config(tmp_path)
+    assert cost_tracker.append_ledger_entry(
+        config,
+        cost_tracker.manual_usage_entry(
+            date="2026-06-16",
+            filename="only-one.mp4",
+            model="Dreamina-Seedance-2.0",
+            resolution="720p",
+            tokens=324_900,
+            token_source="actual_from_console",
+            note="Console usage",
+        ),
+    )
+    summary = cost_tracker.budget_summary(config, resolution="720p")
+    assert "Only 1 paid video is recorded locally" in " ".join(summary["warnings"])
+    assert summary["blocking_warnings"] == []
+
+
+def test_failed_estimated_attempt_does_not_count_as_pack_usage(tmp_path):
+    config = _config(tmp_path)
+    entry = cost_tracker.ledger_entry(
+        config=config,
+        payload=_payload(),
+        estimated_cost=_estimate(config),
+        response={"id": TASK_ID},
+        status="failed",
+        output_path=tmp_path / "videos" / "failed.mp4",
+    )
+    assert cost_tracker.append_ledger_entry(config, entry) is True
+    summary = cost_tracker.budget_summary(config, resolution="720p")
+    assert summary["failed_paid_attempts"] == 1
+    assert summary["usage_summary"]["videos_recorded"] == 0
+    assert summary["usage_summary"]["total_used_tokens"] == 0
 
 
 def test_path_and_signed_url_are_not_stored_in_ledger(tmp_path):

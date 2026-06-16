@@ -92,7 +92,14 @@ tokens * rate_usd_per_million_tokens / 1000000
 
 If `usage.completion_tokens` is available, the dashboard records `token_source = actual`. If not, it records the local estimate with `token_source = estimated`. Dry-runs do not append to the ledger and do not count as paid videos. Paid generation is counted only after the paid task result is recorded; duplicate task/result entries are not double-counted.
 
-The dashboard shows total spent, remaining budget, paid video count, successful/failed paid attempts, total tokens, average cost per successful video, next estimated cost, estimated remaining videos, today/month/all-time filters, and budget warnings.
+The dashboard shows:
+
+- Pack Summary: model, package size, quantity, total purchased tokens, total price, effective rate, purchase date, expiry date, and status.
+- Usage Summary: videos recorded, actual tokens used, estimated tokens used, total used tokens, remaining tokens, used value, and remaining value.
+- Resolution Comparison: `720p` and `1080p` tokens/video, PAYG cost/video, pack cost/video, total videos from pack, remaining videos now, tokens after next, and warning.
+- Recent Usage: date, filename, resolution, token source, tokens, PAYG cost, pack-rate cost, and note.
+
+Dry-runs do not append usage. Failed paid attempts do not count against the token pack unless actual Console usage is explicitly entered.
 
 BytePlus Console Billing remains the final source of truth.
 
@@ -123,21 +130,22 @@ When the dashboard resolution selector changes, the estimated next-video tokens,
 
 ### Manual Backfill For Previous Paid Videos
 
-If a paid video was generated before the cost tracker existed, backfill it from verified BytePlus Console usage with:
+If a paid video was generated before the cost tracker existed, backfill it from verified BytePlus Console usage with the dashboard `Add Console Usage Manually` form or the CLI helper. The dashboard form requires exact confirmation text: `ADD_CONSOLE_USAGE`.
+
+Example for a missing second `720p` video:
 
 ```bash
-python3 scripts/backfill_cost_ledger.py --confirm BACKFILL_VERIFIED_CONSOLE_COST
+python3 scripts/backfill_cost_ledger.py \
+  --output-filename second-wstv-video.mp4 \
+  --date 2026-06-16 \
+  --resolution 720p \
+  --tokens 324900 \
+  --token-source actual_from_console \
+  --note "second BytePlus Console usage entry" \
+  --confirm BACKFILL_VERIFIED_CONSOLE_COST
 ```
 
-The default backfill records the verified `2026-06-16` `elephant-mud-test.mp4` entry:
-
-- tokens: `324900`
-- token source: `actual_from_console`
-- rate: `$7.00 per 1,000,000 output tokens`
-- calculated cost: `$2.2743`
-- source note: `BytePlus Console usage screenshot`
-
-The helper is local-only, makes no BytePlus API request, stores no signed URLs or private JSON, and blocks duplicate filename/date/token entries.
+The helper is reusable and local-only. It makes no BytePlus API request, stores no signed URLs or private JSON, and blocks duplicate filename/date/token entries.
 
 Safety rules:
 

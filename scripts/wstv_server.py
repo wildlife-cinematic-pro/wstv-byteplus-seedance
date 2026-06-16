@@ -43,6 +43,7 @@ URL_RE = re.compile(r"https?://[^\s\"'<>]+")
 VALID_COST_PERIODS = {"today", "month", "all"}
 VALID_DASHBOARD_RESOLUTIONS = {"720p", "1080p"}
 PROMPT_CHARACTER_LIMIT = 3500
+MANUAL_USAGE_CONFIRMATION = "ADD_CONSOLE_USAGE"
 
 
 @dataclass(frozen=True)
@@ -247,7 +248,7 @@ def cost_summary(period: str = "all", resolution: str = "720p") -> dict[str, Any
 
 def budget_status(resolution: str = "720p") -> dict[str, Any]:
     summary = cost_summary("all", resolution)
-    warnings = list(summary.get("warnings") or [])
+    warnings = list(summary.get("blocking_warnings") or [])
     return {
         "blocked": bool(warnings),
         "warnings": warnings,
@@ -270,6 +271,31 @@ def reset_budget() -> dict[str, Any]:
     config = load_config(require_key=False)
     settings = cost_tracker.reset_budget_settings(config)
     return cost_tracker.budget_summary(config, period="all", budget_settings=settings)
+
+
+def add_manual_usage(data: dict[str, Any]) -> dict[str, Any]:
+    config = load_config(require_key=False)
+    if str(data.get("confirm") or "").strip() != MANUAL_USAGE_CONFIRMATION:
+        raise ConfigError(f"Manual usage requires confirmation: {MANUAL_USAGE_CONFIRMATION}.")
+    try:
+        tokens = int(data.get("tokens") or 0)
+    except (TypeError, ValueError) as exc:
+        raise ConfigError("Manual usage tokens must be a positive integer.") from exc
+    entry = cost_tracker.manual_usage_entry(
+        date=str(data.get("date") or "").strip(),
+        filename=str(data.get("filename") or "").strip(),
+        model=str(data.get("model") or "Dreamina-Seedance-2.0").strip(),
+        resolution=str(data.get("resolution") or "720p").strip(),
+        tokens=tokens,
+        token_source=str(data.get("token_source") or "actual_from_console").strip(),
+        note=str(data.get("note") or "").strip(),
+    )
+    recorded = cost_tracker.append_ledger_entry(config, entry)
+    return {
+        "recorded": recorded,
+        "message": "Manual usage recorded." if recorded else "Already recorded in cost ledger.",
+        "summary": cost_tracker.budget_summary(config, period="all", resolution=str(data.get("resolution") or "720p")),
+    }
 
 
 def open_path(path: Path) -> dict[str, Any]:
@@ -372,6 +398,10 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     self._send_json({"ok": True, "summary": reset_budget()})
                     return
                 self._send_json({"ok": True, "summary": save_budget(data)})
+                return
+            if self.path == "/api/manual-usage":
+                self._require_local_client()
+                self._send_json({"ok": True, **add_manual_usage(data)})
                 return
             request = dashboard_request(data)
             if self.path == "/api/dry-run":
