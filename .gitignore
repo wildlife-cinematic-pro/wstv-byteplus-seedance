@@ -8,6 +8,8 @@ venv/
 *.pyc
 .DS_Store
 data/tasks.jsonl
+data/dashboard/
+data/dashboard_history.json
 outputs/
 outputs/private-responses/
 downloads/
