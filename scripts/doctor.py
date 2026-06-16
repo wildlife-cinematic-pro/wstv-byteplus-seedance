@@ -17,6 +17,7 @@ from common import (
     ffprobe_path,
     load_config,
     read_json,
+    verified_output_video_url_field,
     verified_response_task_id_field,
 )
 
@@ -82,6 +83,7 @@ def main() -> int:
         for name, path in (
             ("Task log directory", config.task_log_path.parent),
             ("Output directory", config.outputs_dir),
+            ("Private task response directory", config.private_task_response_dir),
             ("Download directory", config.downloads_dir),
         ):
             try:
@@ -138,8 +140,23 @@ def main() -> int:
                         field = verified_response_task_id_field(config)
                         checks.append(result("PASS", "Response task ID field", f"{field['json_path']} ({field['field']})"))
                         checks.append(result("PASS", "Manual status check", "enabled for existing verified task IDs only"))
+                        output_field = verified_output_video_url_field(config)
+                        checks.append(
+                            result(
+                                "PASS",
+                                "Output video URL field",
+                                f"{output_field['json_path']} ({output_field['field']})",
+                            )
+                        )
+                        checks.append(
+                            result(
+                                "PASS",
+                                "Download workflow",
+                                "manual completed-task response or verified URL only",
+                            )
+                        )
                     except ConfigError as exc:
-                        checks.append(result("BLOCKED", "Response task ID field", str(exc)))
+                        checks.append(result("BLOCKED", "Verified response fields", str(exc)))
                         blocked = True
             except ConfigError as exc:
                 checks.append(result("FAIL", "Official schema fixture", str(exc)))

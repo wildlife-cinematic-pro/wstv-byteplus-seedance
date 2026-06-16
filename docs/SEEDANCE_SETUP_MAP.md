@@ -8,6 +8,7 @@ Console verification
 -> cost approval
 -> one paid task
 -> status check
+-> save completed private response under outputs/private-responses/
 -> download
 -> video verification
 -> actual cost audit

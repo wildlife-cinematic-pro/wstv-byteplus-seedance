@@ -26,6 +26,7 @@ DOWNLOADS_DIR = PROJECT_ROOT / "downloads"
 TASK_LOG_PATH = DATA_DIR / "tasks.jsonl"
 REQUEST_PREVIEW_DIR = OUTPUTS_DIR / "request-previews"
 RAW_RESPONSE_DIR = OUTPUTS_DIR / "raw-responses"
+PRIVATE_TASK_RESPONSE_DIR = OUTPUTS_DIR / "private-responses"
 OFFICIAL_SAMPLE_PATH = PROJECT_ROOT / "docs" / "official-rest-sample.redacted.json"
 
 OFFICIAL_BASE_URL = "https://ark.ap-southeast.bytepluses.com/api/v3"
@@ -35,13 +36,15 @@ OFFICIAL_LIST_PATH = "/contents/generations/tasks"
 OFFICIAL_CANCEL_PATH = "/contents/generations/tasks/{id}"
 VERIFIED_CREATE_TASK_ID_FIELD = "id"
 VERIFIED_CREATE_TASK_ID_PATH = "$.id"
+VERIFIED_OUTPUT_VIDEO_URL_FIELD = "video_url"
+VERIFIED_OUTPUT_VIDEO_URL_PATH = "$.content.video_url"
 
 ACTIVE_STATUSES = {"queued", "running", "submitted", "unknown"}
 TERMINAL_STATUSES = {"succeeded", "failed", "cancelled", "expired"}
 SUCCESS_STATUSES = {"succeeded"}
 FAILURE_STATUSES = {"failed", "expired", "cancelled"}
 SECRET_KEY_RE = re.compile(r"(api[_-]?key|authorization|bearer|secret|token)", re.IGNORECASE)
-SECRET_VALUE_RE = re.compile(r"sk-[A-Za-z0-9_-]{8,}|Bearer\s+[-A-Za-z0-9._~+/=]{8,}", re.IGNORECASE)
+SECRET_VALUE_RE = re.compile(r"(?<![A-Za-z0-9_])sk-[A-Za-z0-9_-]{8,}|Bearer\s+[-A-Za-z0-9._~+/=]{8,}", re.IGNORECASE)
 TASK_ID_RE = re.compile(r"^cgt-\d{14}-[A-Za-z0-9_-]+$")
 CONTROLLED_CAPTURE_SCHEMA_STATUSES = {
     "VERIFIED_OFFICIAL_PLAYGROUND_SAMPLE",
@@ -87,6 +90,7 @@ class AppConfig:
     task_log_path: Path
     request_preview_dir: Path
     raw_response_dir: Path
+    private_task_response_dir: Path
     outputs_dir: Path
     downloads_dir: Path
     schema_sample_path: Path
@@ -250,6 +254,10 @@ def load_config(require_key: bool = False) -> AppConfig:
         task_log_path=PROJECT_ROOT / defaults.get("task_log_path", "data/tasks.jsonl"),
         request_preview_dir=PROJECT_ROOT / defaults.get("request_preview_dir", "outputs/request-previews"),
         raw_response_dir=PROJECT_ROOT / defaults.get("raw_response_dir", "outputs/raw-responses"),
+        private_task_response_dir=PROJECT_ROOT / defaults.get(
+            "private_task_response_dir",
+            "outputs/private-responses",
+        ),
         outputs_dir=PROJECT_ROOT / defaults.get("outputs_dir", "outputs"),
         downloads_dir=PROJECT_ROOT / defaults.get("downloads_dir", "downloads"),
         schema_sample_path=PROJECT_ROOT / defaults.get("schema_sample_path", "docs/official-rest-sample.redacted.json"),
@@ -346,6 +354,19 @@ def verified_response_task_id_field(config: AppConfig) -> dict[str, str]:
     if value.get("field") != VERIFIED_CREATE_TASK_ID_FIELD or value.get("json_path") != VERIFIED_CREATE_TASK_ID_PATH:
         raise SchemaBlockedError("Task status checking is blocked: response task ID field does not match verified $.id.")
     return {"field": VERIFIED_CREATE_TASK_ID_FIELD, "json_path": VERIFIED_CREATE_TASK_ID_PATH}
+
+
+def verified_output_video_url_field(config: AppConfig) -> dict[str, str]:
+    sample = read_json(config.schema_sample_path)
+    verified_fields = sample.get("verified_fields", {}) if isinstance(sample, dict) else {}
+    value = verified_fields.get("output_video_url_field")
+    if not isinstance(value, dict) or value.get("status") != "VERIFIED_SUCCEEDED_TASK_RESPONSE":
+        raise SchemaBlockedError("Download workflow is blocked: output video URL field is not verified.")
+    if value.get("field") != VERIFIED_OUTPUT_VIDEO_URL_FIELD or value.get("json_path") != VERIFIED_OUTPUT_VIDEO_URL_PATH:
+        raise SchemaBlockedError(
+            "Download workflow is blocked: output video URL field does not match verified $.content.video_url."
+        )
+    return {"field": VERIFIED_OUTPUT_VIDEO_URL_FIELD, "json_path": VERIFIED_OUTPUT_VIDEO_URL_PATH}
 
 
 def ensure_writable_directory(path: Path) -> None:

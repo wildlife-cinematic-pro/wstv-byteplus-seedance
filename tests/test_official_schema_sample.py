@@ -67,3 +67,12 @@ def test_redacted_schema_marks_response_task_id_verified():
     assert field["field"] == "id"
     assert field["json_path"] == "$.id"
     assert schema["status_check_gate"] == "MANUAL_EXISTING_TASK_ID_ONLY"
+
+
+def test_redacted_schema_marks_output_video_url_verified():
+    schema = json.loads((ROOT / "docs" / "official-rest-sample.redacted.json").read_text(encoding="utf-8"))
+    field = schema["verified_fields"]["output_video_url_field"]
+    assert field["status"] == "VERIFIED_SUCCEEDED_TASK_RESPONSE"
+    assert field["field"] == "video_url"
+    assert field["json_path"] == "$.content.video_url"
+    assert schema["download_gate"] == "MANUAL_COMPLETED_TASK_OR_VERIFIED_URL_ONLY"

@@ -10,7 +10,15 @@ import sys
 from pathlib import Path
 from urllib.parse import urlparse
 
-from common import ConfigError, ffprobe_path, load_config, read_json, safe_url_for_logs, write_json
+from common import (
+    ConfigError,
+    ffprobe_path,
+    load_config,
+    read_json,
+    safe_url_for_logs,
+    verified_output_video_url_field,
+    write_json,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -126,6 +134,7 @@ def main() -> int:
     args = parse_args()
     try:
         config = load_config(require_key=False)
+        verified_output_video_url_field(config)
         out_path = Path(args.out)
         url = args.url or url_from_task_response(args.response_json)
         print(f"Downloading: {safe_url_for_logs(url)}")
