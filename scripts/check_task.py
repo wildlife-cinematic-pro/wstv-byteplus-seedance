@@ -21,6 +21,8 @@ from common import (
     safe_url_for_logs,
     save_sanitized_response,
     utc_now,
+    validate_task_id,
+    verified_response_task_id_field,
 )
 
 
@@ -34,7 +36,9 @@ def parse_args() -> argparse.Namespace:
 
 
 def fetch_once(task_id: str):
+    task_id = validate_task_id(task_id)
     config = load_config(require_key=True)
+    verified_response_task_id_field(config)
     if config.used_deprecated_key:
         print("Warning: BYTEPLUS_API_KEY fallback is deprecated. Use ARK_API_KEY.", file=sys.stderr)
     url = build_url(config, config.retrieve_path, id=task_id)
@@ -77,6 +81,7 @@ def print_status(parsed: dict) -> None:
 def main() -> int:
     args = parse_args()
     try:
+        args.task_id = validate_task_id(args.task_id)
         started = time.monotonic()
         while True:
             parsed = fetch_once(args.task_id)

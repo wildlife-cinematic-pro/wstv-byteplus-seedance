@@ -89,6 +89,26 @@ def test_task_response_unknown_status_is_preserved():
     assert parsed["video_url"] is None
 
 
+def test_captured_create_response_verifies_task_id_field():
+    response = json.loads((Path(__file__).parent / "fixtures" / "create_task_response.captured.redacted.json").read_text())
+    assert common.extract_task_id(response) == "cgt-20260616094522-nflv7"
+    parsed = common.parse_task_response(response)
+    assert parsed["id"] == "cgt-20260616094522-nflv7"
+    assert common.collect_task_id_candidates(response) == [
+        {"path": "$.id", "field": "id", "value": "cgt-20260616094522-nflv7"}
+    ]
+
+
+def test_verified_response_task_id_field_from_schema():
+    config = common.load_config(require_key=False)
+    assert common.verified_response_task_id_field(config) == {"field": "id", "json_path": "$.id"}
+
+
+def test_task_id_validation_rejects_non_cgt_id():
+    with pytest.raises(common.ConfigError):
+        common.validate_task_id("task-1")
+
+
 def test_collect_task_id_candidates():
     candidates = common.collect_task_id_candidates({"data": {"task_id": "task_redacted_123"}})
     assert candidates == [{"path": "$.data.task_id", "field": "task_id", "value": "task_redacted_123"}]

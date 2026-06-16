@@ -58,3 +58,12 @@ def test_builder_matches_official_image_url_shape():
     assert content[2]["role"] == "reference_image"
     assert content[3]["role"] == "reference_video"
     assert content[4]["role"] == "reference_audio"
+
+
+def test_redacted_schema_marks_response_task_id_verified():
+    schema = json.loads((ROOT / "docs" / "official-rest-sample.redacted.json").read_text(encoding="utf-8"))
+    field = schema["verified_fields"]["response_task_id_field"]
+    assert field["status"] == "VERIFIED_CAPTURED_RESPONSE"
+    assert field["field"] == "id"
+    assert field["json_path"] == "$.id"
+    assert schema["status_check_gate"] == "MANUAL_EXISTING_TASK_ID_ONLY"
