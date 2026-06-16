@@ -68,6 +68,9 @@
         <pre id="log"></pre>
         <h2>Downloaded MP4 path</h2>
         <pre id="mp4Path"></pre>
+        <h2>Open video folder</h2>
+        <pre id="videoFolder"></pre>
+        <p class="small">Open this folder in Finder or run <code>open /Users/acharyabimal/Movies/WSTV/SeedanceVideos</code>.</p>
       </div>
     </section>
 
@@ -92,6 +95,7 @@
     const statusEl = document.getElementById("status");
     const logEl = document.getElementById("log");
     const mp4PathEl = document.getElementById("mp4Path");
+    const videoFolderEl = document.getElementById("videoFolder");
     const historyEl = document.getElementById("history");
     let dryRunOk = false;
 
@@ -123,6 +127,7 @@
       statusEl.textContent = result.ok ? `${action} succeeded.` : `${action} failed.`;
       logEl.textContent = result.log || result.error || "";
       mp4PathEl.textContent = result.mp4_path || "";
+      videoFolderEl.textContent = result.video_folder || "/Users/acharyabimal/Movies/WSTV/SeedanceVideos";
     }
 
     async function refreshHistory() {
@@ -141,6 +146,7 @@
       statusEl.textContent = "Running dry run...";
       logEl.textContent = "";
       mp4PathEl.textContent = "";
+      videoFolderEl.textContent = "";
       const result = await postJSON("/api/dry-run", payload());
       dryRunOk = !!result.ok;
       showResult(result, "Dry run");

@@ -16,7 +16,7 @@ Dry-run only by default:
 ```bash
 python3 scripts/wstv_pipeline.py \
   --prompt-file data/example.txt \
-  --out downloads/example.mp4
+  --out example.mp4
 ```
 
 Paid submit requires all explicit gates:
@@ -24,7 +24,7 @@ Paid submit requires all explicit gates:
 ```bash
 python3 scripts/wstv_pipeline.py \
   --prompt-file data/example.txt \
-  --out downloads/example.mp4 \
+  --out example.mp4 \
   --submit \
   --max-cost-usd 3 \
   --confirm SUBMIT_ONE_PAID_TASK
@@ -43,6 +43,7 @@ Defaults:
 - expected duration: `15`
 - polling interval: `30`
 - polling timeout: `900`
+- video output folder: `/Users/acharyabimal/Movies/WSTV/SeedanceVideos/`
 
 Safety rules:
 
@@ -51,6 +52,6 @@ Safety rules:
 - Duplicate blocking is enabled by default.
 - The pipeline intentionally does not expose `--allow-duplicate`.
 - Private full task responses are saved under `outputs/private-responses/`.
-- Downloaded videos and verification sidecars are saved under `downloads/`.
+- Generated videos and verification sidecars are saved under `/Users/acharyabimal/Movies/WSTV/SeedanceVideos/` by default.
 - Signed URLs, private task responses, and `.mp4` files must not be committed.
 - ffprobe verification is required for the production pipeline.

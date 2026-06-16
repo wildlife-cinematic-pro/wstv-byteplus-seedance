@@ -16,7 +16,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
-from common import PROJECT_ROOT, ConfigError, redact_text, safe_url_for_logs, utc_now, write_json
+from common import PROJECT_ROOT, ConfigError, load_config, redact_text, safe_url_for_logs, utc_now, write_json
 from generate_video import CONFIRMATION_TOKEN
 
 
@@ -26,7 +26,6 @@ WEB_ROOT = PROJECT_ROOT / "web"
 UI_PATH = WEB_ROOT / "wstv_ui.html"
 DASHBOARD_DATA_DIR = PROJECT_ROOT / "data" / "dashboard"
 HISTORY_PATH = PROJECT_ROOT / "data" / "dashboard_history.json"
-DOWNLOADS_DIR = PROJECT_ROOT / "downloads"
 MAX_BODY_BYTES = 64 * 1024
 SAFE_FILENAME_RE = re.compile(r"[^A-Za-z0-9._-]+")
 URL_RE = re.compile(r"https?://[^\s\"'<>]+")
@@ -66,10 +65,11 @@ def sanitize_output_filename(value: str) -> str:
 
 def output_path_for(filename: str) -> Path:
     safe_name = sanitize_output_filename(filename)
-    path = (DOWNLOADS_DIR / safe_name).resolve()
-    downloads = DOWNLOADS_DIR.resolve()
-    if downloads != path and downloads not in path.parents:
-        raise ConfigError("Output path must stay under downloads/.")
+    video_dir = load_config(require_key=False).downloads_dir.expanduser().resolve()
+    path = (video_dir / safe_name).resolve()
+    if video_dir != path and video_dir not in path.parents:
+        raise ConfigError("Output path must stay under the configured video output directory.")
+    path.parent.mkdir(parents=True, exist_ok=True)
     return path
 
 
@@ -159,6 +159,7 @@ def run_pipeline_request(request: DashboardRequest, *, submit: bool) -> dict[str
         "submitted": submit,
         "log": log,
         "mp4_path": str(output_path_for(request.output_filename)) if ok and submit else "",
+        "video_folder": str(load_config(require_key=False).downloads_dir.expanduser().resolve()),
         "timestamp": utc_now(),
     }
     append_history(request, result)

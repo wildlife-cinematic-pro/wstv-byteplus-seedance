@@ -153,3 +153,15 @@ def test_missing_key_behavior(monkeypatch):
     monkeypatch.delenv("BYTEPLUS_API_KEY", raising=False)
     with pytest.raises(common.ConfigError):
         common.load_config(require_key=True)
+
+
+def test_default_video_output_dir_is_mac_movies_folder(monkeypatch):
+    monkeypatch.delenv("WSTV_VIDEO_OUTPUT_DIR", raising=False)
+    config = common.load_config(require_key=False)
+    assert config.downloads_dir == Path("/Users/acharyabimal/Movies/WSTV/SeedanceVideos")
+
+
+def test_video_output_dir_can_be_overridden(monkeypatch, tmp_path):
+    monkeypatch.setenv("WSTV_VIDEO_OUTPUT_DIR", str(tmp_path / "videos"))
+    config = common.load_config(require_key=False)
+    assert config.downloads_dir == tmp_path / "videos"

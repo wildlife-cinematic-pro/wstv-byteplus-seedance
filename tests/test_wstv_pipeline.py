@@ -174,10 +174,19 @@ def test_polling_uses_existing_task_id_only(tmp_path):
     assert seen == [TASK_ID]
 
 
-def test_download_path_must_use_downloads(tmp_path):
+def test_bare_filename_resolves_to_configured_video_output_folder(tmp_path):
     config = _config(tmp_path)
-    with pytest.raises(common.ConfigError, match="downloads"):
+    path = wstv_pipeline.validate_output_path(config, "elephant-mud-test.mp4")
+    assert path == (tmp_path / "downloads" / "elephant-mud-test.mp4").resolve()
+    assert (tmp_path / "downloads").exists()
+
+
+def test_download_path_must_use_configured_video_output_folder(tmp_path):
+    config = _config(tmp_path)
+    with pytest.raises(common.ConfigError, match="configured video output directory"):
         wstv_pipeline.validate_output_path(config, str(tmp_path / "outside.mp4"))
+    with pytest.raises(common.ConfigError, match="simple filename"):
+        wstv_pipeline.validate_output_path(config, "nested/outside.mp4")
     assert wstv_pipeline.validate_output_path(config, str(tmp_path / "downloads" / "ok.mp4")).name == "ok.mp4"
 
 
