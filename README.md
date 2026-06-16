@@ -108,8 +108,7 @@ python3 scripts/generate_video.py \
   --image-url "https://example.com/master-image.jpg" \
   --duration 15 \
   --ratio 9:16 \
-  --resolution 720p \
-  --no-generate-audio
+  --resolution 720p
 ```
 
 It saves a redacted request preview in `outputs/request-previews/`.

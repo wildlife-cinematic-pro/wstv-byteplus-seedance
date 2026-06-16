@@ -6,6 +6,14 @@ import common
 import generate_video
 
 
+def test_cli_defaults_match_wstv_production_defaults():
+    args = generate_video.parse_args([])
+    assert args.duration == 15
+    assert args.ratio == "9:16"
+    assert args.generate_audio is True
+    assert args.watermark is False
+
+
 def _args(**overrides):
     base = {
         "submit": False,

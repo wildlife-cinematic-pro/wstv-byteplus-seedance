@@ -33,7 +33,7 @@ from common import (
 CONFIRMATION_TOKEN = "SUBMIT_ONE_PAID_TASK"
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Dry-run or submit one WSTV Seedance video task.")
     parser.add_argument("--prompt", help="Prompt text.")
     parser.add_argument("--prompt-file", help="Path to a prompt text file.")
@@ -46,7 +46,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--duration", type=int, default=15, help="Video duration in seconds. Default: 15.")
     parser.add_argument("--ratio", default="9:16", help="Aspect ratio. Default: 9:16.")
     parser.add_argument("--resolution", default="720p", help="Output resolution. Default: 720p.")
-    parser.add_argument("--generate-audio", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("--generate-audio", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--watermark", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--seed", type=int, help="Optional deterministic seed. Omit or use -1 for model-selected randomness.")
     parser.add_argument("--frames", type=int, help="Blocked by this toolkit; use --duration for cost clarity.")
@@ -57,7 +57,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-cost-usd", type=float, help="Required with --submit. Blocks submission above this estimate.")
     parser.add_argument("--confirm", help=f"Required with --submit. Must equal {CONFIRMATION_TOKEN}.")
     parser.add_argument("--allow-duplicate", action="store_true", help="Override duplicate fingerprint blocking.")
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 def save_preview(config: AppConfig, payload: dict, cost: dict, fingerprint: str, preview_out: str | None) -> str:

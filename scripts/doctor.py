@@ -39,7 +39,7 @@ def main() -> int:
         installed = importlib.util.find_spec(dep) is not None
         checks.append(
             result(
-                "PASS" if installed else "FAIL",
+                "PASS" if installed else "BLOCKED",
                 f"Dependency {dep}",
                 "installed" if installed else "missing",
                 "" if installed else "Run pip install -r requirements.txt.",
