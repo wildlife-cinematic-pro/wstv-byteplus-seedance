@@ -1,7 +1,7 @@
 {
   "schema_status": "VERIFIED_REDACTED_OFFICIAL_SAMPLE_CONTROLLED_CAPTURE",
   "source_file": "docs/official-rest-sample.redacted.txt",
-  "instructions": "This file is derived only from the redacted official sample. Controlled paid response capture is allowed only for the verified model when all explicit submit gates pass; response task ID remains unverified until one captured response is reviewed.",
+  "instructions": "This file is derived from the redacted official request sample and one approved redacted create-task response capture. Controlled paid response capture remains gated; response task ID parsing is verified at $.id.",
   "must_not_contain": [
     "authorization header",
     "bearer token",
@@ -50,7 +50,14 @@
       },
       "role": "reference_image"
     },
-    "response_task_id_field": "UNVERIFIED_NOT_PRESENT_IN_REDACTED_SAMPLE"
+    "response_task_id_field": {
+      "status": "VERIFIED_CAPTURED_RESPONSE",
+      "field": "id",
+      "json_path": "$.id",
+      "source_capture": "outputs/create-response-captures/local-418bcd786157.json",
+      "verified_on": "2026-06-16"
+    }
   },
-  "submit_gate": "CONTROLLED_CAPTURE_ONLY"
+  "submit_gate": "CONTROLLED_CAPTURE_ONLY",
+  "status_check_gate": "MANUAL_EXISTING_TASK_ID_ONLY"
 }

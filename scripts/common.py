@@ -33,6 +33,8 @@ OFFICIAL_CREATE_PATH = "/contents/generations/tasks"
 OFFICIAL_RETRIEVE_PATH = "/contents/generations/tasks/{id}"
 OFFICIAL_LIST_PATH = "/contents/generations/tasks"
 OFFICIAL_CANCEL_PATH = "/contents/generations/tasks/{id}"
+VERIFIED_CREATE_TASK_ID_FIELD = "id"
+VERIFIED_CREATE_TASK_ID_PATH = "$.id"
 
 ACTIVE_STATUSES = {"queued", "running", "submitted", "unknown"}
 TERMINAL_STATUSES = {"succeeded", "failed", "cancelled", "expired"}
@@ -40,6 +42,7 @@ SUCCESS_STATUSES = {"succeeded"}
 FAILURE_STATUSES = {"failed", "expired", "cancelled"}
 SECRET_KEY_RE = re.compile(r"(api[_-]?key|authorization|bearer|secret|token)", re.IGNORECASE)
 SECRET_VALUE_RE = re.compile(r"sk-[A-Za-z0-9_-]{8,}|Bearer\s+[-A-Za-z0-9._~+/=]{8,}", re.IGNORECASE)
+TASK_ID_RE = re.compile(r"^cgt-\d{14}-[A-Za-z0-9_-]+$")
 CONTROLLED_CAPTURE_SCHEMA_STATUSES = {
     "VERIFIED_OFFICIAL_PLAYGROUND_SAMPLE",
     "VERIFIED_REDACTED_OFFICIAL_SAMPLE_CONTROLLED_CAPTURE",
@@ -334,6 +337,17 @@ def require_verified_schema(config: AppConfig) -> None:
         raise SchemaBlockedError("Paid submission is blocked: official sample appears to contain a secret.")
 
 
+def verified_response_task_id_field(config: AppConfig) -> dict[str, str]:
+    sample = read_json(config.schema_sample_path)
+    verified_fields = sample.get("verified_fields", {}) if isinstance(sample, dict) else {}
+    value = verified_fields.get("response_task_id_field")
+    if not isinstance(value, dict) or value.get("status") != "VERIFIED_CAPTURED_RESPONSE":
+        raise SchemaBlockedError("Task status checking is blocked: response task ID field is not verified.")
+    if value.get("field") != VERIFIED_CREATE_TASK_ID_FIELD or value.get("json_path") != VERIFIED_CREATE_TASK_ID_PATH:
+        raise SchemaBlockedError("Task status checking is blocked: response task ID field does not match verified $.id.")
+    return {"field": VERIFIED_CREATE_TASK_ID_FIELD, "json_path": VERIFIED_CREATE_TASK_ID_PATH}
+
+
 def ensure_writable_directory(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
     test_path = path / ".write-test"
@@ -526,8 +540,15 @@ def find_duplicate_submission(config: AppConfig, fingerprint: str, recent_hours:
 
 
 def extract_task_id(data: dict[str, Any]) -> str | None:
-    value = data.get("id") or data.get("task_id")
+    value = data.get(VERIFIED_CREATE_TASK_ID_FIELD)
     return str(value) if value else None
+
+
+def validate_task_id(task_id: str) -> str:
+    normalized = task_id.strip()
+    if not TASK_ID_RE.fullmatch(normalized):
+        raise ConfigError("Task ID must match the verified BytePlus create-task ID format cgt-YYYYMMDDHHMMSS-suffix.")
+    return normalized
 
 
 def collect_task_id_candidates(data: Any, path: str = "$", _depth: int = 0) -> list[dict[str, str]]:
@@ -551,7 +572,7 @@ def parse_task_response(data: dict[str, Any]) -> dict[str, Any]:
     content = data.get("content") if isinstance(data.get("content"), dict) else {}
     usage = data.get("usage") if isinstance(data.get("usage"), dict) else None
     return {
-        "id": data.get("id"),
+        "id": extract_task_id(data),
         "status": status,
         "video_url": content.get("video_url") if isinstance(content, dict) else None,
         "last_frame_url": content.get("last_frame_url") if isinstance(content, dict) else None,
@@ -591,7 +612,7 @@ def save_create_response_capture(
         "redacted_request_preview": redact_json(payload),
         "redacted_create_task_response": redact_json(response),
         "task_id_field_candidates": collect_task_id_candidates(response),
-        "response_task_id_status": "UNVERIFIED_PENDING_HUMAN_REVIEW",
+        "response_task_id_status": "VERIFIED_CAPTURED_RESPONSE_FIELD_ID",
         "no_auto_poll_or_download": True,
     }
     path = config.outputs_dir / "create-response-captures" / f"{local_request_id}.json"

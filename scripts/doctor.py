@@ -10,7 +10,15 @@ import subprocess
 import sys
 from pathlib import Path
 
-from common import ConfigError, PROJECT_ROOT, ensure_writable_directory, ffprobe_path, load_config, read_json
+from common import (
+    ConfigError,
+    PROJECT_ROOT,
+    ensure_writable_directory,
+    ffprobe_path,
+    load_config,
+    read_json,
+    verified_response_task_id_field,
+)
 
 
 def result(status: str, name: str, evidence: str, action: str = "") -> tuple[str, str, str, str]:
@@ -86,7 +94,7 @@ def main() -> int:
             try:
                 sample = read_json(config.schema_sample_path)
                 verified_fields = sample.get("verified_fields", {}) if isinstance(sample, dict) else {}
-                response_task_id_field = str(verified_fields.get("response_task_id_field", "UNVERIFIED"))
+                response_task_id_field = verified_fields.get("response_task_id_field", "UNVERIFIED")
                 if sample.get("schema_status") in {
                     "VERIFIED_OFFICIAL_PLAYGROUND_SAMPLE",
                     "VERIFIED_REDACTED_OFFICIAL_SAMPLE_CONTROLLED_CAPTURE",
@@ -115,7 +123,7 @@ def main() -> int:
                         "" if config.model.supports_submit else "Keep this model blocked until its official sample is reviewed.",
                     )
                 )
-                if response_task_id_field.startswith("UNVERIFIED"):
+                if isinstance(response_task_id_field, str) and response_task_id_field.startswith("UNVERIFIED"):
                     checks.append(
                         result(
                             "BLOCKED",
@@ -126,7 +134,13 @@ def main() -> int:
                     )
                     blocked = True
                 else:
-                    checks.append(result("PASS", "Response task ID field", response_task_id_field))
+                    try:
+                        field = verified_response_task_id_field(config)
+                        checks.append(result("PASS", "Response task ID field", f"{field['json_path']} ({field['field']})"))
+                        checks.append(result("PASS", "Manual status check", "enabled for existing verified task IDs only"))
+                    except ConfigError as exc:
+                        checks.append(result("BLOCKED", "Response task ID field", str(exc)))
+                        blocked = True
             except ConfigError as exc:
                 checks.append(result("FAIL", "Official schema fixture", str(exc)))
                 failed = True

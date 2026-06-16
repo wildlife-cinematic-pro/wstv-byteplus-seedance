@@ -1,6 +1,6 @@
 # Controlled One-Paid-Task Response Capture
 
-Purpose: capture one redacted official create-task response body so the response task ID field can be verified.
+Purpose: capture one redacted official create-task response body. The first capture verified that the response task ID field is `$.id`.
 
 Do not run this until all are true:
 
@@ -26,7 +26,7 @@ python3 scripts/generate_video.py \
   --submit
 ```
 
-Expected behavior after the manually approved call:
+Expected behavior after any manually approved capture call:
 
 - Save a redacted request preview.
 - Save a redacted create-task response JSON under `outputs/create-response-captures/`.
@@ -36,4 +36,4 @@ Expected behavior after the manually approved call:
 - Do not auto-download.
 - Do not retry automatically.
 
-After capture, inspect `task_id_field_candidates` and update the verified response parser in a separate PR.
+After capture, inspect `task_id_field_candidates`, confirm `$.id`, and use `scripts/check_task.py TASK_ID` only for an existing task ID. This toolkit still does not auto-poll or auto-download after submit.

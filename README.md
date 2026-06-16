@@ -4,9 +4,9 @@ This is a safety-first Python CLI toolkit for preparing 15-second vertical 9:16 
 
 ## Current Readiness Status
 
-Status: **CONTROLLED RESPONSE CAPTURE ONLY** for the verified model `dreamina-seedance-2-0-260128`.
+Status: **SAFE MANUAL STATUS CHECKING ENABLED** for existing verified Seedance task IDs.
 
-Dry runs, local validation, cost previews, tests, and documentation are ready. A real paid create-task request is locked by default and requires `--submit`, `--capture-create-response`, `--max-cost-usd`, `--confirm SUBMIT_ONE_PAID_TASK`, a local `ARK_API_KEY`, duplicate-check pass, writable task log, and the verified redacted sample file. The response task ID field remains unverified until one manually approved response capture is reviewed.
+Dry runs, local validation, cost previews, tests, and documentation are ready. A real paid create-task request is locked by default and requires `--submit`, `--capture-create-response`, `--max-cost-usd`, `--confirm SUBMIT_ONE_PAID_TASK`, a local `ARK_API_KEY`, duplicate-check pass, writable task log, and the verified redacted sample file. The create-task response task ID field is verified as `$.id`.
 
 No command in the normal setup makes a paid API call.
 
@@ -15,6 +15,7 @@ No command in the normal setup makes a paid API call.
 - Base URL: `https://ark.ap-southeast.bytepluses.com/api/v3`
 - API key env convention: `ARK_API_KEY`
 - Create task: `POST /contents/generations/tasks`
+- Create-task response task ID: `$.id`
 - Retrieve task: `GET /contents/generations/tasks/{id}`
 - List tasks: `GET /contents/generations/tasks`
 - Cancel/delete task: `DELETE /contents/generations/tasks/{id}`
@@ -92,7 +93,7 @@ Local-only check, no API request:
 python3 scripts/doctor.py
 ```
 
-Expected before adding a local key or captured response: `BLOCKED`, not unsafe success.
+Expected without a local key: `BLOCKED`, not unsafe success. With dependencies, a local key, and the verified task ID field, status checking can pass local gates.
 
 ## Dry-Run Example
 
@@ -124,7 +125,7 @@ The estimate is not final billing. Confirm actual spend in BytePlus Console and 
 
 ## Controlled One-Task Response Capture
 
-Production task submission, polling, and download remain blocked until the response task ID field is verified. The first paid create-task call is allowed only as a manually approved response-capture flow for `dreamina-seedance-2-0-260128`.
+Production automation, auto-polling, and auto-download remain blocked. Paid create-task calls are still allowed only through the manually approved response-capture flow for `dreamina-seedance-2-0-260128`.
 
 Do not run this command until `scripts/doctor.py` shows the expected manual approval state and you have confirmed the budget in BytePlus Console:
 
@@ -147,7 +148,7 @@ See `docs/ONE_PAID_RESPONSE_CAPTURE.md`.
 
 ## Task Status Process
 
-One-shot status check:
+One-shot status check for an existing task ID:
 
 ```bash
 python3 scripts/check_task.py TASK_ID

@@ -60,7 +60,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--capture-create-response",
         action="store_true",
-        help="Required with --submit while create-task response task ID is still being verified.",
+        help="Required with --submit for the controlled one-task response capture flow.",
     )
     parser.add_argument("--allow-duplicate", action="store_true", help="Override duplicate fingerprint blocking.")
     return parser.parse_args(argv)
@@ -177,16 +177,16 @@ def main() -> int:
                     "model": payload["model"],
                     "safe_input_identifier": input_identifier(payload),
                     "task_id": None,
-                    "status": "response_captured_task_id_unverified",
+                    "status": "response_captured_task_id_missing",
                     "estimated_cost": cost,
                     "actual_usage": None,
                     "downloaded_output_path": None,
-                    "error_category": "task_id_unverified",
+                    "error_category": "verified_task_id_field_missing",
                     "capture_path": str(capture_path),
                 },
             )
             print(f"Create-task response captured for review: {capture_path}")
-            print("Task ID field is still unverified. No polling or download was started.")
+            print("Verified task ID field $.id was missing. No polling or download was started.")
             return 0
         save_sanitized_response(config, str(task_id), data)
         append_jsonl(

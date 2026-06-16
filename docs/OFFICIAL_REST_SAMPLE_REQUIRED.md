@@ -6,7 +6,7 @@ This repository now contains a redacted official sample at:
 docs/official-rest-sample.redacted.json
 ```
 
-That sample enables only controlled one-paid-task response capture for `dreamina-seedance-2-0-260128`. Production submission remains blocked until the captured create-task response is reviewed and the response task ID field is verified.
+That sample enables only controlled one-paid-task response capture for `dreamina-seedance-2-0-260128`. The captured create-task response verified the task ID field as `$.id`; production automation remains blocked.
 
 How to replace or refresh the sample safely:
 
