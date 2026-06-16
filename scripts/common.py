@@ -324,20 +324,44 @@ def ensure_writable_directory(path: Path) -> None:
     test_path.unlink()
 
 
-def build_content(prompt: str, image_url: str | None, image_path: str | None) -> list[dict[str, Any]]:
+def validate_public_url(value: str, label: str) -> None:
+    parsed = urlparse(value)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise ConfigError(f"{label} must be an http(s) URL.")
+
+
+def build_content(
+    prompt: str,
+    image_url: str | None,
+    image_path: str | None,
+    image_role: str = "reference_image",
+    reference_image_urls: list[str] | None = None,
+    reference_video_urls: list[str] | None = None,
+    reference_audio_urls: list[str] | None = None,
+) -> list[dict[str, Any]]:
     content: list[dict[str, Any]] = [{"type": "text", "text": prompt}]
     if image_url and image_path:
         raise ConfigError("Use only one of --image-url or --image-path.")
     if image_url:
-        parsed = urlparse(image_url)
-        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-            raise ConfigError("--image-url must be an http(s) URL.")
-        content.append({"type": "image_url", "image_url": {"url": image_url}})
+        validate_public_url(image_url, "--image-url")
+        image_item: dict[str, Any] = {"type": "image_url", "image_url": {"url": image_url}}
+        if image_role:
+            image_item["role"] = image_role
+        content.append(image_item)
     if image_path:
         path = Path(image_path).expanduser()
         if not path.exists():
             raise ConfigError(f"Image path does not exist: {path}")
         raise ConfigError("Local image upload is blocked until the official upload/base64 flow is verified.")
+    for url in reference_image_urls or []:
+        validate_public_url(url, "--reference-image-url")
+        content.append({"type": "image_url", "image_url": {"url": url}, "role": "reference_image"})
+    for url in reference_video_urls or []:
+        validate_public_url(url, "--reference-video-url")
+        content.append({"type": "video_url", "video_url": {"url": url}, "role": "reference_video"})
+    for url in reference_audio_urls or []:
+        validate_public_url(url, "--reference-audio-url")
+        content.append({"type": "audio_url", "audio_url": {"url": url}, "role": "reference_audio"})
     return content
 
 
@@ -373,7 +397,15 @@ def build_create_payload(args: argparse.Namespace, config: AppConfig) -> dict[st
     validate_generation_args(args, config)
     payload: dict[str, Any] = {
         "model": config.model_id,
-        "content": build_content(prompt, args.image_url, args.image_path),
+        "content": build_content(
+            prompt,
+            args.image_url,
+            args.image_path,
+            image_role=getattr(args, "image_role", "reference_image"),
+            reference_image_urls=getattr(args, "reference_image_url", None),
+            reference_video_urls=getattr(args, "reference_video_url", None),
+            reference_audio_urls=getattr(args, "reference_audio_url", None),
+        ),
         "resolution": args.resolution,
         "ratio": args.ratio,
         "duration": args.duration,

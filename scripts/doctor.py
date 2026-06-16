@@ -88,12 +88,15 @@ def main() -> int:
                 if sample.get("schema_status") == "VERIFIED_OFFICIAL_PLAYGROUND_SAMPLE":
                     checks.append(result("PASS", "Official schema fixture", str(config.schema_sample_path)))
                 else:
+                    action = "Keep paid submission blocked until schema and billing gates are manually approved."
+                    if not str(sample.get("schema_status", "")).startswith("VERIFIED_REDACTED_"):
+                        action = "Replace placeholder with a redacted verified Playground REST sample."
                     checks.append(
                         result(
                             "BLOCKED",
                             "Official schema fixture",
                             str(sample.get("schema_status", "missing schema_status")),
-                            "Replace placeholder with a redacted verified Playground REST sample.",
+                            action,
                         )
                     )
                     blocked = True

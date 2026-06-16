@@ -30,6 +30,10 @@ def test_request_construction_uses_official_content_schema():
         prompt_file=None,
         image_url="https://example.com/eagle.jpg",
         image_path=None,
+        image_role="reference_image",
+        reference_image_url=None,
+        reference_video_url=None,
+        reference_audio_url=None,
         duration=15,
         ratio="9:16",
         resolution="720p",
@@ -44,6 +48,7 @@ def test_request_construction_uses_official_content_schema():
     assert payload["model"] == "dreamina-seedance-2-0-260128"
     assert payload["content"][0]["type"] == "text"
     assert payload["content"][1]["type"] == "image_url"
+    assert payload["content"][1]["role"] == "reference_image"
     assert "input_image" not in payload
 
 
