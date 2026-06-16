@@ -26,6 +26,18 @@ def _args(**overrides):
     return argparse.Namespace(**base)
 
 
+def _submit_ready_config(tmp_path):
+    config = common.load_config(require_key=False)
+    return config.__class__(
+        **{
+            **config.__dict__,
+            "api_key": "test-key",
+            "api_key_source": "ARK_API_KEY",
+            "task_log_path": tmp_path / "tasks.jsonl",
+        }
+    )
+
+
 def test_guard_submit_dry_run_allows_no_network(monkeypatch):
     called = False
 
@@ -39,19 +51,38 @@ def test_guard_submit_dry_run_allows_no_network(monkeypatch):
     assert called is False
 
 
-def test_submit_requires_max_cost():
-    config = common.load_config(require_key=False)
-    with pytest.raises(common.SchemaBlockedError):
+def test_submit_allowed_only_when_all_required_gates_present(tmp_path):
+    config = _submit_ready_config(tmp_path)
+    generate_video.guard_submit(
+        _args(
+            submit=True,
+            max_cost_usd=2.0,
+            confirm=generate_video.CONFIRMATION_TOKEN,
+            capture_create_response=True,
+        ),
+        config,
+        {},
+        {"estimated_cost_usd": 1.0},
+        "fp",
+    )
+
+
+def test_submit_requires_max_cost(tmp_path):
+    config = _submit_ready_config(tmp_path)
+    with pytest.raises(common.ConfigError, match="max-cost-usd"):
         generate_video.guard_submit(_args(submit=True), config, {}, {"estimated_cost_usd": 1}, "fp")
 
 
-def test_submit_rejects_cost_above_limit(monkeypatch):
-    config = common.load_config(require_key=False)
-    submit_ready = config.__class__(**{**config.__dict__, "api_key": "test-key", "api_key_source": "ARK_API_KEY"})
-    monkeypatch.setattr(generate_video, "require_verified_schema", lambda _config: None)
+def test_submit_rejects_cost_above_limit(tmp_path):
+    submit_ready = _submit_ready_config(tmp_path)
     with pytest.raises(common.ConfigError, match="exceeds"):
         generate_video.guard_submit(
-            _args(submit=True, max_cost_usd=1.0, confirm=generate_video.CONFIRMATION_TOKEN),
+            _args(
+                submit=True,
+                max_cost_usd=1.0,
+                confirm=generate_video.CONFIRMATION_TOKEN,
+                capture_create_response=True,
+            ),
             submit_ready,
             {},
             {"estimated_cost_usd": 2.0},
@@ -59,13 +90,44 @@ def test_submit_rejects_cost_above_limit(monkeypatch):
         )
 
 
-def test_submit_requires_capture_response_flag(monkeypatch):
-    config = common.load_config(require_key=False)
-    submit_ready = config.__class__(**{**config.__dict__, "api_key": "test-key", "api_key_source": "ARK_API_KEY"})
-    monkeypatch.setattr(generate_video, "require_verified_schema", lambda _config: None)
+def test_submit_requires_confirmation_token(tmp_path):
+    submit_ready = _submit_ready_config(tmp_path)
+    with pytest.raises(common.ConfigError, match="confirm"):
+        generate_video.guard_submit(
+            _args(submit=True, max_cost_usd=2.0, confirm="wrong-token", capture_create_response=True),
+            submit_ready,
+            {},
+            {"estimated_cost_usd": 1.0},
+            "fp",
+        )
+
+
+def test_submit_requires_capture_response_flag(tmp_path):
+    submit_ready = _submit_ready_config(tmp_path)
     with pytest.raises(common.ConfigError, match="capture-create-response"):
         generate_video.guard_submit(
             _args(submit=True, max_cost_usd=2.0, confirm=generate_video.CONFIRMATION_TOKEN),
+            submit_ready,
+            {},
+            {"estimated_cost_usd": 1.0},
+            "fp",
+        )
+
+
+def test_submit_keeps_duplicate_blocking_enabled(tmp_path):
+    submit_ready = _submit_ready_config(tmp_path)
+    common.append_jsonl(
+        submit_ready.task_log_path,
+        {"request_fingerprint": "fp", "created_at": common.utc_now(), "status": "submitted"},
+    )
+    with pytest.raises(common.ConfigError, match="Duplicate"):
+        generate_video.guard_submit(
+            _args(
+                submit=True,
+                max_cost_usd=2.0,
+                confirm=generate_video.CONFIRMATION_TOKEN,
+                capture_create_response=True,
+            ),
             submit_ready,
             {},
             {"estimated_cost_usd": 1.0},

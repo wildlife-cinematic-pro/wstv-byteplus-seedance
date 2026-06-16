@@ -39,7 +39,11 @@ TERMINAL_STATUSES = {"succeeded", "failed", "cancelled", "expired"}
 SUCCESS_STATUSES = {"succeeded"}
 FAILURE_STATUSES = {"failed", "expired", "cancelled"}
 SECRET_KEY_RE = re.compile(r"(api[_-]?key|authorization|bearer|secret|token)", re.IGNORECASE)
-SECRET_VALUE_RE = re.compile(r"sk-[A-Za-z0-9_-]{8,}|Bearer\s+[A-Za-z0-9._~+/=-]+", re.IGNORECASE)
+SECRET_VALUE_RE = re.compile(r"sk-[A-Za-z0-9_-]{8,}|Bearer\s+[-A-Za-z0-9._~+/=]{8,}", re.IGNORECASE)
+CONTROLLED_CAPTURE_SCHEMA_STATUSES = {
+    "VERIFIED_OFFICIAL_PLAYGROUND_SAMPLE",
+    "VERIFIED_REDACTED_OFFICIAL_SAMPLE_CONTROLLED_CAPTURE",
+}
 
 
 class ConfigError(RuntimeError):
@@ -300,6 +304,17 @@ def request_json(method: str, url: str, api_key: str, timeout: float, **kwargs: 
     return data
 
 
+def contains_authorization_key(value: Any) -> bool:
+    if isinstance(value, dict):
+        return any(
+            str(key).lower() == "authorization" or contains_authorization_key(item)
+            for key, item in value.items()
+        )
+    if isinstance(value, list):
+        return any(contains_authorization_key(item) for item in value)
+    return False
+
+
 def require_verified_schema(config: AppConfig) -> None:
     if not config.model.supports_submit:
         raise SchemaBlockedError(
@@ -310,10 +325,12 @@ def require_verified_schema(config: AppConfig) -> None:
             "Paid submission is blocked: docs/official-rest-sample.redacted.json is missing."
         )
     sample = read_json(config.schema_sample_path)
-    if sample.get("schema_status") != "VERIFIED_OFFICIAL_PLAYGROUND_SAMPLE":
-        raise SchemaBlockedError("Paid submission is blocked: official REST sample is not verified.")
+    if sample.get("schema_status") not in CONTROLLED_CAPTURE_SCHEMA_STATUSES:
+        raise SchemaBlockedError(
+            "Paid submission is blocked: official REST sample is not approved for controlled response capture."
+        )
     serialized = json.dumps(sample, ensure_ascii=False)
-    if SECRET_VALUE_RE.search(serialized) or "Authorization" in serialized:
+    if SECRET_VALUE_RE.search(serialized) or contains_authorization_key(sample):
         raise SchemaBlockedError("Paid submission is blocked: official sample appears to contain a secret.")
 
 
