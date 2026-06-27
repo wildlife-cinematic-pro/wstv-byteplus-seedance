@@ -158,6 +158,7 @@ export function SeedancePayloadPreviewPanel({
   const [showExamples, setShowExamples] = useState(false);
   const [showLifecycle, setShowLifecycle] = useState(false);
   const [showMediaWarnings, setShowMediaWarnings] = useState(false);
+  const [showFutureControls, setShowFutureControls] = useState(false);
   const [copiedExample, setCopiedExample] = useState<number | null>(null);
 
   // Build the references object in the shape expected by buildSeedancePayload
@@ -460,18 +461,25 @@ export function SeedancePayloadPreviewPanel({
           </CollapsibleContent>
         </Collapsible>
 
-        {/* ─── Unsupported controls notes ─── */}
-        <div className="p-3 rounded-md bg-[oklch(0.15_0.02_155)] border border-gray-700/40 space-y-2">
-          <p className="text-xs font-medium text-gray-400 flex items-center gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-gray-500" />
-            Unsupported / Future Controls (NOT in payload)
-          </p>
-          <div className="space-y-1 text-[11px]">
-            <p className="text-gray-500">• {FRAMES_NOT_SUPPORTED_NOTE}</p>
-            <p className="text-gray-500">• {SEED_NOT_SUPPORTED_NOTE}</p>
-            <p className="text-gray-500">• {CAMERA_FIXED_NOT_SUPPORTED_NOTE}</p>
-          </div>
-        </div>
+        {/* ─── Future controls notes (collapsible) ─── */}
+        <Collapsible open={showFutureControls} onOpenChange={setShowFutureControls}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="w-full justify-between px-2 text-gray-400 hover:text-emerald-400 hover:bg-emerald-500/5">
+              <span className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4" />
+                <span className="text-sm font-medium">Future Controls (NOT in payload)</span>
+              </span>
+              {showFutureControls ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-2">
+            <div className="p-3 rounded-md bg-[oklch(0.15_0.02_155)] border border-gray-700/40 space-y-1 text-[11px]">
+              <p className="text-gray-500">• {FRAMES_NOT_SUPPORTED_NOTE}</p>
+              <p className="text-gray-500">• {SEED_NOT_SUPPORTED_NOTE}</p>
+              <p className="text-gray-500">• {CAMERA_FIXED_NOT_SUPPORTED_NOTE}</p>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </CardContent>
     </Card>
   );

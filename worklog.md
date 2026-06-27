@@ -547,6 +547,7 @@ Renders "Seedance 2.0 API Validation & Payload Preview" card with:
 - setSeedanceModelIdV() — auto-clamps resolution when switching to Fast/Mini
 - Passed props to StepOutput, StepReferences, StepDryRun
 - Renders SeedancePayloadPreviewPanel after StepDryRun
+- Generate tab is now daily-use focused: compact safety/status strip after workflow progress, OfficialQuickstartReference moved to Settings, ResourcePackBillingPanel moved to Cost
 
 ### 7. Updated types.ts — new types
 - SeedanceModelId type (3 official IDs)
@@ -589,7 +590,7 @@ Documented recommended future schema migration. NO migration applied in PHASE4. 
 
 Stage Summary:
 - Dashboard now validates against official Seedance 2.0 rules: model-specific resolutions (Standard 480p/720p/1080p/4k, Fast/Mini 480p/720p only), duration 4–15 or -1 auto, generation mode separation (reference_mode vs frame_mode with no mixing), reference limits (9 images / 3 videos / 3 audios), audio-not-alone rule, last_frame requires first_frame rule.
-- Payload preview panel shows the exact JSON that would be sent to POST /api/v3/contents/generations/tasks in a future real integration — with no real API call.
+- Payload preview panel shows the exact JSON that would be sent to POST /api/v3/contents/generations/tasks in a future real integration — with no real API call. Live payload, examples, lifecycle, media warnings, and future controls are collapsed by default.
 - 6 request examples cover all major use cases (text-only, frame modes, reference modes).
 - Future real API lifecycle documented (8-step flow, 6 task statuses, cancel/delete rules, 24h URL expiry warning).
 - Frames parameter NOT used (Seedance 2.0 doesn't support it). Seed and camera_fixed are disabled/future notes only.
