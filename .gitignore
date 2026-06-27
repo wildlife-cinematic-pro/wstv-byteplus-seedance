@@ -1,4 +1,5 @@
 node_modules/
+.venv/
 .next/
 out/
 dist/
@@ -7,6 +8,7 @@ build/
 
 .env
 .env.*
+.envkey
 !.env.example
 
 db/
@@ -29,6 +31,7 @@ server/
 static/
 trace
 types/
+*.tsbuildinfo
 build-manifest.json
 fallback-build-manifest.json
 prerender-manifest.json

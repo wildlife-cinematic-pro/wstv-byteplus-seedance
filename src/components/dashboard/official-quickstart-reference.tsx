@@ -8,17 +8,15 @@ import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 /**
- * OfficialQuickstartReference — PHASE5 documentation panel.
+ * OfficialQuickstartReference — PHASE5.1 documentation panel.
  *
  * This panel summarizes the official BytePlus ModelArk Seedance 2.0 quickstart
  * package for reference only. It does NOT execute any demo scripts, does NOT
  * call the real API, and does NOT require any API key.
  *
  * The official quickstart package (modelark_seedance2.0_quickstart_package.zip)
- * was inspected read-only. Key files reviewed:
- *   - README.md (overview + tutorial link)
- *   - python/demo_standard.py (API reference: model ID, content blocks, task flow)
- *   - scripts/init_dev_env/setup_mac.sh (environment setup — NOT executed)
+ * is not bundled with this checkout. This panel summarizes official docs and
+ * prior WSTV reference notes only; no demo scripts are executed here.
  *
  * Safety: demo_standard.py can create REAL PAID generation tasks if
  * ARK_API_KEY is configured. It must NOT be executed while WSTV is in
@@ -68,7 +66,7 @@ export function OfficialQuickstartReference() {
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-3 text-lg">
           <BookOpen className="w-5 h-5 text-amber-400" />
-          Official Seedance 2.0 Quickstart Reference — PHASE5 Only
+          Official Seedance 2.0 Quickstart Reference — PHASE5.1 Only
         </CardTitle>
         <div className="flex flex-wrap gap-2 mt-2">
           <Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-400 bg-amber-500/10">
@@ -214,7 +212,7 @@ export function OfficialQuickstartReference() {
               ))}
             </div>
             <p className="text-[10px] text-gray-500 mt-2 italic">
-              PHASE6 is future work. PHASE5 is only quickstart documentation/safety alignment. No real API calls are made in this phase.
+              PHASE6 is future work. PHASE5.1 is only official documentation/safety alignment. No real API calls are made in this phase.
             </p>
           </CollapsibleContent>
         </Collapsible>
@@ -222,7 +220,7 @@ export function OfficialQuickstartReference() {
         {/* Official endpoint reference (documentation only) */}
         <div className="p-3 rounded-md bg-[oklch(0.15_0.02_155)] border border-gray-700/40">
           <p className="text-xs font-medium text-gray-400 mb-2 flex items-center gap-1.5">
-            <Info className="w-3.5 h-3.5" /> Official Endpoints (for future reference — NOT called in PHASE5)
+            <Info className="w-3.5 h-3.5" /> Official Endpoints (future PHASE6 reference — NOT called in PHASE5.1)
           </p>
           <div className="space-y-1 text-[10px] font-mono text-gray-500">
             <div><span className="text-emerald-400">POST</span> https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks</div>
@@ -235,7 +233,7 @@ export function OfficialQuickstartReference() {
               <span className="text-gray-400">Headers (future):</span> Content-Type: application/json · Authorization: Bearer &lt;ARK_API_KEY&gt;
             </p>
             <p className="text-[10px] text-red-400 mt-1">
-              ⚠ No ARK_API_KEY is stored, loaded, or used in PHASE5. The endpoint URLs above are documentation only.
+              ⚠ No ARK_API_KEY is stored, loaded, or used in PHASE5.1. The endpoint URLs above are documentation only.
             </p>
           </div>
         </div>

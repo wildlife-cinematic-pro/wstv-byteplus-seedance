@@ -357,12 +357,12 @@ export function StepOutput({
           </p>
         </div>
 
-        {/* Seed + Audio Mode Row — seed is kept as a FUTURE/UNSUPPORTED note, not active */}
+        {/* Seed + Audio Mode Row - seed is kept as a future note, not active */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Label className="text-sm text-gray-400 mb-2 block flex items-center gap-1">
               🎲 Random Seed
-              <Badge variant="outline" className="text-[9px] border-gray-600 text-gray-500 bg-gray-700/20">FUTURE / UNSUPPORTED</Badge>
+              <Badge variant="outline" className="text-[9px] border-gray-600 text-gray-500 bg-gray-700/20">FUTURE</Badge>
             </Label>
             <Input
               value={seed}
@@ -372,7 +372,7 @@ export function StepOutput({
               className="bg-[oklch(0.10_0.02_155)] border-gray-700 text-gray-600 placeholder:text-gray-600 opacity-60"
             />
             <p className="text-[10px] text-gray-600 mt-1">
-              Seed is not an active Seedance 2.0 control per official docs. Shown as future/unsupported only — not included in the API payload.
+              Seed is documented for some video generation flows, but WSTV keeps it inactive in PHASE5.1 preview. Evaluate in PHASE6 before adding it to the payload.
             </p>
           </div>
           <div>

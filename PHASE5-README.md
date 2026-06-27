@@ -6,12 +6,12 @@ This ZIP contains PHASE5 changes on top of Phase 1–4. All safety invariants ar
 
 ### 1. New component: `src/components/dashboard/official-quickstart-reference.tsx`
 
-Renders an "Official Seedance 2.0 Quickstart Reference — PHASE5 Only" panel on the Generate tab with:
+Renders an "Official Seedance 2.0 Quickstart Reference — PHASE5.1 Only" panel on the Generate tab with:
 
 - **Main description**: "This quickstart package is official BytePlus ModelArk reference for future real API integration. It should not be executed while WSTV is in Safe Mode / Dry Run Mode. `demo_standard.py` can create real paid generation tasks if `ARK_API_KEY` is configured."
 - **Warning badge**: "Reference only — do not run the official Python demo from this dashboard."
 - **3 model ID cards**: Standard / Fast / Mini with official BytePlus model IDs, quality labels, and supported resolutions
-- **WSTV defaults confirmation**: model=Standard, mode=reference_mode, ratio=9:16, duration=15, resolution=720p, generate_audio=false, watermark=false, return_last_frame=true
+- **WSTV defaults confirmation**: model=Standard, mode=reference_mode, ratio=9:16, duration=15, resolution=720p, generate_audio=true, watermark=false, return_last_frame=true
 - **4K warning**: "4K is Standard-only and may have lower concurrency / higher cost. Use 720p for normal WSTV testing."
 - **Quickstart Safety Checklist** (12 items, collapsible): BytePlus account, ARK_API_KEY, model activation, prepaid package, public URLs, TOS storage, task ID, polling 10–30s, save video_url, save last_frame_url, save usage tokens, API key server-side only
 - **Safety Warnings** (3 warnings, collapsible):
@@ -25,7 +25,7 @@ Renders an "Official Seedance 2.0 Quickstart Reference — PHASE5 Only" panel on
 
 - Renamed "Future Real API Lifecycle" → "Future PHASE6 Real API Lifecycle"
 - Added "Payload Preview only — no real API call." label
-- Added future endpoint note: `POST https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks` with "⚠ Do not call this endpoint. ARK_API_KEY is not configured. Safe Mode is ON."
+- Added future PHASE6 endpoint note: `POST https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks` with "⚠ Do not call this endpoint. ARK_API_KEY is not configured. Safe Mode is ON."
 
 ### 3. Updated `step-prompt.tsx` — word count + character count + no 3500 hard block
 
@@ -47,11 +47,11 @@ Renders an "Official Seedance 2.0 Quickstart Reference — PHASE5 Only" panel on
 - Added import for `OfficialQuickstartReference`
 - Renders `<OfficialQuickstartReference />` after `<SeedancePayloadPreviewPanel />` on the Generate tab
 
-## Official quickstart package inspection (READ-ONLY)
+## Official quickstart package reference (READ-ONLY)
 
-The official `modelark_seedance2.0_quickstart_package.zip` was inspected for API reference only. **No scripts were executed.**
+The official `modelark_seedance2.0_quickstart_package.zip` is not bundled in this checkout. These PHASE5 notes preserve the previous reference summary only. **No scripts were executed.**
 
-Files reviewed:
+Reference summary:
 - `README.md` — overview + tutorial link
 - `python/demo_standard.py` — confirmed official API structure:
   - Model ID: `dreamina-seedance-2-0-260128` ✓
@@ -71,7 +71,7 @@ Files reviewed:
 | Safe Mode ON by default | ✅ |
 | Dry Run only | ✅ |
 | No real Seedance API connected | ✅ |
-| No ARK_API_KEY in .env or any file | ✅ |
+| No ARK_API_KEY committed to repository | ✅ |
 | No API key input fields in UI | ✅ |
 | No `fetch('https://ark.ap-southeast...')` | ✅ |
 | `demo_standard.py` NOT executed | ✅ |
@@ -102,7 +102,7 @@ Open http://localhost:3000
 | Test | Result |
 |---|---|
 | Official Quickstart Reference panel appears | ✅ |
-| Panel says "PHASE5 Only" | ✅ |
+| Panel says "PHASE5.1 Only" | ✅ |
 | Future real integration checklist labeled "PHASE6" | ✅ |
 | Quickstart Safety Checklist (12 items) present | ✅ |
 | Demo warning present | ✅ |
@@ -134,7 +134,7 @@ Open http://localhost:3000
 |---|---|
 | Safe Mode ON | ✅ |
 | Paid Zone locked | ✅ |
-| No ARK_API_KEY in .env | ✅ |
+| No ARK_API_KEY committed to repository | ✅ |
 | No API key input fields | ✅ |
 | No fetch to BytePlus API | ✅ |
 | No demo scripts executed | ✅ |
@@ -145,7 +145,7 @@ Open http://localhost:3000
 
 | File | Change |
 |------|--------|
-| `src/components/dashboard/official-quickstart-reference.tsx` | **NEW** — Official Quickstart Reference panel with PHASE5 label, 12-item safety checklist, 3 safety warnings, 16-item PHASE6 checklist, endpoint reference |
+| `src/components/dashboard/official-quickstart-reference.tsx` | **NEW** — Official Quickstart Reference panel with PHASE5.1 label, 12-item safety checklist, 3 safety warnings, 16-item PHASE6 checklist, endpoint reference |
 | `src/components/dashboard/seedance-payload-preview.tsx` | Updated — renamed lifecycle to "Future PHASE6", added "Payload Preview only" label, added future endpoint note with "do not call" warning |
 | `src/components/dashboard/step-prompt.tsx` | Updated — word count + character count display, over-limit changed from red (hard block) to amber (warning), CharProgressBar color fix |
 | `src/app/api/dry-run/route.ts` | Updated — prompt length converted from hard error to soft warning, word count added to validation log |

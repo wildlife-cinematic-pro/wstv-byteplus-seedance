@@ -7,6 +7,7 @@ import {
   validateSeedancePayload,
   SEEDANCE_MODEL_IDS,
   MODEL_METADATA,
+  VALID_RATIOS,
   VALID_DURATION_MIN,
   VALID_DURATION_MAX,
   AUTO_DURATION,
@@ -148,9 +149,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. Validate aspect ratio
-    const validRatios = ['9:16', '16:9', '1:1'];
-    if (!aspectRatio || !validRatios.includes(aspectRatio)) {
-      errors.push('Invalid aspect ratio');
+    if (!aspectRatio || !VALID_RATIOS.includes(aspectRatio as (typeof VALID_RATIOS)[number])) {
+      errors.push(`Invalid aspect ratio. Supported: ${VALID_RATIOS.join(', ')}`);
       validationLog.push(`❌ Aspect ratio: ${aspectRatio || 'none'} — invalid`);
     } else {
       validationLog.push(`✅ Aspect ratio: ${aspectRatio}`);
