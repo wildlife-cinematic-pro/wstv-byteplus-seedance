@@ -57,7 +57,7 @@ function GateItem({ label, passed }: { label: string; passed: boolean }) {
         {passed ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <XCircle className="w-4 h-4 text-red-400" />}
         <span className={`text-sm ${passed ? 'text-gray-300' : 'text-red-400'}`}>{label}</span>
       </div>
-      <p className="text-[11px] text-gray-500 ml-6 mt-0.5">{GATE_EXPLANATIONS[label] ?? ''}</p>
+      <p className="text-xs text-muted-foreground ml-6 mt-0.5">{GATE_EXPLANATIONS[label] ?? ''}</p>
     </div>
   );
 }
@@ -66,7 +66,7 @@ function CostBreakdownCard({ estimatedCost, duration }: { estimatedCost: number;
   const costPerSec = duration > 0 ? estimatedCost / duration : 0;
   const cny = estimatedCost * 7.25;
   return (
-    <div className="p-3 rounded-md bg-[oklch(0.15_0.02_155)] border border-amber-500/20 space-y-2">
+    <div className="p-3 rounded-md bg-muted/30 border border-amber-500/20 space-y-2">
       <div className="flex items-center gap-2">
         <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
         <span className="text-xs text-amber-400 font-semibold uppercase tracking-wide">Cost Breakdown</span>
@@ -95,14 +95,14 @@ function ConfirmProgress({ text, target }: { text: string; target: string }) {
     <div className="mt-2 space-y-1">
       <div className="font-mono text-xs tracking-wider">
         {target.split('').map((ch, i) => (
-          <span key={i} className={i < text.length && text[i] === ch ? 'text-emerald-400' : 'text-gray-600'}>{ch}</span>
+          <span key={i} className={i < text.length && text[i] === ch ? 'text-emerald-400' : 'text-muted-foreground'}>{ch}</span>
         ))}
       </div>
       <div className="flex items-center gap-2">
-        <div className="flex-1 h-1 rounded bg-gray-800 overflow-hidden">
+        <div className="flex-1 h-1 rounded bg-muted overflow-hidden">
           <div className={`h-full rounded transition-all duration-300 ${complete ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]' : 'bg-amber-400'}`} style={{ width: `${pct}%` }} />
         </div>
-        <span className={`text-[10px] ${complete ? 'text-emerald-400' : 'text-gray-500'}`}>{pct}%</span>
+        <span className={`text-xs ${complete ? 'text-emerald-400' : 'text-muted-foreground'}`}>{pct}%</span>
       </div>
     </div>
   );
@@ -140,7 +140,7 @@ function useCountdown(enabled: boolean) {
 }
 
 // Reusable input className for paid-zone — guarantees visible dark-theme text
-const PAID_INPUT_CLASS = "bg-[oklch(0.10_0.02_155)] border-emerald-500/30 text-gray-100 placeholder:text-gray-500 focus:border-emerald-400 focus:ring-emerald-400/30";
+const PAID_INPUT_CLASS = "bg-background border-emerald-500/30 text-gray-100 placeholder:text-muted-foreground/60 focus:border-emerald-400 focus:ring-emerald-400/30";
 
 export function StepPaid({
   visible, safeMode, gates, allGatesPassed,
@@ -192,7 +192,7 @@ export function StepPaid({
   // ═══════════════════════════════════════════════════════════════════
   if (!paidUnlocked) {
     return (
-      <Card className="bg-[oklch(0.18_0.03_155)] border-gray-700/40">
+      <Card className="bg-card border-border">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-3 text-lg">
             <StepNumber num={5} active completed={false} />
@@ -203,17 +203,17 @@ export function StepPaid({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="p-3 rounded-md bg-[oklch(0.15_0.02_155)] border border-gray-700/40 space-y-2">
+          <div className="p-3 rounded-md bg-muted/30 border border-border space-y-2">
             <p className="text-xs text-gray-400 leading-relaxed">
               Paid generation controls are hidden by default to prevent accidental submissions during Dry-Run / Planning workflow.
             </p>
-            <p className="text-[10px] text-gray-500">
+            <p className="text-xs text-muted-foreground">
               Safe Mode is <span className="text-emerald-400 font-semibold">ON</span> · Dry-Run only · No real API calls
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs text-gray-500 flex items-center gap-1.5">
+            <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
               <KeyRound className="w-3 h-3" />
               Enter local unlock phrase
             </Label>
@@ -239,12 +239,12 @@ export function StepPaid({
               </Button>
             </div>
             {unlockError && (
-              <p className="text-[11px] text-red-400 flex items-center gap-1.5">
+              <p className="text-xs text-red-400 flex items-center gap-1.5">
                 <XCircle className="w-3 h-3" />
                 Incorrect unlock phrase. Try again.
               </p>
             )}
-            <p className="text-[10px] text-gray-600">
+            <p className="text-xs text-muted-foreground">
               ⚠ This is a local UI lock only — not real security. All server-side safety checks remain in place.
             </p>
           </div>
@@ -261,7 +261,7 @@ export function StepPaid({
   // ═══════════════════════════════════════════════════════════════════
   if (safeMode) {
     return (
-      <Card className="bg-[oklch(0.18_0.03_155)] border-amber-500/30">
+      <Card className="bg-card border-amber-500/30">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-3 text-lg">
             <StepNumber num={5} active completed={false} />
@@ -273,7 +273,7 @@ export function StepPaid({
               variant="ghost"
               size="sm"
               onClick={onLock}
-              className="ml-auto text-[10px] text-gray-500 hover:text-gray-300 h-6 px-2"
+              className="ml-auto text-xs text-muted-foreground hover:text-gray-300 h-6 px-2"
               title="Re-hide the Paid Zone"
             >
               <Lock className="w-3 h-3 mr-1" />
@@ -298,14 +298,14 @@ export function StepPaid({
 
           {/* Status badges */}
           <div className="flex flex-wrap gap-2">
-            <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-400 bg-emerald-500/10">
+            <Badge variant="outline" className="text-xs border-emerald-500/30 text-emerald-400 bg-emerald-500/10">
               <ShieldCheck className="w-3 h-3 mr-1" />
               Dry-Run Mode Active
             </Badge>
-            <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-400 bg-amber-500/10">
+            <Badge variant="outline" className="text-xs border-amber-500/30 text-amber-400 bg-amber-500/10">
               No Real Charges
             </Badge>
-            <Badge variant="outline" className="text-[10px] border-gray-600 text-gray-400 bg-gray-700/20">
+            <Badge variant="outline" className="text-xs border-border text-gray-400 bg-muted">
               Unlock phrase accepted
             </Badge>
           </div>
@@ -313,7 +313,7 @@ export function StepPaid({
           {/* Show cost breakdown as info-only — but NOT the submit UI */}
           <CostBreakdownCard estimatedCost={estimatedCost} duration={duration} />
 
-          <div className="p-3 rounded-md bg-[oklch(0.15_0.02_155)] border border-gray-700/40">
+          <div className="p-3 rounded-md bg-muted/30 border border-border">
             <p className="text-xs text-gray-400 leading-relaxed">
               <strong className="text-gray-300">Why is the submit button hidden?</strong>
               <br />
@@ -349,7 +349,7 @@ export function StepPaid({
     const passedCount = gateItems.filter(g => g.passed).length;
 
     return (
-      <Card className="bg-[oklch(0.18_0.03_155)] border-amber-500/30">
+      <Card className="bg-card border-amber-500/30">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-3 text-lg">
             <StepNumber num={5} active completed={false} />
@@ -361,7 +361,7 @@ export function StepPaid({
               variant="ghost"
               size="sm"
               onClick={onLock}
-              className="ml-auto text-[10px] text-gray-500 hover:text-gray-300 h-6 px-2"
+              className="ml-auto text-xs text-muted-foreground hover:text-gray-300 h-6 px-2"
               title="Re-hide the Paid Zone"
             >
               <Lock className="w-3 h-3 mr-1" />
@@ -417,7 +417,7 @@ export function StepPaid({
   const passedCount = gateItems.filter(g => g.passed).length;
 
   return (
-    <Card className="bg-[oklch(0.18_0.03_155)] border-amber-500/30 relative overflow-hidden">
+    <Card className="bg-card border-amber-500/30 relative overflow-hidden">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-3 text-lg">
           <StepNumber num={5} active completed={allGatesPassed} />
@@ -426,7 +426,7 @@ export function StepPaid({
             variant="ghost"
             size="sm"
             onClick={onLock}
-            className="ml-auto text-[10px] text-gray-500 hover:text-gray-300 h-6 px-2"
+            className="ml-auto text-xs text-muted-foreground hover:text-gray-300 h-6 px-2"
             title="Re-hide the Paid Zone"
           >
             <Lock className="w-3 h-3 mr-1" />
@@ -465,7 +465,7 @@ export function StepPaid({
           {submitStage !== 'idle' && <SubmitOverlay stage={submitStage} />}
           <Button onClick={submitPaid} disabled={!paidSubmitEnabled || paidLoading || countdown > 0}
             className={`w-full py-5 font-medium text-base transition-all duration-300 ${
-              paidSubmitEnabled && countdown === 0 ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-[0_0_16px_rgba(217,119,6,0.4)]' : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+              paidSubmitEnabled && countdown === 0 ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-[0_0_16px_rgba(217,119,6,0.4)]' : 'bg-gray-700 text-muted-foreground cursor-not-allowed'
             }`} size="lg">
             {paidLoading || submitStage !== 'idle' ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <DollarSign className="w-5 h-5 mr-2" />}
             {countdown > 0 ? `Wait ${countdown}s...` : submitStage === 'done' ? 'Task submitted!' : 'Submit Paid Task'}

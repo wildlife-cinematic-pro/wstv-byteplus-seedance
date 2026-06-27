@@ -208,23 +208,23 @@ export function SeedancePayloadPreviewPanel({
   const modelMeta = MODEL_METADATA[seedanceModelId] ?? MODEL_METADATA[SEEDANCE_MODEL_IDS.STANDARD];
 
   return (
-    <Card className="bg-[oklch(0.18_0.03_155)] border-emerald-500/20">
+    <Card className="bg-card border-border">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-3 text-lg">
           <Code2 className="w-5 h-5 text-emerald-400" />
           Seedance 2.0 API Validation & Payload Preview
         </CardTitle>
         <div className="flex flex-wrap gap-2 mt-2">
-          <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-400 bg-amber-500/10">
+          <Badge variant="outline" className="text-xs border-amber-500/30 text-amber-400 bg-amber-500/10">
             Payload preview only — no real API call
           </Badge>
-          <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-400 bg-emerald-500/10">
+          <Badge variant="outline" className="text-xs border-emerald-500/30 text-emerald-400 bg-emerald-500/10">
             Model: {modelMeta.shortLabel}
           </Badge>
-          <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-400 bg-emerald-500/10">
+          <Badge variant="outline" className="text-xs border-emerald-500/30 text-emerald-400 bg-emerald-500/10">
             Mode: {generationMode === 'reference_mode' ? 'Reference' : 'Frame'}
           </Badge>
-          <Badge variant="outline" className={`text-[10px] ${validation.valid ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10' : 'border-red-500/30 text-red-400 bg-red-500/10'}`}>
+          <Badge variant="outline" className={`text-xs ${validation.valid ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10' : 'border-red-500/30 text-red-400 bg-red-500/10'}`}>
             {validation.valid ? '✓ Valid' : `✗ ${validation.errors.length} error(s)`}
           </Badge>
         </div>
@@ -232,20 +232,20 @@ export function SeedancePayloadPreviewPanel({
       <CardContent className="space-y-4">
         {/* Quick info row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-          <div className="bg-[oklch(0.15_0.02_155)] rounded p-2 border border-emerald-500/10">
-            <p className="text-gray-500 text-[10px]">Model ID</p>
-            <p className="text-gray-300 font-mono text-[10px] truncate">{seedanceModelId}</p>
+          <div className="bg-muted/30 rounded p-2 border border-emerald-500/30">
+            <p className="text-muted-foreground text-xs">Model ID</p>
+            <p className="text-gray-300 font-mono text-xs truncate">{seedanceModelId}</p>
           </div>
-          <div className="bg-[oklch(0.15_0.02_155)] rounded p-2 border border-emerald-500/10">
-            <p className="text-gray-500 text-[10px]">Resolution</p>
+          <div className="bg-muted/30 rounded p-2 border border-emerald-500/30">
+            <p className="text-muted-foreground text-xs">Resolution</p>
             <p className="text-gray-300">{resolution}</p>
           </div>
-          <div className="bg-[oklch(0.15_0.02_155)] rounded p-2 border border-emerald-500/10">
-            <p className="text-gray-500 text-[10px]">Duration</p>
+          <div className="bg-muted/30 rounded p-2 border border-emerald-500/30">
+            <p className="text-muted-foreground text-xs">Duration</p>
             <p className="text-gray-300">{duration === -1 ? 'auto (-1)' : `${duration}s`}</p>
           </div>
-          <div className="bg-[oklch(0.15_0.02_155)] rounded p-2 border border-emerald-500/10">
-            <p className="text-gray-500 text-[10px]">Ratio</p>
+          <div className="bg-muted/30 rounded p-2 border border-emerald-500/30">
+            <p className="text-muted-foreground text-xs">Ratio</p>
             <p className="text-gray-300">{aspectRatio}</p>
           </div>
         </div>
@@ -257,7 +257,7 @@ export function SeedancePayloadPreviewPanel({
               <AlertTriangle className="w-3.5 h-3.5" /> Validation Errors
             </p>
             {validation.errors.map((err, i) => (
-              <p key={i} className="text-[11px] text-red-300 ml-5">• {err}</p>
+              <p key={i} className="text-xs text-red-300 ml-5">• {err}</p>
             ))}
           </div>
         )}
@@ -269,7 +269,7 @@ export function SeedancePayloadPreviewPanel({
               <AlertTriangle className="w-3.5 h-3.5" /> Warnings
             </p>
             {validation.warnings.map((w, i) => (
-              <p key={i} className="text-[11px] text-amber-300 ml-5">• {w}</p>
+              <p key={i} className="text-xs text-amber-300 ml-5">• {w}</p>
             ))}
           </div>
         )}
@@ -277,7 +277,7 @@ export function SeedancePayloadPreviewPanel({
         {/* ─── Live Payload Preview (collapsible) ─── */}
         <Collapsible open={showPreview} onOpenChange={setShowPreview}>
           <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="w-full justify-between px-2 text-gray-400 hover:text-emerald-400 hover:bg-emerald-500/5">
+            <Button variant="ghost" size="sm" className="w-full justify-between px-2 text-muted-foreground hover:text-emerald-400 hover:bg-emerald-500/5">
               <span className="flex items-center gap-2">
                 <FileText className="w-4 h-4" />
                 <span className="text-sm font-medium">Live Payload Preview (JSON)</span>
@@ -287,30 +287,30 @@ export function SeedancePayloadPreviewPanel({
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-2">
             <div className="relative">
-              <pre className="p-3 rounded-md bg-[oklch(0.10_0.02_155)] border border-emerald-500/20 text-[11px] font-mono text-gray-300 overflow-x-auto max-h-80 overflow-y-auto">
+              <pre className="p-3 rounded-md bg-muted/60 border border-border text-xs font-mono text-gray-300 overflow-x-auto max-h-80 overflow-y-auto">
 {JSON.stringify(payload, null, 2)}
               </pre>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => copyToClipboard(JSON.stringify(payload, null, 2), -1)}
-                className="absolute top-2 right-2 h-6 px-2 text-[10px] text-gray-400 hover:text-emerald-400"
+                className="absolute top-2 right-2 h-6 px-2 text-xs text-muted-foreground hover:text-emerald-400"
               >
                 <Copy className="w-3 h-3 mr-1" />
                 {copiedExample === -1 ? 'Copied!' : 'Copy'}
               </Button>
             </div>
-            <p className="text-[10px] text-gray-500 mt-1.5 italic">
+            <p className="text-xs text-muted-foreground mt-1.5 italic">
               Payload Preview only — no real API call. This is the JSON payload that would be sent to a future real API integration. No request is made now.
             </p>
-            <div className="mt-2 p-2 rounded-md bg-[oklch(0.15_0.02_155)] border border-gray-700/40">
-              <p className="text-[10px] text-gray-500">
+            <div className="mt-2 p-2 rounded-md bg-muted/30 border border-border">
+              <p className="text-xs text-muted-foreground">
                 <span className="text-gray-400">Future PHASE6 endpoint (NOT called in PHASE5.1):</span>
               </p>
-              <p className="text-[10px] font-mono text-emerald-400/70 mt-0.5">
+              <p className="text-xs font-mono text-emerald-400/70 mt-0.5">
                 POST https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks
               </p>
-              <p className="text-[10px] text-red-400/80 mt-1">
+              <p className="text-xs text-red-400/80 mt-1">
                 ⚠ Do not call this endpoint. ARK_API_KEY is not configured. Safe Mode is ON.
               </p>
             </div>
@@ -320,7 +320,7 @@ export function SeedancePayloadPreviewPanel({
         {/* ─── Request Examples (collapsible) ─── */}
         <Collapsible open={showExamples} onOpenChange={setShowExamples}>
           <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="w-full justify-between px-2 text-gray-400 hover:text-emerald-400 hover:bg-emerald-500/5">
+            <Button variant="ghost" size="sm" className="w-full justify-between px-2 text-muted-foreground hover:text-emerald-400 hover:bg-emerald-500/5">
               <span className="flex items-center gap-2">
                 <FileText className="w-4 h-4" />
                 <span className="text-sm font-medium">Request Examples (6 payloads)</span>
@@ -330,28 +330,28 @@ export function SeedancePayloadPreviewPanel({
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-2 space-y-2">
             {EXAMPLE_PAYLOADS.map((ex, idx) => (
-              <div key={idx} className="bg-[oklch(0.15_0.02_155)] rounded-md border border-emerald-500/10 overflow-hidden">
+              <div key={idx} className="bg-muted/30 rounded-md border border-emerald-500/30 overflow-hidden">
                 <div className="flex items-center justify-between p-2">
                   <div>
                     <p className="text-xs font-medium text-emerald-400">{ex.label}</p>
-                    <p className="text-[10px] text-gray-500">{ex.description}</p>
+                    <p className="text-xs text-muted-foreground">{ex.description}</p>
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => copyToClipboard(JSON.stringify(ex.payload, null, 2), idx)}
-                    className="h-6 px-2 text-[10px] text-gray-400 hover:text-emerald-400"
+                    className="h-6 px-2 text-xs text-muted-foreground hover:text-emerald-400"
                   >
                     <Copy className="w-3 h-3 mr-1" />
                     {copiedExample === idx ? 'Copied!' : 'Copy'}
                   </Button>
                 </div>
-                <pre className="p-2 bg-[oklch(0.10_0.02_155)] border-t border-emerald-500/10 text-[10px] font-mono text-gray-400 overflow-x-auto max-h-40 overflow-y-auto">
+                <pre className="p-2 bg-muted/60 border-t border-border text-xs font-mono text-muted-foreground overflow-x-auto max-h-40 overflow-y-auto">
 {JSON.stringify(ex.payload, null, 2)}
                 </pre>
               </div>
             ))}
-            <p className="text-[10px] text-gray-500 italic">
+            <p className="text-xs text-muted-foreground italic">
               WSTV default example = D (Reference mode: master + storyboard). Model: {SEEDANCE_MODEL_IDS.STANDARD}, ratio 9:16, duration 15, resolution 720p, return_last_frame true.
             </p>
           </CollapsibleContent>
@@ -360,7 +360,7 @@ export function SeedancePayloadPreviewPanel({
         {/* ─── Future PHASE6 Real API Lifecycle (collapsible) ─── */}
         <Collapsible open={showLifecycle} onOpenChange={setShowLifecycle}>
           <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="w-full justify-between px-2 text-gray-400 hover:text-emerald-400 hover:bg-emerald-500/5">
+            <Button variant="ghost" size="sm" className="w-full justify-between px-2 text-muted-foreground hover:text-emerald-400 hover:bg-emerald-500/5">
               <span className="flex items-center gap-2">
                 <Clock className="w-4 h-4" />
                 <span className="text-sm font-medium">Future PHASE6 Real API Lifecycle</span>
@@ -369,7 +369,7 @@ export function SeedancePayloadPreviewPanel({
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-2">
-            <div className="p-3 rounded-md bg-[oklch(0.15_0.02_155)] border border-emerald-500/10 space-y-3 text-xs text-gray-400">
+            <div className="p-3 rounded-md bg-muted/30 border border-emerald-500/30 space-y-3 text-xs text-muted-foreground">
               <div>
                 <p className="text-emerald-400 font-medium mb-1">When real API is connected later:</p>
                 <ol className="list-decimal list-inside space-y-0.5 ml-2">
@@ -387,7 +387,7 @@ export function SeedancePayloadPreviewPanel({
                 <p className="text-emerald-400 font-medium mb-1">Task statuses:</p>
                 <div className="flex flex-wrap gap-1">
                   {SEEDANCE_TASK_STATUSES.map(s => (
-                    <Badge key={s} variant="outline" className="text-[9px] border-gray-600 text-gray-400 bg-gray-700/20">{s}</Badge>
+                    <Badge key={s} variant="outline" className="text-xs border-border text-muted-foreground bg-muted">{s}</Badge>
                   ))}
                 </div>
               </div>
@@ -397,17 +397,17 @@ export function SeedancePayloadPreviewPanel({
                   {SEEDANCE_TASK_STATUSES.map(s => {
                     const rules = CANCEL_DELETE_RULES[s];
                     return (
-                      <div key={s} className="text-[11px]">
+                      <div key={s} className="text-xs">
                         <span className="text-gray-300">{s}:</span>{' '}
-                        <span className={rules.canCancel ? 'text-emerald-400' : 'text-gray-600'}>cancel {rules.canCancel ? '✓' : '✗'}</span>{' · '}
-                        <span className={rules.canDelete ? 'text-emerald-400' : 'text-gray-600'}>delete {rules.canDelete ? '✓' : '✗'}</span>
+                        <span className={rules.canCancel ? 'text-emerald-400' : 'text-muted-foreground'}>cancel {rules.canCancel ? '✓' : '✗'}</span>{' · '}
+                        <span className={rules.canDelete ? 'text-emerald-400' : 'text-muted-foreground'}>delete {rules.canDelete ? '✓' : '✗'}</span>
                       </div>
                     );
                   })}
                 </div>
               </div>
               <div className="p-2 rounded bg-amber-500/10 border border-amber-500/30">
-                <p className="text-[11px] text-amber-400 flex items-start gap-1.5">
+                <p className="text-xs text-amber-400 flex items-start gap-1.5">
                   <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
                   <span>Generated provider video URL and last frame URL expire after 24 hours; copy output to permanent storage after success.</span>
                 </p>
@@ -419,7 +419,7 @@ export function SeedancePayloadPreviewPanel({
         {/* ─── Media limits & warnings (collapsible) ─── */}
         <Collapsible open={showMediaWarnings} onOpenChange={setShowMediaWarnings}>
           <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="w-full justify-between px-2 text-gray-400 hover:text-emerald-400 hover:bg-emerald-500/5">
+            <Button variant="ghost" size="sm" className="w-full justify-between px-2 text-muted-foreground hover:text-emerald-400 hover:bg-emerald-500/5">
               <span className="flex items-center gap-2">
                 <Info className="w-4 h-4" />
                 <span className="text-sm font-medium">Media Limits & Warnings</span>
@@ -428,14 +428,14 @@ export function SeedancePayloadPreviewPanel({
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-2 space-y-2">
-            <div className="p-2 rounded-md bg-[oklch(0.15_0.02_155)] border border-emerald-500/10 text-[11px] text-gray-400 space-y-1">
+            <div className="p-2 rounded-md bg-muted/30 border border-emerald-500/30 text-xs text-muted-foreground space-y-1">
               <p className="text-emerald-400 font-medium">Images:</p>
               <p>• Single image under {MEDIA_LIMITS.image.maxSingleSizeMB} MB</p>
               <p>• Total request body under {MEDIA_LIMITS.image.maxTotalRequestMB} MB</p>
               <p>• Prefer URL or asset ID over Base64 for large media</p>
               <p>• Input types: public URL, Base64, <code className="text-gray-300">asset://&lt;ASSET_ID&gt;</code></p>
             </div>
-            <div className="p-2 rounded-md bg-[oklch(0.15_0.02_155)] border border-emerald-500/10 text-[11px] text-gray-400 space-y-1">
+            <div className="p-2 rounded-md bg-muted/30 border border-emerald-500/30 text-xs text-muted-foreground space-y-1">
               <p className="text-emerald-400 font-medium">Videos:</p>
               <p>• Formats: {MEDIA_LIMITS.video.formats.join(', ')}</p>
               <p>• Each reference video {MEDIA_LIMITS.video.minDurationSec}–{MEDIA_LIMITS.video.maxDurationSec} seconds</p>
@@ -443,7 +443,7 @@ export function SeedancePayloadPreviewPanel({
               <p>• Total reference video duration max {MEDIA_LIMITS.video.maxTotalDurationSec} seconds</p>
               <p>• Input types: public URL, asset ID</p>
             </div>
-            <div className="p-2 rounded-md bg-[oklch(0.15_0.02_155)] border border-emerald-500/10 text-[11px] text-gray-400 space-y-1">
+            <div className="p-2 rounded-md bg-muted/30 border border-emerald-500/30 text-xs text-muted-foreground space-y-1">
               <p className="text-emerald-400 font-medium">Audio:</p>
               <p>• Formats: {MEDIA_LIMITS.audio.formats.join(', ')}</p>
               <p>• Each reference audio {MEDIA_LIMITS.audio.minDurationSec}–{MEDIA_LIMITS.audio.maxDurationSec} seconds</p>
@@ -452,7 +452,7 @@ export function SeedancePayloadPreviewPanel({
               <p>• Audio reference must be paired with at least one image or video reference</p>
               <p>• Do not submit audio alone</p>
             </div>
-            <div className="p-2 rounded-md bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-400">
+            <div className="p-2 rounded-md bg-amber-500/10 border border-amber-500/30 text-xs text-amber-400">
               <p className="font-medium flex items-center gap-1.5 mb-1">
                 <AlertTriangle className="w-3 h-3" /> Human-face warning:
               </p>
@@ -464,7 +464,7 @@ export function SeedancePayloadPreviewPanel({
         {/* ─── Future controls notes (collapsible) ─── */}
         <Collapsible open={showFutureControls} onOpenChange={setShowFutureControls}>
           <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="w-full justify-between px-2 text-gray-400 hover:text-emerald-400 hover:bg-emerald-500/5">
+            <Button variant="ghost" size="sm" className="w-full justify-between px-2 text-muted-foreground hover:text-emerald-400 hover:bg-emerald-500/5">
               <span className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4" />
                 <span className="text-sm font-medium">Future Controls (NOT in payload)</span>
@@ -473,10 +473,10 @@ export function SeedancePayloadPreviewPanel({
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-2">
-            <div className="p-3 rounded-md bg-[oklch(0.15_0.02_155)] border border-gray-700/40 space-y-1 text-[11px]">
-              <p className="text-gray-500">• {FRAMES_NOT_SUPPORTED_NOTE}</p>
-              <p className="text-gray-500">• {SEED_NOT_SUPPORTED_NOTE}</p>
-              <p className="text-gray-500">• {CAMERA_FIXED_NOT_SUPPORTED_NOTE}</p>
+            <div className="p-3 rounded-md bg-muted/30 border border-border space-y-1 text-xs">
+              <p className="text-muted-foreground">• {FRAMES_NOT_SUPPORTED_NOTE}</p>
+              <p className="text-muted-foreground">• {SEED_NOT_SUPPORTED_NOTE}</p>
+              <p className="text-muted-foreground">• {CAMERA_FIXED_NOT_SUPPORTED_NOTE}</p>
             </div>
           </CollapsibleContent>
         </Collapsible>

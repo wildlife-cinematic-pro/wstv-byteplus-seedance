@@ -12,7 +12,7 @@ export function StepNumber({ num, active, completed }: { num: number; active: bo
     <div className={`flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold border-2 transition-all duration-300 ${
       completed ? 'bg-emerald-600 border-emerald-400 text-white shadow-[0_0_16px_rgba(52,211,153,0.6)] scale-105' :
       active ? 'bg-emerald-600/20 border-emerald-500 text-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.2)]' :
-      'bg-gray-800 border-gray-600 text-gray-500'
+      'bg-muted border-border text-muted-foreground'
     }`}>
       {completed ? <CheckCircle2 className="w-4 h-4" /> : num}
     </div>
@@ -53,7 +53,7 @@ export function QualityMeter({ score, label, size = 'md' }: { score: number; lab
   return (
     <div className="flex flex-col items-center gap-1">
       <svg width={s.svg} height={s.svg} className="-rotate-90">
-        <circle cx={s.svg / 2} cy={s.svg / 2} r={r} fill="none" stroke="currentColor" className="text-gray-700" strokeWidth={s.stroke} />
+        <circle cx={s.svg / 2} cy={s.svg / 2} r={r} fill="none" stroke="currentColor" className="text-muted-foreground/60" strokeWidth={s.stroke} />
         <circle cx={s.svg / 2} cy={s.svg / 2} r={r} fill="none" className={ringColor} strokeWidth={s.stroke}
           strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" style={{ transition: 'stroke-dashoffset 0.6s ease' }} />
       </svg>
@@ -73,7 +73,7 @@ export function GateProgress({ passed, total, className }: { passed: number; tot
         <span className="text-gray-400">{passed}/{total} gates passed</span>
         <span className={pct === 100 ? 'text-emerald-400' : pct >= 70 ? 'text-amber-400' : 'text-red-400'}>{Math.round(pct)}%</span>
       </div>
-      <Progress value={pct} className={`h-2 bg-gray-800 ${barColor}`} />
+      <Progress value={pct} className={`h-2 bg-muted ${barColor}`} />
     </div>
   );
 }
@@ -89,9 +89,9 @@ export function CollapsibleSection({ title, icon, count, maxCount, children, def
         <div className="flex items-center gap-2">
           {icon}
           <span className="text-sm font-medium text-gray-200">{title}</span>
-          <Badge variant="outline" className="text-[10px] border-gray-600 text-gray-400">{count}/{maxCount}</Badge>
+          <Badge variant="outline" className="text-xs border-border text-gray-400">{count}/{maxCount}</Badge>
         </div>
-        <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </CollapsibleTrigger>
       <CollapsibleContent className="space-y-2 overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
         {children}
@@ -110,7 +110,7 @@ export function CostDisplay({ usd, cny, size = 'md', showLabel = true }: {
   return (
     <div className="flex items-baseline gap-2">
       <span className={`${textSizes[size]} font-bold ${color}`}>${usd.toFixed(2)}</span>
-      {showLabel && <span className={`${subSizes[size]} text-gray-500`}>≈ ¥{cny.toFixed(2)}</span>}
+      {showLabel && <span className={`${subSizes[size]} text-muted-foreground`}>≈ ¥{cny.toFixed(2)}</span>}
     </div>
   );
 }
