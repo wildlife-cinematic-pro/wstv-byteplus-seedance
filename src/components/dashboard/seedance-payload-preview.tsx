@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Code2, FileText, Info, AlertTriangle, ChevronDown, ChevronRight, Copy, Clock, ShieldCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -160,6 +160,17 @@ export function SeedancePayloadPreviewPanel({
   const [showFutureControls, setShowFutureControls] = useState(false);
   const [copiedExample, setCopiedExample] = useState<number | null>(null);
 
+  // Whether ARK_API_KEY is configured server-side (the key itself never leaves the server).
+  const [arkConfigured, setArkConfigured] = useState<boolean | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/seedance-config')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (!cancelled && d) setArkConfigured(Boolean(d.configured)); })
+      .catch(() => { /* leave as null — treat as not configured */ });
+    return () => { cancelled = true; };
+  }, []);
+
   // Build the references object in the shape expected by buildSeedancePayload
   const seedanceRefs = useMemo(() => {
     const active = references.filter(r => r.url.trim());
@@ -316,8 +327,10 @@ export function SeedancePayloadPreviewPanel({
               <p className="text-xs font-mono text-emerald-400/70 mt-0.5">
                 POST https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks
               </p>
-              <p className="text-xs text-red-400/80 mt-1">
-                ⚠ Do not call this endpoint. ARK_API_KEY is not configured. Safe Mode is ON.
+              <p className={`text-xs mt-1 ${arkConfigured ? 'text-amber-400/80' : 'text-red-400/80'}`}>
+                {arkConfigured
+                  ? '⚠ ARK_API_KEY is configured (server-side). This preview still makes no call — real generation remains gated by Safe Mode.'
+                  : '⚠ Do not call this endpoint. ARK_API_KEY is not configured. Safe Mode is ON.'}
               </p>
             </div>
           </CollapsibleContent>
