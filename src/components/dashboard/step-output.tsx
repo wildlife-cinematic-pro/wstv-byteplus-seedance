@@ -161,7 +161,6 @@ interface StepOutputProps {
   maxCostUsd: string; setMaxCostUsd: (v: string) => void;
   outputFilename: string; setOutputFilename: (v: string) => void;
   fps: number; setFps: (v: number) => void;
-  seed: string; setSeed: (v: string) => void;
   audioMode: string; setAudioMode: (v: string) => void;
   // ─── PHASE4: Official Seedance model ID + generation mode ───
   seedanceModelId: string;
@@ -174,7 +173,7 @@ export function StepOutput({
   modelType, resolution, setResolution, duration, setDuration,
   aspectRatio, setAspectRatio, maxCostUsd, setMaxCostUsd,
   outputFilename, setOutputFilename,
-  fps, setFps, seed, setSeed, audioMode, setAudioMode,
+  fps, setFps, audioMode, setAudioMode,
   seedanceModelId, setSeedanceModelId,
   generationMode, setGenerationMode,
 }: StepOutputProps) {
@@ -357,39 +356,21 @@ export function StepOutput({
           </p>
         </div>
 
-        {/* Seed + Audio Mode Row - seed is kept as a future note, not active */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <Label className="text-sm text-gray-400 mb-2 block flex items-center gap-1">
-              🎲 Random Seed
-              <Badge variant="outline" className="text-xs border-border text-muted-foreground bg-muted">FUTURE</Badge>
-            </Label>
-            <Input
-              value={seed}
-              onChange={e => setSeed(e.target.value)}
-              placeholder="Not an active Seedance 2.0 control"
-              disabled
-              className="bg-background border-border text-muted-foreground placeholder:text-muted-foreground/60 opacity-60"
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Seed is documented for some video generation flows, but WSTV keeps it inactive in PHASE5.1 preview. Evaluate in PHASE6 before adding it to the payload.
-            </p>
-          </div>
-          <div>
-            <Label className="text-sm text-gray-400 mb-2 block">Audio Mode</Label>
-            <Select value={audioMode} onValueChange={setAudioMode}>
-              <SelectTrigger className="bg-muted/30 border-emerald-500/20">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {AUDIO_MODES.map(m => (
-                  <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="text-xs text-muted-foreground mt-1">
-              {AUDIO_MODES.find(m => m.value === audioMode)?.desc}
-            </div>
+        {/* Audio Mode */}
+        <div>
+          <Label className="text-sm text-gray-400 mb-2 block">Audio Mode</Label>
+          <Select value={audioMode} onValueChange={setAudioMode}>
+            <SelectTrigger className="bg-muted/30 border-emerald-500/20">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {AUDIO_MODES.map(m => (
+                <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="text-xs text-muted-foreground mt-1">
+            {AUDIO_MODES.find(m => m.value === audioMode)?.desc}
           </div>
         </div>
 

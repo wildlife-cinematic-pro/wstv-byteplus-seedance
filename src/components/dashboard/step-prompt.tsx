@@ -23,10 +23,15 @@ function getOptimalRange(model: ModelType) { return model === 'mini' ? [150, 100
 function analyzeQuality(prompt: string, model: ModelType) {
   if (!prompt.trim()) return { structure: 0, specificity: 0, sensory: 0, length: 0, overall: 0, suggestions: [] as string[] };
   const suggestions: string[] = [];
-  // Structure: time-coded segments
+  // Structure: legacy bracketed timing plus current WSTV beat/shot labels
   const timeCodes = prompt.match(/\[\d+-\d+s?\s*\w*\]/g) || [];
-  const structure = Math.min(100, timeCodes.length * 25);
-  if (timeCodes.length < 2) suggestions.push('Add time-coded segments like [0-3s HOOK] for structure');
+  const timingBeatLabels = ['Opening beat', 'Middle beat', 'Peak beat', 'Resolution beat', 'Final beat'];
+  const timingBeats = timingBeatLabels.filter(label => new RegExp(`\\b${label}:`, 'i').test(prompt)).length;
+  const shotLabels = (prompt.match(/\bShot\s+[1-3]\s*:/gi) || []).length;
+  const legacyStructureScore = timeCodes.length * 25;
+  const wstvStructureScore = (timingBeats * 20) + (shotLabels * 12);
+  const structure = Math.min(100, Math.max(legacyStructureScore, wstvStructureScore));
+  if (structure < 50) suggestions.push('Add Timing guide beats such as Opening beat, Middle beat, Peak beat, Resolution beat, Final beat.');
   // Specificity: numbers, adjectives, technical terms
   const numbers = (prompt.match(/\d+/g) || []).length;
   const adjectives = (prompt.match(/\b(golden|massive|electric|dramatic|explosive|crushing|towering|oversized|rhythmic|shimmering|bioluminescent|silhouetted)\b/gi) || []).length;
@@ -74,7 +79,7 @@ function ModelCompareDialog() {
     { label: 'Speed', full: 'Standard', mini: 'Fast' },
     { label: 'Cost/s', full: '$0.03–0.18', mini: '$0.02–0.04' },
     { label: 'Max Inputs', full: '9 img / 3 aud / 3 vid', mini: '9 img / 3 aud / 3 vid' },
-    { label: 'Audio Gen', full: 'No', mini: 'No' },
+    { label: 'Audio Gen', full: 'Yes / Supported / generate_audio true', mini: 'Yes / Supported / generate_audio true' },
     { label: 'Quality', full: 'Highest', mini: 'Good' },
   ];
   return (

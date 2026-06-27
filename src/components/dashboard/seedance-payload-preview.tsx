@@ -42,7 +42,7 @@ const EXAMPLE_PAYLOADS: { label: string; description: string; payload: Record<st
     description: 'Pure text prompt, no reference media.',
     payload: {
       model: SEEDANCE_MODEL_IDS.STANDARD,
-      content: [{ type: 'text', text: '[0-3s HOOK] A lioness crouches in tall savanna grass...' }],
+      content: [{ type: 'text', text: 'Timing guide:\nOpening beat: A lioness crouches in tall savanna grass.\nMiddle beat: Wind ripples the grass as she watches the herd.\nPeak beat: She bursts forward through dust.\nResolution beat: The herd scatters safely.\nFinal beat: She pauses in warm backlight.' }],
       ratio: '9:16',
       duration: 15,
       resolution: '720p',
@@ -57,7 +57,7 @@ const EXAMPLE_PAYLOADS: { label: string; description: string; payload: Record<st
     payload: {
       model: SEEDANCE_MODEL_IDS.STANDARD,
       content: [
-        { type: 'text', text: 'Camera slowly pushes in on the lioness...' },
+        { type: 'text', text: 'Timing guide:\nOpening beat: Match the provided first frame.\nMiddle beat: The lioness raises her head.\nPeak beat: Dust catches the light around her.\nResolution beat: She settles into a steady stance.\nFinal beat: Hold a cinematic close frame.' },
         { type: 'image_url', image_url: { url: 'https://cdn.example.com/first_frame.png' }, role: 'first_frame' },
       ],
       ratio: '9:16',
@@ -65,7 +65,7 @@ const EXAMPLE_PAYLOADS: { label: string; description: string; payload: Record<st
       resolution: '720p',
       watermark: false,
       generate_audio: true,
-      return_last_frame: false,
+      return_last_frame: true,
     },
   },
   {
@@ -74,7 +74,7 @@ const EXAMPLE_PAYLOADS: { label: string; description: string; payload: Record<st
     payload: {
       model: SEEDANCE_MODEL_IDS.STANDARD,
       content: [
-        { type: 'text', text: 'Lioness transitions from crouch to sprint...' },
+        { type: 'text', text: 'Timing guide:\nOpening beat: Start from the first frame crouch.\nMiddle beat: The lioness rises into motion.\nPeak beat: She reaches full sprint.\nResolution beat: Motion eases toward the target pose.\nFinal beat: Land exactly on the last frame.' },
         { type: 'image_url', image_url: { url: 'https://cdn.example.com/first_frame.png' }, role: 'first_frame' },
         { type: 'image_url', image_url: { url: 'https://cdn.example.com/last_frame.png' }, role: 'last_frame' },
       ],
@@ -92,7 +92,7 @@ const EXAMPLE_PAYLOADS: { label: string; description: string; payload: Record<st
     payload: {
       model: SEEDANCE_MODEL_IDS.STANDARD,
       content: [
-        { type: 'text', text: '[0-3s HOOK] Lioness crouches → [3-8s] chase → [8-13s] development → [13-15s] resolve' },
+        { type: 'text', text: 'Timing guide:\nOpening beat: Lioness crouches low in the grass.\nMiddle beat: She tracks movement across the plain.\nPeak beat: The chase surges forward.\nResolution beat: The action slows near the ridge.\nFinal beat: Hold on her alert profile.' },
         { type: 'image_url', image_url: { url: 'https://cdn.example.com/master_identity.png' }, role: 'reference_image' },
         { type: 'image_url', image_url: { url: 'https://cdn.example.com/storyboard.png' }, role: 'reference_image' },
       ],
@@ -110,7 +110,7 @@ const EXAMPLE_PAYLOADS: { label: string; description: string; payload: Record<st
     payload: {
       model: SEEDANCE_MODEL_IDS.STANDARD,
       content: [
-        { type: 'text', text: '[0-3s HOOK] Lioness crouches → [3-8s] chase → [8-13s] development → [13-15s] resolve' },
+        { type: 'text', text: 'Timing guide:\nOpening beat: Lioness waits in rain-dark grass.\nMiddle beat: Ambient wind and distant calls build.\nPeak beat: She moves through splashing water.\nResolution beat: The scene calms under soft thunder.\nFinal beat: Hold a quiet breathing moment.' },
         { type: 'image_url', image_url: { url: 'https://cdn.example.com/master_identity.png' }, role: 'reference_image' },
         { type: 'image_url', image_url: { url: 'https://cdn.example.com/storyboard.png' }, role: 'reference_image' },
         { type: 'audio_url', audio_url: { url: 'https://cdn.example.com/ambient.wav' }, role: 'reference_audio' },
@@ -129,7 +129,7 @@ const EXAMPLE_PAYLOADS: { label: string; description: string; payload: Record<st
     payload: {
       model: SEEDANCE_MODEL_IDS.STANDARD,
       content: [
-        { type: 'text', text: 'Lioness sprint — match the reference video motion cadence.' },
+        { type: 'text', text: 'Timing guide:\nOpening beat: Lioness starts from a low stance.\nMiddle beat: Match the reference video pacing.\nPeak beat: Her stride reaches full speed.\nResolution beat: Motion decelerates naturally.\nFinal beat: Hold a steady final profile.' },
         { type: 'image_url', image_url: { url: 'https://cdn.example.com/master_identity.png' }, role: 'reference_image' },
         { type: 'video_url', video_url: { url: 'https://cdn.example.com/motion_ref.mp4' }, role: 'reference_video' },
         { type: 'audio_url', audio_url: { url: 'https://cdn.example.com/ambient.wav' }, role: 'reference_audio' },
