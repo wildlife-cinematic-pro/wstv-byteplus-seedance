@@ -237,6 +237,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       scene_idea: form.sceneIdea,
       prompt: form.prompt,
       image_urls: form.imageUrls.map((u) => u.trim()).filter(Boolean),
+      generate_audio: true,
       storyboard_ack: form.storyboardAck,
       output_filename: form.outputFilename,
       resolution: form.resolution,

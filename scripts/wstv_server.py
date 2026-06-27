@@ -63,6 +63,7 @@ class DashboardRequest:
     image_url: str
     image_url_2: str
     extra_image_urls: tuple[str, ...]
+    generate_audio: bool
     output_filename: str
     resolution: str
     max_cost_usd: float
@@ -139,6 +140,7 @@ def dashboard_request(data: dict[str, Any]) -> DashboardRequest:
         image_url=image_url,
         image_url_2=image_url_2,
         extra_image_urls=extra_image_urls,
+        generate_audio=bool(data.get("generate_audio", True)),
         output_filename=sanitize_output_filename(str(data.get("output_filename") or "wstv-output.mp4")),
         resolution=resolution,
         max_cost_usd=max_cost,
@@ -173,6 +175,7 @@ def pipeline_command(request: DashboardRequest, *, submit: bool) -> list[str]:
         cmd.extend(["--image-url-2", request.image_url_2])
     for extra in request.extra_image_urls:
         cmd.extend(["--reference-image-url", extra])
+    cmd.append("--generate-audio" if request.generate_audio else "--no-generate-audio")
     if (request.image_url_2 or request.extra_image_urls) and request.storyboard_ack:
         cmd.append("--ack-storyboard-risk")
     if submit:

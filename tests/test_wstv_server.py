@@ -89,9 +89,20 @@ def test_dry_run_command_has_no_paid_flags(monkeypatch, tmp_path):
     cmd = wstv_server.pipeline_command(request, submit=False)
     assert "--submit" not in cmd
     assert "--allow-duplicate" not in cmd
+    assert "--generate-audio" in cmd
+    assert "--no-generate-audio" not in cmd
     assert "--image-url" in cmd
     assert "--resolution" in cmd
     assert "720p" in cmd
+
+
+def test_dashboard_request_defaults_generate_audio_true(monkeypatch, tmp_path):
+    config = _server_config(tmp_path)
+    monkeypatch.setattr(wstv_server, "load_config", lambda require_key=False: config)
+    monkeypatch.setattr(wstv_server, "DASHBOARD_DATA_DIR", tmp_path / "dashboard")
+    request = _request()
+    assert request.generate_audio is True
+    assert "--generate-audio" in wstv_server.pipeline_command(request, submit=False)
 
 
 def test_dashboard_resolution_selector_passes_1080p_to_pipeline(monkeypatch, tmp_path):
@@ -427,4 +438,5 @@ def test_ui_requires_dry_run_and_confirmation_for_paid_button():
     assert "/api/open-video-folder" in html
     assert "/api/open-latest-video" in html
     assert "Prompt copied." in html
+    assert "generate_audio: true" in html
     assert "BytePlus Console Billing remains the final source of truth" in html

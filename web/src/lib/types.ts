@@ -96,6 +96,7 @@ export interface PipelinePayload {
   scene_idea: string;
   prompt: string;
   image_urls: string[];
+  generate_audio: boolean;
   storyboard_ack: boolean;
   output_filename: string;
   resolution: Resolution;
