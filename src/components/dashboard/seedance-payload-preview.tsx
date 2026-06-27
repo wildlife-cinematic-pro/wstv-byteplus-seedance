@@ -304,7 +304,7 @@ export function SeedancePayloadPreviewPanel({
             </p>
             <div className="mt-2 p-2 rounded-md bg-[oklch(0.15_0.02_155)] border border-gray-700/40">
               <p className="text-[10px] text-gray-500">
-                <span className="text-gray-400">Future endpoint (NOT called in PHASE5):</span>
+                <span className="text-gray-400">Future PHASE6 endpoint (NOT called in PHASE5.1):</span>
               </p>
               <p className="text-[10px] font-mono text-emerald-400/70 mt-0.5">
                 POST https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks

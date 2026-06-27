@@ -513,7 +513,7 @@ Full validation library with:
 - Generation mode toggle (Reference Mode default vs Frame Mode)
 - Resolution cards driven by MODEL_RESOLUTION_RULES (Fast/Mini only show 480p/720p)
 - Duration: slider 4–15 + "Auto (-1)" toggle, validates isValidSeedanceDuration()
-- Seed field: disabled, marked "FUTURE / UNSUPPORTED"
+- Seed field: disabled, marked "FUTURE"; documented for some video flows, but not sent in the PHASE5.1 payload
 - FPS: kept for display only, labeled "not in Seedance payload"
 - Resolution rule notes per model
 

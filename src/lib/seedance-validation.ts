@@ -115,8 +115,10 @@ export function mapRoleToSeedance(role: string, mode: GenerationMode): string {
 }
 
 // ─── Aspect ratio validation ───
+// Official Seedance 2.0 ratios. WSTV defaults to 9:16, but preview
+// validation keeps the complete documented set available.
 
-export const VALID_RATIOS = ['9:16', '16:9', '1:1'] as const;
+export const VALID_RATIOS = ['9:16', '16:9', '4:3', '1:1', '3:4', '21:9', 'adaptive'] as const;
 
 // ─── Duration validation ───
 // Official rule: any integer from 4 to 15, OR -1 for auto duration.
@@ -466,7 +468,7 @@ export const MEDIA_LIMITS = {
   image: {
     maxSingleSizeMB: 30,
     maxTotalRequestMB: 64,
-    note: 'Prefer URL or asset ID over Base64 for large media.',
+    note: 'Prefer public URL or asset ID over Base64 for large media. BytePlus TOS public-read storage is recommended for future real calls.',
   },
   video: {
     formats: ['mp4', 'mov'],
@@ -474,6 +476,7 @@ export const MEDIA_LIMITS = {
     maxDurationSec: 15,
     maxCount: 3,
     maxTotalDurationSec: 15,
+    note: 'Use public URLs or asset IDs for future real calls. Total reference video duration should not exceed 15 seconds.',
   },
   audio: {
     formats: ['mp3', 'wav'],
@@ -498,10 +501,10 @@ export const FRAMES_NOT_SUPPORTED_NOTE =
 // ─── Seed / camera_fixed notes (NOT active controls) ───
 
 export const SEED_NOT_SUPPORTED_NOTE =
-  'Seed is not an active Seedance 2.0 control per official docs. Shown as a future/unsupported note only — not included in the API payload.';
+  'Seed is documented for some video generation flows, but WSTV keeps it inactive in PHASE5.1 preview. Evaluate in PHASE6 before adding it to the payload.';
 
 export const CAMERA_FIXED_NOT_SUPPORTED_NOTE =
-  'camera_fixed is not currently supported by Seedance 2.0 per official docs. Shown as a future/unsupported note only — not included in the API payload.';
+  'camera_fixed is documented for some video generation flows, but WSTV keeps it inactive in PHASE5.1 preview. Evaluate in PHASE6 before adding it to the payload.';
 
 // ═══════════════════════════════════════════════════════════════════════
 // PHASE5: Resource Pack Billing / Deduction Rules

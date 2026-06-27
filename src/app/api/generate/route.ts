@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
+// PHASE5.1 simulation route only.
+// This route never calls BytePlus / ModelArk and must remain behind Safe Mode.
+
 // Cost estimation table (USD per second)
 const COST_TABLE: Record<string, Record<string, number>> = {
   mini: { '480p': 0.02, '720p': 0.04 },
@@ -47,11 +50,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Gate 3: Safe Mode must be OFF
+    // Gate 3: Safe Mode must be OFF before the simulation can run
     const settings = await db.dashboardSettings.findFirst();
     if (settings?.safeMode) {
       return NextResponse.json(
-        { success: false, error: 'Safe Mode is ON. Paid generation is disabled.' },
+        { success: false, error: 'Safe Mode is ON. Simulated paid generation is disabled. No real BytePlus call is available in PHASE5.1.' },
         { status: 403 }
       );
     }
@@ -64,14 +67,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Gate 5: Prompt within limit
+    // Gate 5: Prompt length warning only.
+    // PHASE5.1 treats char limits as recommended ranges, not hard API blocks.
     const charLimit = getCharLimit(task.modelType);
-    if (task.prompt.length > charLimit) {
-      return NextResponse.json(
-        { success: false, error: `Prompt exceeds ${charLimit} characters` },
-        { status: 400 }
-      );
-    }
+    const promptLengthWarning = task.prompt.length > charLimit
+      ? `Prompt exceeds recommended ${charLimit} characters (${task.prompt.length}). Warning only; PHASE5.1 simulation is not blocked.`
+      : null;
 
     // Gate 6: Reference image URLs must be valid HTTPS
     if (task.masterImageUrl && !task.masterImageUrl.startsWith('https://')) {
@@ -170,7 +171,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // All gates passed — simulate submission
+    // All gates passed - simulate submission only
     const updatedTask = await db.videoTask.update({
       where: { id: task.id },
       data: {
@@ -183,7 +184,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Record cost in ledger
+    // Record simulated cost in ledger
     await db.costLedger.create({
       data: {
         taskId: updatedTask.id,
@@ -191,7 +192,7 @@ export async function POST(request: NextRequest) {
         resolution: task.resolution,
         duration: task.duration,
         costUsd: estimatedCost,
-        description: `Paid generation — ${task.modelType} ${task.resolution} ${task.duration}s`,
+        description: `Simulated paid generation (no BytePlus API call) - ${task.modelType} ${task.resolution} ${task.duration}s`,
       },
     });
 
@@ -221,6 +222,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      simulation: true,
+      realApiConnected: false,
+      warnings: promptLengthWarning ? [promptLengthWarning] : [],
       task: {
         id: updatedTask.id,
         status: updatedTask.status,

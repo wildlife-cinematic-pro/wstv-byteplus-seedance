@@ -30,7 +30,7 @@ Exports:
 - **Generation mode toggle**: Reference Mode (WSTV default) vs Frame Mode
 - **Resolution cards**: now driven by `MODEL_RESOLUTION_RULES` — Fast/Mini only show 480p/720p
 - **Duration**: slider 4–15 + "Auto (-1)" toggle. Validates `isValidSeedanceDuration()`
-- **Seed field**: disabled, marked "FUTURE / UNSUPPORTED" — not sent in payload
+- **Seed field**: disabled, marked "FUTURE" - documented for some video flows, but not sent in the PHASE5.1 payload
 - **FPS**: kept for display only, labeled "not in Seedance payload"
 - Resolution rule note: "Seedance Standard supports 480p/720p/1080p/4k. Fast/Mini support 480p/720p."
 
