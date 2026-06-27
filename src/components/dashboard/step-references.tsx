@@ -109,14 +109,14 @@ function ReferenceTips() {
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <CollapsibleTrigger asChild>
-        <Button variant="ghost" size="sm" className="w-full justify-between px-2 text-gray-500 hover:text-emerald-400 hover:bg-emerald-500/5">
+        <Button variant="ghost" size="sm" className="w-full justify-between px-2 text-muted-foreground hover:text-emerald-400 hover:bg-emerald-500/5">
           <span className="flex items-center gap-2 text-xs"><Lightbulb className="w-3.5 h-3.5" />Reference Tips</span>
           {open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent className="space-y-2 pt-2">
         {tips.map((t) => (
-          <div key={t.label} className="flex items-start gap-2 text-xs text-gray-400 bg-[oklch(0.15_0.02_155)] rounded-md p-2.5">
+          <div key={t.label} className="flex items-start gap-2 text-xs text-gray-400 bg-muted/30 rounded-md p-2.5">
             <span className="mt-0.5 shrink-0">{t.icon}</span>
             <div><span className="text-gray-300 font-medium">{t.label}:</span> {t.text}</div>
           </div>
@@ -130,7 +130,7 @@ function ReferenceTips() {
 function SummaryCard({ filledImages, filledAudio, filledVideo }: { filledImages: number; filledAudio: number; filledVideo: number }) {
   const total = filledImages + filledAudio + filledVideo;
   return (
-    <div className="rounded-lg border border-emerald-500/15 bg-[oklch(0.15_0.02_155)] p-3 space-y-2">
+    <div className="rounded-lg border border-emerald-500/30 bg-muted/30 p-3 space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium text-gray-400">Reference Summary</span>
         <div className="flex gap-1.5 text-xs">
@@ -139,7 +139,7 @@ function SummaryCard({ filledImages, filledAudio, filledVideo }: { filledImages:
           <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 gap-1">🎬 {filledVideo}/3</Badge>
         </div>
       </div>
-      <div className="text-xs text-gray-500">
+      <div className="text-xs text-muted-foreground">
         {total} ref{total !== 1 ? 's' : ''} · ~{total * 2}s est. processing
       </div>
     </div>
@@ -172,15 +172,15 @@ function RefRow({ entry, index, onUpdate, onRemove, type, generationMode }: {
   }, [index, onUpdate]);
 
   return (
-    <div className="flex flex-col sm:flex-row gap-2 p-3 rounded-lg bg-[oklch(0.13_0.02_155)] border border-emerald-500/10">
+    <div className="flex flex-col sm:flex-row gap-2 p-3 rounded-lg bg-background border border-emerald-500/30">
       {/* Role selector */}
       <div className="flex items-center gap-2 shrink-0">
         <span className="text-emerald-400">{ROLE_ICONS[entry.role] || <ImageIcon className="w-4 h-4" />}</span>
         <Select value={entry.role} onValueChange={v => onUpdate(index, 'role', v)}>
-          <SelectTrigger className="w-[150px] h-8 bg-[oklch(0.15_0.02_155)] border-emerald-500/20 text-xs">
+          <SelectTrigger className="w-[150px] h-8 bg-muted/30 border-emerald-500/20 text-xs">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="bg-[oklch(0.18_0.03_155)] border-emerald-500/20">
+          <SelectContent className="bg-card border-emerald-500/20">
             {roles.map(r => (
               <SelectItem key={r.value} value={r.value} className="text-xs">{r.label}</SelectItem>
             ))}
@@ -196,22 +196,22 @@ function RefRow({ entry, index, onUpdate, onRemove, type, generationMode }: {
               value={entry.url}
               onChange={e => onUpdate(index, 'url', e.target.value)}
               placeholder={`https://example.com/${type}-reference.${type === 'audio' ? 'mp3' : type === 'video' ? 'mp4' : 'jpg'}`}
-              className="bg-[oklch(0.15_0.02_155)] border-emerald-500/20 focus:border-emerald-500/50 pr-16 h-8 text-xs"
+              className="bg-muted/30 border-emerald-500/20 focus:border-emerald-500/50 pr-16 h-8 text-xs"
             />
             <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
-              {ext && <Badge variant="outline" className="h-4 text-[9px] px-1 border-emerald-500/30 text-emerald-400 bg-emerald-500/10">.{ext}</Badge>}
-              {entry.url && <button onClick={() => onUpdate(index, 'url', '')} className="p-0.5 rounded hover:bg-white/10 text-gray-500 hover:text-red-400 transition-colors"><X className="w-3 h-3" /></button>}
+              {ext && <Badge variant="outline" className="h-4 text-xs px-1 border-emerald-500/30 text-emerald-400 bg-emerald-500/10">.{ext}</Badge>}
+              {entry.url && <button onClick={() => onUpdate(index, 'url', '')} className="p-0.5 rounded hover:bg-white/10 text-muted-foreground hover:text-red-400 transition-colors"><X className="w-3 h-3" /></button>}
             </div>
           </div>
-          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-gray-500 hover:text-emerald-400 hover:bg-emerald-500/10" onClick={handlePaste} title="Paste from clipboard">
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-emerald-400 hover:bg-emerald-500/10" onClick={handlePaste} title="Paste from clipboard">
             <Clipboard className="w-3.5 h-3.5" />
           </Button>
         </div>
         <UrlValidation url={entry.url} isValid={valid} type={type} />
         {isImage && (
           <div className="mt-1.5 flex items-center gap-2">
-            <img src={entry.url} alt="Preview" className="h-8 w-8 rounded object-cover border border-emerald-500/20 bg-[oklch(0.15_0.02_155)]" onError={(e) => (e.currentTarget.style.display = 'none')} />
-            <span className="text-[10px] text-gray-500 flex items-center gap-1"><Eye className="w-3 h-3" />Preview</span>
+            <img src={entry.url} alt="Preview" className="h-8 w-8 rounded object-cover border border-emerald-500/20 bg-muted/30" onError={(e) => (e.currentTarget.style.display = 'none')} />
+            <span className="text-xs text-muted-foreground flex items-center gap-1"><Eye className="w-3 h-3" />Preview</span>
           </div>
         )}
       </div>
@@ -221,7 +221,7 @@ function RefRow({ entry, index, onUpdate, onRemove, type, generationMode }: {
         placeholder="Notes..."
         value={entry.notes}
         onChange={e => onUpdate(index, 'notes', e.target.value)}
-        className="h-8 bg-[oklch(0.15_0.02_155)] border-emerald-500/20 text-xs w-full sm:w-28 shrink-0"
+        className="h-8 bg-muted/30 border-emerald-500/20 text-xs w-full sm:w-28 shrink-0"
       />
 
       {/* Remove */}
@@ -229,7 +229,7 @@ function RefRow({ entry, index, onUpdate, onRemove, type, generationMode }: {
         variant="ghost"
         size="sm"
         onClick={() => onRemove(index)}
-        className="h-8 w-8 p-0 text-gray-500 hover:text-red-400 shrink-0"
+        className="h-8 w-8 p-0 text-muted-foreground hover:text-red-400 shrink-0"
       >
         <Trash2 className="w-3 h-3" />
       </Button>
@@ -297,15 +297,15 @@ export function StepReferences({
   }, [references, setReferences]);
 
   return (
-    <Card className="bg-[oklch(0.18_0.03_155)] border-emerald-500/20">
+    <Card className="bg-card border-emerald-500/20">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-3 text-lg">
           <StepNumber num={2} active completed={totalRefs > 0} />
           References
           <div className="flex gap-1.5 ml-1">
-            <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 text-[10px] px-1.5 gap-0.5">📸{filledImages}/9</Badge>
-            <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 text-[10px] px-1.5 gap-0.5">🎵{filledAudio}/3</Badge>
-            <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 text-[10px] px-1.5 gap-0.5">🎬{filledVideo}/3</Badge>
+            <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 text-xs px-1.5 gap-0.5">📸{filledImages}/9</Badge>
+            <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 text-xs px-1.5 gap-0.5">🎵{filledAudio}/3</Badge>
+            <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 text-xs px-1.5 gap-0.5">🎬{filledVideo}/3</Badge>
           </div>
         </CardTitle>
       </CardHeader>
@@ -355,7 +355,7 @@ export function StepReferences({
               <span className="flex items-center gap-2">
                 <ImageIcon className="w-4 h-4 text-emerald-400" />
                 <span className="text-sm font-medium">Image References</span>
-                <span className="text-xs text-gray-500">{filledImages}/9</span>
+                <span className="text-xs text-muted-foreground">{filledImages}/9</span>
               </span>
               {imagesOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
             </Button>
@@ -375,7 +375,7 @@ export function StepReferences({
               </Button>
             )}
             {filledImages > 0 && (
-              <p className="text-[10px] text-gray-600">Image references set subject identity, environment, camera framing, lighting, and scene composition.</p>
+              <p className="text-xs text-muted-foreground">Image references set subject identity, environment, camera framing, lighting, and scene composition.</p>
             )}
           </CollapsibleContent>
         </Collapsible>
@@ -404,7 +404,7 @@ export function StepReferences({
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-2 text-sm font-medium text-gray-300">
                 <Video className="w-4 h-4 text-blue-400" /> Video References
-                <span className="text-xs text-gray-500">{filledVideo}/3</span>
+                <span className="text-xs text-muted-foreground">{filledVideo}/3</span>
               </span>
               {videoRefs.length < REFERENCE_LIMITS.video && (
                 <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300 text-xs h-7"
@@ -421,7 +421,7 @@ export function StepReferences({
               />
             ))}
             {filledVideo > 0 && (
-              <p className="text-[10px] text-gray-600">Video references guide camera movement, pacing, and motion. 9:16 vertical clips recommended, under 15s.</p>
+              <p className="text-xs text-muted-foreground">Video references guide camera movement, pacing, and motion. 9:16 vertical clips recommended, under 15s.</p>
             )}
           </div>
         )}
@@ -432,7 +432,7 @@ export function StepReferences({
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-2 text-sm font-medium text-gray-300">
                 <Music className="w-4 h-4 text-purple-400" /> Audio References
-                <span className="text-xs text-gray-500">{filledAudio}/3</span>
+                <span className="text-xs text-muted-foreground">{filledAudio}/3</span>
               </span>
               {audioRefs.length < REFERENCE_LIMITS.audio && (
                 <Button variant="ghost" size="sm" className="text-purple-400 hover:text-purple-300 text-xs h-7"
@@ -449,7 +449,7 @@ export function StepReferences({
               />
             ))}
             {filledAudio > 0 && (
-              <p className="text-[10px] text-gray-600">Audio references guide sound design but may override prompt-driven audio. MP3/WAV/M4A, under 15s total.</p>
+              <p className="text-xs text-muted-foreground">Audio references guide sound design but may override prompt-driven audio. MP3/WAV/M4A, under 15s total.</p>
             )}
           </div>
         )}

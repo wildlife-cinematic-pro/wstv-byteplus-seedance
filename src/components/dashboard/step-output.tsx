@@ -88,17 +88,17 @@ function ResolutionCards({ seedanceModelId, resolution, setResolution }: { seeda
               className={`relative p-3 rounded-lg border-2 transition-all text-left ${
                 selected
                   ? isMiniOrFast ? 'border-amber-400 bg-amber-500/15' : 'border-emerald-400 bg-emerald-500/15'
-                  : 'border-gray-700 bg-[oklch(0.15_0.02_155)] hover:border-gray-600'
+                  : 'border-border bg-muted/30 hover:border-border'
               }`}>
               <div className="text-sm font-bold text-gray-200">{r}</div>
-              <div className="text-[10px] text-gray-500">{getPixelDims(r)}</div>
-              <div className="text-[10px] text-gray-500">${costPerSec(modelType, r).toFixed(2)}/s</div>
+              <div className="text-xs text-muted-foreground">{getPixelDims(r)}</div>
+              <div className="text-xs text-muted-foreground">${costPerSec(modelType, r).toFixed(2)}/s</div>
             </button>
           );
         })}
       </div>
       {/* Resolution rule note */}
-      <p className="text-[10px] text-gray-500 flex items-center gap-1.5">
+      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
         <Info className="w-3 h-3 shrink-0 text-emerald-500/70" />
         {seedanceModelId === SEEDANCE_MODEL_IDS.STANDARD
           ? 'Seedance Standard supports 480p/720p/1080p/4k.'
@@ -117,7 +117,7 @@ function CostBreakdownBar({ seedanceModelId, resolution, duration }: { seedanceM
   const cny = total * 7.25;
   const barMax = costPerSec('full', '4K') * 15;
   return (
-    <div className="p-4 rounded-lg bg-[oklch(0.15_0.02_155)] border border-emerald-500/20 space-y-3">
+    <div className="p-4 rounded-lg bg-muted/30 border border-emerald-500/20 space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-sm text-gray-400">Cost Breakdown</span>
         {duration === -1 ? (
@@ -134,18 +134,18 @@ function CostBreakdownBar({ seedanceModelId, resolution, duration }: { seedanceM
             { label: 'Duration', value: total * 0.1, color: 'bg-sky-500' },
           ].map(item => (
             <div key={item.label} className="flex items-center gap-2">
-              <span className="text-[10px] text-gray-500 w-20 shrink-0">{item.label}</span>
-              <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+              <span className="text-xs text-muted-foreground w-20 shrink-0">{item.label}</span>
+              <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                 <div className={`h-full rounded-full ${item.color}`} style={{ width: `${Math.min(100, (item.value / barMax) * 100)}%` }} />
               </div>
-              <span className="text-[10px] text-gray-400 w-14 text-right">${item.value.toFixed(2)}</span>
+              <span className="text-xs text-gray-400 w-14 text-right">${item.value.toFixed(2)}</span>
             </div>
           ))}
         </div>
       )}
       <div className="flex items-center justify-between text-xs">
-        <span className="text-gray-500">{duration === -1 ? 'auto duration' : `${(total / Math.max(duration, 1)).toFixed(3)}/sec`}</span>
-        {duration !== -1 && <span className="text-gray-500">¥{cny.toFixed(2)} CNY</span>}
+        <span className="text-muted-foreground">{duration === -1 ? 'auto duration' : `${(total / Math.max(duration, 1)).toFixed(3)}/sec`}</span>
+        {duration !== -1 && <span className="text-muted-foreground">¥{cny.toFixed(2)} CNY</span>}
       </div>
     </div>
   );
@@ -189,7 +189,7 @@ export function StepOutput({
   };
 
   return (
-    <Card className="bg-[oklch(0.18_0.03_155)] border-emerald-500/20">
+    <Card className="bg-card border-emerald-500/20">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-3 text-lg">
           <StepNumber num={3} active completed={false} />
@@ -214,13 +214,13 @@ export function StepOutput({
                   className={`p-3 rounded-lg border-2 transition-all text-left ${
                     selected
                       ? 'border-emerald-400 bg-emerald-500/15'
-                      : 'border-gray-700 bg-[oklch(0.15_0.02_155)] hover:border-gray-600'
+                      : 'border-border bg-muted/30 hover:border-border'
                   }`}
                 >
                   <div className="text-sm font-bold text-gray-200">{meta.shortLabel}</div>
-                  <div className="text-[10px] text-gray-500 mt-0.5">{meta.description}</div>
-                  <div className="text-[9px] text-gray-600 mt-1 font-mono truncate">{id}</div>
-                  <div className="text-[9px] text-emerald-500/70 mt-0.5">Res: {supported.join(', ')}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{meta.description}</div>
+                  <div className="text-xs text-muted-foreground mt-1 font-mono truncate">{id}</div>
+                  <div className="text-xs text-emerald-500/70 mt-0.5">Res: {supported.join(', ')}</div>
                 </button>
               );
             })}
@@ -238,27 +238,27 @@ export function StepOutput({
               className={`p-3 rounded-lg border-2 transition-all text-left ${
                 generationMode === 'reference_mode'
                   ? 'border-emerald-400 bg-emerald-500/15'
-                  : 'border-gray-700 bg-[oklch(0.15_0.02_155)] hover:border-gray-600'
+                  : 'border-border bg-muted/30 hover:border-border'
               }`}
             >
               <div className="text-sm font-bold text-gray-200">Reference Mode</div>
-              <div className="text-[10px] text-gray-500 mt-0.5">Master image + storyboard + character/environment references</div>
-              <Badge variant="outline" className="text-[9px] mt-1 border-emerald-500/30 text-emerald-400 bg-emerald-500/10">WSTV default</Badge>
+              <div className="text-xs text-muted-foreground mt-0.5">Master image + storyboard + character/environment references</div>
+              <Badge variant="outline" className="text-xs mt-1 border-emerald-500/30 text-emerald-400 bg-emerald-500/10">WSTV default</Badge>
             </button>
             <button
               onClick={() => setGenerationMode('frame_mode')}
               className={`p-3 rounded-lg border-2 transition-all text-left ${
                 generationMode === 'frame_mode'
                   ? 'border-amber-400 bg-amber-500/15'
-                  : 'border-gray-700 bg-[oklch(0.15_0.02_155)] hover:border-gray-600'
+                  : 'border-border bg-muted/30 hover:border-border'
               }`}
             >
               <div className="text-sm font-bold text-gray-200">Frame Mode</div>
-              <div className="text-[10px] text-gray-500 mt-0.5">Exact first-frame / first+last-frame control</div>
-              <div className="text-[9px] text-amber-500/70 mt-1">Cannot mix with reference media</div>
+              <div className="text-xs text-muted-foreground mt-0.5">Exact first-frame / first+last-frame control</div>
+              <div className="text-xs text-amber-500/70 mt-1">Cannot mix with reference media</div>
             </button>
           </div>
-          <p className="text-[10px] text-gray-500 mt-1.5 flex items-center gap-1.5">
+          <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1.5">
             <Info className="w-3 h-3 shrink-0 text-emerald-500/70" />
             Frame mode and reference mode cannot be mixed in one request. Use reference mode for master image + storyboard. Use frame mode only for first-frame / last-frame lock.
           </p>
@@ -266,7 +266,7 @@ export function StepOutput({
 
         {/* Quick Presets */}
         <div>
-          <Label className="text-xs text-gray-500 mb-2 block">Quick Presets</Label>
+          <Label className="text-xs text-muted-foreground mb-2 block">Quick Presets</Label>
           <QuickPresets seedanceModelId={seedanceModelId} onApply={applyPreset} />
         </div>
 
@@ -283,7 +283,7 @@ export function StepOutput({
           <div>
             <Label className="text-sm text-gray-400 mb-2 block">Aspect Ratio</Label>
             <Select value={aspectRatio} onValueChange={setAspectRatio}>
-              <SelectTrigger className="bg-[oklch(0.15_0.02_155)] border-emerald-500/20">
+              <SelectTrigger className="bg-muted/30 border-emerald-500/20">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -296,10 +296,10 @@ export function StepOutput({
           {/* FPS — kept for cost/frame display only, NOT sent to Seedance API */}
           <div>
             <Label className="text-sm text-gray-400 mb-2 block">
-              Frame Rate <span className="text-[10px] text-gray-600">(display only — not in Seedance payload)</span>
+              Frame Rate <span className="text-xs text-muted-foreground">(display only — not in Seedance payload)</span>
             </Label>
             <Select value={String(fps)} onValueChange={v => setFps(Number(v))}>
-              <SelectTrigger className="bg-[oklch(0.15_0.02_155)] border-emerald-500/20">
+              <SelectTrigger className="bg-muted/30 border-emerald-500/20">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -308,7 +308,7 @@ export function StepOutput({
                 ))}
               </SelectContent>
             </Select>
-            <div className="text-[10px] text-gray-500 mt-1">
+            <div className="text-xs text-muted-foreground mt-1">
               {duration !== -1 ? `${duration * fps} total frames @${fps}fps` : 'auto duration — frame count unknown'}
             </div>
           </div>
@@ -330,7 +330,7 @@ export function StepOutput({
                 variant="outline"
                 size="sm"
                 onClick={() => setDuration(duration === -1 ? 15 : -1)}
-                className="h-6 px-2 text-[10px] border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                className="h-6 px-2 text-xs border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
               >
                 {duration === -1 ? 'Set manual' : 'Auto (-1)'}
               </Button>
@@ -340,18 +340,18 @@ export function StepOutput({
             <>
               <Slider value={[duration]} onValueChange={([v]) => setDuration(v)}
                 min={VALID_DURATION_MIN} max={VALID_DURATION_MAX} step={1} className="py-2" />
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <div className="flex justify-between text-xs text-muted-foreground mt-1">
                 <span>{VALID_DURATION_MIN}s</span><span>{VALID_DURATION_MAX}s</span>
               </div>
             </>
           )}
           {!durationValid && duration !== -1 && (
-            <p className="text-[11px] text-red-400 mt-1 flex items-center gap-1.5">
+            <p className="text-xs text-red-400 mt-1 flex items-center gap-1.5">
               <AlertTriangle className="w-3 h-3" />
               Invalid Seedance duration. Use an integer from {VALID_DURATION_MIN} to {VALID_DURATION_MAX} seconds, or -1 for auto duration.
             </p>
           )}
-          <p className="text-[10px] text-gray-500 mt-1 flex items-center gap-1.5">
+          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
             <Info className="w-3 h-3 shrink-0 text-emerald-500/70" />
             Seedance 2.0 duration supports any integer from {VALID_DURATION_MIN} to {VALID_DURATION_MAX} seconds, or -1 for auto duration. Frames parameter is not supported for Seedance 2.0.
           </p>
@@ -362,23 +362,23 @@ export function StepOutput({
           <div>
             <Label className="text-sm text-gray-400 mb-2 block flex items-center gap-1">
               🎲 Random Seed
-              <Badge variant="outline" className="text-[9px] border-gray-600 text-gray-500 bg-gray-700/20">FUTURE</Badge>
+              <Badge variant="outline" className="text-xs border-border text-muted-foreground bg-muted">FUTURE</Badge>
             </Label>
             <Input
               value={seed}
               onChange={e => setSeed(e.target.value)}
               placeholder="Not an active Seedance 2.0 control"
               disabled
-              className="bg-[oklch(0.10_0.02_155)] border-gray-700 text-gray-600 placeholder:text-gray-600 opacity-60"
+              className="bg-background border-border text-muted-foreground placeholder:text-muted-foreground/60 opacity-60"
             />
-            <p className="text-[10px] text-gray-600 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Seed is documented for some video generation flows, but WSTV keeps it inactive in PHASE5.1 preview. Evaluate in PHASE6 before adding it to the payload.
             </p>
           </div>
           <div>
             <Label className="text-sm text-gray-400 mb-2 block">Audio Mode</Label>
             <Select value={audioMode} onValueChange={setAudioMode}>
-              <SelectTrigger className="bg-[oklch(0.15_0.02_155)] border-emerald-500/20">
+              <SelectTrigger className="bg-muted/30 border-emerald-500/20">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -387,7 +387,7 @@ export function StepOutput({
                 ))}
               </SelectContent>
             </Select>
-            <div className="text-[10px] text-gray-500 mt-1">
+            <div className="text-xs text-muted-foreground mt-1">
               {AUDIO_MODES.find(m => m.value === audioMode)?.desc}
             </div>
           </div>
@@ -401,7 +401,7 @@ export function StepOutput({
             </Label>
             <Input type="number" value={maxCostUsd} onChange={e => setMaxCostUsd(e.target.value)}
               placeholder="0.50" step="0.01" min="0"
-              className="bg-[oklch(0.15_0.02_155)] border-emerald-500/20 focus:border-emerald-500/50" />
+              className="bg-muted/30 border-emerald-500/20 focus:border-emerald-500/50" />
           </div>
           <div>
             <Label className="text-sm text-gray-400 mb-2 block">
@@ -409,7 +409,7 @@ export function StepOutput({
             </Label>
             <Input value={outputFilename} onChange={e => setOutputFilename(e.target.value)}
               placeholder="my_wildlife_video.mp4"
-              className="bg-[oklch(0.15_0.02_155)] border-emerald-500/20 focus:border-emerald-500/50" />
+              className="bg-muted/30 border-emerald-500/20 focus:border-emerald-500/50" />
           </div>
         </div>
 

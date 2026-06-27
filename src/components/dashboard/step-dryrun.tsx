@@ -61,13 +61,13 @@ function costPerSec(model: ModelType, res: string) {
 
 function DryRunProgressBar({ step }: { step: number }) {
   return (
-    <div className="space-y-2 p-3 rounded-lg bg-[oklch(0.15_0.02_155)] border border-emerald-500/20">
+    <div className="space-y-2 p-3 rounded-lg bg-muted/30 border border-emerald-500/20">
       {PROGRESS_STEPS.map((label, i) => (
         <div key={label} className="flex items-center gap-2">
           {i < step ? <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             : i === step ? <Loader2 className="w-4 h-4 text-emerald-400 animate-spin shrink-0" />
-            : <div className="w-4 h-4 rounded-full border border-gray-600 shrink-0" />}
-          <span className={`text-xs ${i <= step ? 'text-gray-200' : 'text-gray-600'}`}>{label}</span>
+            : <div className="w-4 h-4 rounded-full border border-border shrink-0" />}
+          <span className={`text-xs ${i <= step ? 'text-gray-200' : 'text-muted-foreground'}`}>{label}</span>
         </div>
       ))}
     </div>
@@ -91,8 +91,8 @@ function EnhancedSummaryGrid({ result, modelType }: { result: DryRunResult; mode
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
       {items.map(item => (
-        <div key={item.l} className="p-2 rounded bg-black/20">
-          <div className="flex items-center gap-1 text-xs text-gray-500">
+        <div key={item.l} className="p-2 rounded bg-muted/40">
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
             {item.icon} {item.l}
           </div>
           <div className={`text-sm font-medium mt-0.5 ${item.warn ? 'text-amber-400' : 'text-gray-200'}`}>{item.v}</div>
@@ -121,30 +121,30 @@ function CostBreakdownSection({ result, modelType, resolution }: { result: DryRu
   const rateLabel = `${modelType === 'mini' ? 'Mini' : 'Full'} · ${resolution}`;
 
   return (
-    <div className="p-3 rounded-lg bg-black/20 space-y-2.5">
+    <div className="p-3 rounded-lg bg-muted/40 space-y-2.5">
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium text-gray-400">Cost Breakdown</span>
-        <span className="text-[10px] text-gray-500 italic">Dry-run estimate only. No real charge.</span>
+        <span className="text-xs text-muted-foreground italic">Dry-run estimate only. No real charge.</span>
       </div>
 
       {/* Honest formula display — these 3 rows DO sum to the total */}
       <div className="space-y-1.5 font-mono text-xs">
         <div className="flex items-center justify-between py-1 border-b border-gray-800/50">
-          <span className="text-gray-400">Rate <span className="text-gray-600">({rateLabel})</span></span>
+          <span className="text-gray-400">Rate <span className="text-muted-foreground">({rateLabel})</span></span>
           <span className="text-emerald-400">${ratePerSec.toFixed(3)}/s</span>
         </div>
         <div className="flex items-center justify-between py-1 border-b border-gray-800/50">
           <span className="text-gray-400">Duration</span>
           <span className="text-gray-300">× {durationSec}s</span>
         </div>
-        <div className="flex items-center justify-between py-1.5 border-t border-gray-700">
+        <div className="flex items-center justify-between py-1.5 border-t border-border">
           <span className="text-gray-300 font-semibold">Estimated cost</span>
           <span className="text-emerald-400 font-bold text-sm">${computedTotal.toFixed(2)}</span>
         </div>
       </div>
 
       {/* Optional: show how the rate was derived (480p base × multiplier) — collapsible */}
-      <details className="text-[10px] text-gray-500">
+      <details className="text-xs text-muted-foreground">
         <summary className="cursor-pointer hover:text-gray-400 select-none">
           How is the ${ratePerSec.toFixed(3)}/s rate derived?
         </summary>
@@ -152,13 +152,13 @@ function CostBreakdownSection({ result, modelType, resolution }: { result: DryRu
           <div>480p base rate: <span className="text-gray-400">${baseRate480p.toFixed(3)}/s</span></div>
           <div>{resolution} multiplier: <span className="text-gray-400">× {multiplier.toFixed(2)}</span></div>
           <div>Final rate: <span className="text-emerald-400">${ratePerSec.toFixed(3)}/s</span></div>
-          <div className="text-gray-600 mt-1">Formula: cost = rate[resolution] × duration</div>
+          <div className="text-muted-foreground mt-1">Formula: cost = rate[resolution] × duration</div>
         </div>
       </details>
 
       <div className="flex items-center justify-between pt-1 border-t border-gray-800">
         <CostDisplay usd={result.estimatedCost} cny={result.estimatedCostCny} size="sm" showLabel />
-        <span className="text-[10px] text-gray-500">${(result.estimatedCost / durationSec).toFixed(3)}/s</span>
+        <span className="text-xs text-muted-foreground">${(result.estimatedCost / durationSec).toFixed(3)}/s</span>
       </div>
     </div>
   );
@@ -168,14 +168,14 @@ function ReferenceSummary({ result }: { result: DryRunResult }) {
   const totalRefs = result.referenceImageCount + result.referenceAudioCount + result.referenceVideoCount;
   const overLimit = totalRefs > 5;
   return (
-    <div className="flex flex-wrap items-center gap-3 p-2.5 rounded-lg bg-black/20 text-xs">
+    <div className="flex flex-wrap items-center gap-3 p-2.5 rounded-lg bg-muted/40 text-xs">
       <span className="text-gray-400">References:</span>
       <span className="text-gray-200">📸 {result.referenceImageCount}/9 images</span>
       <span className="text-gray-200">🎵 {result.referenceAudioCount}/3 audio</span>
       <span className="text-gray-200">🎬 {result.referenceVideoCount}/3 video</span>
       {result.totalReferenceDuration > 0 && <span className="text-gray-400">Duration: {result.totalReferenceDuration}s</span>}
       {overLimit && (
-        <Badge variant="outline" className="text-amber-400 border-amber-500/30 bg-amber-500/10 text-[10px]">
+        <Badge variant="outline" className="text-amber-400 border-amber-500/30 bg-amber-500/10 text-xs">
           <AlertTriangle className="w-3 h-3 mr-1" /> Over recommended limit
         </Badge>
       )}
@@ -229,14 +229,14 @@ function GatePreview({ result, safeMode }: { result: DryRunResult; safeMode: boo
   ];
   const passed = gateItems.filter(g => g.pass).length;
   return (
-    <div className="p-3 rounded-lg bg-black/20">
+    <div className="p-3 rounded-lg bg-muted/40">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-medium text-gray-400">Gate Preview</span>
         <GateProgress passed={passed} total={gateItems.length} className="w-32" />
       </div>
       <div className="grid grid-cols-2 gap-1">
         {gateItems.map(g => (
-          <div key={g.label} className="flex items-center gap-1.5 text-[10px]">
+          <div key={g.label} className="flex items-center gap-1.5 text-xs">
             {g.pass ? <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" /> : <XCircle className="w-3 h-3 text-red-400 shrink-0" />}
             <span className={g.pass ? 'text-gray-400' : 'text-red-300'}>{g.label}</span>
           </div>
@@ -367,7 +367,7 @@ export function StepDryRun({
   const headerColor = dryRunResult?.passed ? (dryRunInvalidated ? 'text-amber-400' : 'text-emerald-400') : 'text-red-400';
 
   return (
-    <Card className="bg-[oklch(0.18_0.03_155)] border-emerald-500/20">
+    <Card className="bg-card border-emerald-500/20">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-3 text-lg">
@@ -402,7 +402,7 @@ export function StepDryRun({
                 <h3 className={`text-lg font-bold ${headerColor}`}>
                   {dryRunResult.passed ? (dryRunInvalidated ? 'DRY RUN PASSED (STALE)' : 'DRY RUN PASSED') : 'DRY RUN FAILED'}
                 </h3>
-                {dryRunResult.timestamp && <p className="text-xs text-gray-500">{new Date(dryRunResult.timestamp).toLocaleString()}</p>}
+                {dryRunResult.timestamp && <p className="text-xs text-muted-foreground">{new Date(dryRunResult.timestamp).toLocaleString()}</p>}
               </div>
             </div>
 
@@ -419,7 +419,7 @@ export function StepDryRun({
             )}
 
             {/* Validation Log */}
-            <div className="p-3 rounded bg-black/20">
+            <div className="p-3 rounded bg-muted/40">
               <h4 className="text-sm font-medium text-gray-400 mb-2">Validation Log</h4>
               <CategorizedLog log={dryRunResult.validationLog} />
             </div>
@@ -429,13 +429,13 @@ export function StepDryRun({
             {/* Technical Details */}
             <Collapsible open={showTechDetails} onOpenChange={setShowTechDetails}>
               <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-300">
+                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-gray-300">
                   {showTechDetails ? <ChevronDown className="w-3.5 h-3.5 mr-1" /> : <ChevronRight className="w-3.5 h-3.5 mr-1" />}
                   Technical Details
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <div className="mt-2 p-3 rounded bg-black/30 text-xs font-mono text-gray-500 space-y-1">
+                <div className="mt-2 p-3 rounded bg-muted/50 text-xs font-mono text-muted-foreground space-y-1">
                   <div>POST /api/v1/contents/generations/tasks</div>
                   <div>model_id: {dryRunResult.modelId}</div>
                   <div>dry_run_version: 2.0</div>

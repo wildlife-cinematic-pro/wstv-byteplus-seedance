@@ -360,19 +360,19 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
   const allGatesPassed = Object.values(gates).every(Boolean);
   const paidZoneVisible = !safeMode && gates.dryRunPassed;
   const statusText = !dryRunResult ? 'READY' : dryRunInvalidated ? 'DRY RUN STALE' : dryRunResult.passed ? 'DRY RUN OK' : 'DRY RUN FAILED';
-  const statusColor = statusText === 'READY' ? 'text-gray-400' : statusText === 'DRY RUN STALE' ? 'text-amber-400' : statusText === 'DRY RUN OK' ? 'text-emerald-400' : 'text-red-400';
+  const statusColor = statusText === 'READY' ? 'text-muted-foreground' : statusText === 'DRY RUN STALE' ? 'text-amber-400' : statusText === 'DRY RUN OK' ? 'text-emerald-400' : 'text-red-400';
 
   return (
-    <div className="min-h-screen flex flex-col bg-[oklch(0.13_0.02_155)] text-gray-100">
+    <div className="min-h-screen flex flex-col bg-background text-foreground">
       {/* Enhanced Header */}
-      <header className="sticky top-0 z-50 border-b border-emerald-500/20 bg-[oklch(0.15_0.02_155)]/95 backdrop-blur-sm">
+      <header className="sticky top-0 z-50 border-b border-emerald-500/20 bg-card/95 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 group">
                 <Leaf className="w-7 h-7 text-emerald-500 transition-transform duration-300 group-hover:scale-110 group-hover:animate-pulse" />
                 <h1 className="text-xl font-bold text-emerald-400">WSTV</h1>
-                <span className="text-sm text-gray-400 hidden sm:inline">Production Center</span>
+                <span className="text-sm text-muted-foreground hidden sm:inline">Production Center</span>
               </div>
               <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-xs">v5.0</Badge>
               <Badge variant="outline" className={`text-xs ${modelType === 'mini' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'}`}>
@@ -384,23 +384,23 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
                 <div className="hidden md:flex flex-col items-end gap-1" title="Dry-run estimate only. No real charge.">
                   <div className="flex items-center gap-2 text-sm">
                     <DollarSign className="w-4 h-4 text-emerald-400" />
-                    <span className="text-gray-400">
+                    <span className="text-muted-foreground">
                       Estimated: ${budgetInfo.spentThisMonth.toFixed(2)} / ${budgetInfo.monthlyLimit.toFixed(2)} budget
                     </span>
                     <div className="w-24"><Progress value={(budgetInfo.spentThisMonth / budgetInfo.monthlyLimit) * 100} className="h-1.5" /></div>
                   </div>
                   {safeMode && (
-                    <span className="text-[10px] text-gray-500">Dry-run estimate only. No real charge.</span>
+                    <span className="text-xs text-muted-foreground">Dry-run estimate only. No real charge.</span>
                   )}
                 </div>
               )}
-              <div className="hidden lg:flex items-center gap-1 text-[10px] text-gray-600 bg-[oklch(0.18_0.03_155)] rounded px-2 py-1 border border-gray-700/50">
+              <div className="hidden lg:flex items-center gap-1 text-xs text-muted-foreground bg-card rounded px-2 py-1 border border-border">
                 <Keyboard className="w-3 h-3" /> Ctrl+D
               </div>
-              <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(!sidebarOpen)} className="text-gray-400 hover:text-emerald-400">
+              <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(!sidebarOpen)} className="text-muted-foreground hover:text-emerald-400">
                 <History className="w-4 h-4" />
               </Button>
-              <div className="flex items-center gap-2 bg-[oklch(0.18_0.03_155)] rounded-lg px-3 py-2 border border-emerald-500/20">
+              <div className="flex items-center gap-2 bg-card rounded-lg px-3 py-2 border border-emerald-500/20">
                 {safeMode ? <ShieldCheck className="w-5 h-5 text-emerald-400" /> : <ShieldOff className="w-5 h-5 text-amber-400" />}
                 <Label className="text-sm font-medium cursor-pointer select-none" onClick={toggleSafeMode}>Safe</Label>
                 <Switch checked={safeMode} onCheckedChange={toggleSafeMode} />
@@ -419,28 +419,28 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
         {/* Main Tab Navigation — 6 tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <div className="flex items-center gap-4 overflow-x-auto">
-            <TabsList className="bg-[oklch(0.18_0.03_155)] border border-emerald-500/20 flex-wrap">
-              <TabsTrigger value="generation" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-gray-400 gap-1.5 text-xs sm:text-sm">
+            <TabsList className="bg-card border border-emerald-500/20 flex-wrap">
+              <TabsTrigger value="generation" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-muted-foreground gap-1.5 text-xs sm:text-sm">
                 <Film className="w-4 h-4" />
                 <span className="hidden sm:inline">Generate</span>
               </TabsTrigger>
-              <TabsTrigger value="workflow" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-gray-400 gap-1.5 text-xs sm:text-sm">
+              <TabsTrigger value="workflow" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-muted-foreground gap-1.5 text-xs sm:text-sm">
                 <Clapperboard className="w-4 h-4" />
                 <span className="hidden sm:inline">Workflow</span>
               </TabsTrigger>
-              <TabsTrigger value="budget" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-gray-400 gap-1.5 text-xs sm:text-sm">
+              <TabsTrigger value="budget" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-muted-foreground gap-1.5 text-xs sm:text-sm">
                 <LayoutDashboard className="w-4 h-4" />
                 <span className="hidden sm:inline">Cost</span>
               </TabsTrigger>
-              <TabsTrigger value="postproduction" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-gray-400 gap-1.5 text-xs sm:text-sm">
+              <TabsTrigger value="postproduction" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-muted-foreground gap-1.5 text-xs sm:text-sm">
                 <FolderOpen className="w-4 h-4" />
                 <span className="hidden sm:inline">Post-Prod</span>
               </TabsTrigger>
-              <TabsTrigger value="calendar" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-gray-400 gap-1.5 text-xs sm:text-sm">
+              <TabsTrigger value="calendar" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-muted-foreground gap-1.5 text-xs sm:text-sm">
                 <Calendar className="w-4 h-4" />
                 <span className="hidden sm:inline">Calendar</span>
               </TabsTrigger>
-              <TabsTrigger value="settings" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-gray-400 gap-1.5 text-xs sm:text-sm">
+              <TabsTrigger value="settings" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-muted-foreground gap-1.5 text-xs sm:text-sm">
                 <Calculator className="w-4 h-4" />
                 <span className="hidden sm:inline">Settings</span>
               </TabsTrigger>
@@ -455,21 +455,21 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-3">
                     <Badge variant="outline" className={`${statusColor} border-current text-sm px-3 py-1`}>{statusText}</Badge>
-                    {currentTaskId && <span className="text-xs text-gray-500">Task: {currentTaskId.substring(0, 8)}...</span>}
-                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                    {currentTaskId && <span className="text-xs text-muted-foreground">Task: {currentTaskId.substring(0, 8)}...</span>}
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Cpu className="w-3 h-3" /><span>{modelType}</span>
                       <Monitor className="w-3 h-3 ml-1" /><span>{resolution}</span>
-                      {refCount > 0 && <span className="text-gray-600 ml-1">• {refCount} refs</span>}
+                      {refCount > 0 && <span className="text-muted-foreground ml-1">• {refCount} refs</span>}
                     </div>
                   </div>
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-muted-foreground">
                     Est. cost: <span className="text-emerald-400 font-medium">${estimateCost().toFixed(2)}</span>
                   </div>
                 </div>
 
                 {/* Workflow Progress */}
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-[oklch(0.15_0.02_155)] border border-emerald-500/10">
-                  <span className="text-xs text-gray-500">Workflow:</span>
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30 border border-emerald-500/30">
+                  <span className="text-xs text-muted-foreground">Workflow:</span>
                   {[ 
                     { label: 'Prompt', done: prompt.length > 0 },
                     { label: 'Refs', done: refCount > 0 },
@@ -480,8 +480,8 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
                   ].map((s, i) => (
                     <span key={s.label} className="flex items-center gap-1">
                       <span className={`w-2 h-2 rounded-full ${s.done ? 'bg-emerald-400' : 'bg-gray-600'}`} />
-                      <span className={`text-[11px] ${s.done ? 'text-emerald-400' : 'text-gray-600'}`}>{s.label}</span>
-                      {i < 5 && <span className="text-gray-700 mx-0.5">›</span>}
+                      <span className={`text-xs ${s.done ? 'text-emerald-400' : 'text-muted-foreground'}`}>{s.label}</span>
+                      {i < 5 && <span className="text-muted-foreground/60 mx-0.5">›</span>}
                     </span>
                   ))}
                 </div>
@@ -564,7 +564,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
           {/* Workflow Tab — Presets, QA, Versions, References, Retry */}
           <TabsContent value="workflow">
             <div className="space-y-6">
-              <div className="text-[11px] text-gray-500 bg-[oklch(0.15_0.02_155)] border border-emerald-500/10 rounded-md px-3 py-2 flex items-center gap-2">
+              <div className="text-xs text-muted-foreground bg-muted/30 border border-emerald-500/30 rounded-md px-3 py-2 flex items-center gap-2">
                 <Info className="w-3 h-3 shrink-0 text-emerald-500/70" />
                 <span>Production planning tools — some sections are experimental. All data stays local.</span>
               </div>
@@ -594,7 +594,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
           {/* Calendar & Learning Tab */}
           <TabsContent value="calendar">
             <div className="space-y-6">
-              <div className="text-[11px] text-gray-500 bg-[oklch(0.15_0.02_155)] border border-emerald-500/10 rounded-md px-3 py-2 flex items-center gap-2">
+              <div className="text-xs text-muted-foreground bg-muted/30 border border-emerald-500/30 rounded-md px-3 py-2 flex items-center gap-2">
                 <Info className="w-3 h-3 shrink-0 text-emerald-500/70" />
                 <span>Local planning calendar — no Google Calendar connection. All data stays in your local SQLite DB.</span>
               </div>
@@ -613,14 +613,14 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
       </main>
 
       {/* Footer */}
-      <footer className="mt-auto border-t border-emerald-500/20 bg-[oklch(0.15_0.02_155)]">
+      <footer className="mt-auto border-t border-emerald-500/20 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-sm text-gray-500">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Leaf className="w-4 h-4 text-emerald-600" />
               <span>WSTV Production Center • Safety-First Wildlife Video Toolkit</span>
             </div>
-            <div className="flex items-center gap-4 text-xs text-gray-600">
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span>{taskHistory.length} tasks</span>
               <span>Seedance 2.0</span>
               <div className="flex items-center gap-1">

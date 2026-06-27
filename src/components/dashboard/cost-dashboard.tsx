@@ -22,7 +22,7 @@ import type {
 // ─── Native replacement: Simple Progress Bar ───
 function SimpleProgress({ value, className }: { value: number; className?: string }) {
   return (
-    <div className={`bg-gray-800 rounded-full overflow-hidden ${className || 'h-2'}`}>
+    <div className={`bg-muted rounded-full overflow-hidden ${className || 'h-2'}`}>
       <div
         className="h-full bg-emerald-500 rounded-full transition-all duration-300"
         style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
@@ -43,7 +43,7 @@ function SimpleSelect({ value, onChange, options, placeholder, className }: {
     <select
       value={value}
       onChange={e => onChange(e.target.value)}
-      className={`bg-[oklch(0.13_0.02_155)] border border-emerald-500/20 rounded-md text-sm text-gray-200 px-3 py-1.5 focus:outline-none focus:border-emerald-500/50 ${className || ''}`}
+      className={`bg-background border border-emerald-500/20 rounded-md text-sm text-gray-200 px-3 py-1.5 focus:outline-none focus:border-emerald-500/50 ${className || ''}`}
     >
       {placeholder && <option value="">{placeholder}</option>}
       {options.map(o => (
@@ -55,7 +55,7 @@ function SimpleSelect({ value, onChange, options, placeholder, className }: {
 
 // ─── Native replacement: Simple Divider ───
 function SimpleDivider({ className }: { className?: string }) {
-  return <hr className={`border-0 border-t border-emerald-500/10 my-4 ${className || ''}`} />;
+  return <hr className={`border-0 border-t border-emerald-500/30 my-4 ${className || ''}`} />;
 }
 
 // ─── Budget badge helper ───
@@ -80,7 +80,7 @@ function StatusBadge({ status }: { status: string }) {
     'planned': { bg: 'bg-gray-500/20', text: 'text-gray-400', border: 'border-gray-500/30' },
     'dry-run': { bg: 'bg-amber-500/20', text: 'text-amber-400', border: 'border-amber-500/30' },
     'generated-manually': { bg: 'bg-emerald-500/20', text: 'text-emerald-400', border: 'border-emerald-500/30' },
-    'cancelled': { bg: 'bg-gray-600/20', text: 'text-gray-500', border: 'border-gray-600/30' },
+    'cancelled': { bg: 'bg-muted', text: 'text-muted-foreground', border: 'border-border' },
   };
   const c = map[status] || map['planned'];
   return <Badge className={`${c.bg} ${c.text} ${c.border} text-xs`}>{status}</Badge>;
@@ -91,7 +91,7 @@ function SectionCard({ title, description, icon: Icon, children }: {
   title: string; description?: string; icon: React.ElementType; children: React.ReactNode;
 }) {
   return (
-    <Card className="bg-[oklch(0.18_0.03_155)] border-emerald-500/20">
+    <Card className="bg-card border-emerald-500/20">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <Icon className="w-5 h-5 text-emerald-400" />
@@ -459,7 +459,7 @@ function CostDashboard() {
   return (
     <div className="space-y-6">
       {/* ── Tab Navigation (native buttons, no Radix Tabs) ── */}
-      <div className="bg-[oklch(0.15_0.02_155)] border border-emerald-500/20 rounded-lg p-1 flex flex-wrap gap-1">
+      <div className="bg-muted/30 border border-emerald-500/20 rounded-lg p-1 flex flex-wrap gap-1">
         {costTabs.map(tab => {
           const Icon = tab.icon;
           const isActive = activeCostTab === tab.value;
@@ -487,38 +487,38 @@ function CostDashboard() {
             <SectionCard title="Today's Budget Snapshot" description={budget.today} icon={Wallet}>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="space-y-1">
-                  <span className="text-xs text-gray-500 uppercase tracking-wider">Budget Status</span>
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider">Budget Status</span>
                   <BudgetBadgeDisplay badge={budget.budgetBadge} />
                 </div>
                 <div className="space-y-1">
-                  <span className="text-xs text-gray-500 uppercase tracking-wider">Tokens</span>
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider">Tokens</span>
                   <p className="text-lg font-semibold text-emerald-400">
-                    {budget.tokensRemaining.toLocaleString()} <span className="text-gray-500 text-sm">/ {budget.tokenAllowance.toLocaleString()}</span>
+                    {budget.tokensRemaining.toLocaleString()} <span className="text-muted-foreground text-sm">/ {budget.tokenAllowance.toLocaleString()}</span>
                   </p>
                   <SimpleProgress value={(budget.tokensUsed / budget.tokenAllowance) * 100} className="h-2" />
                 </div>
                 <div className="space-y-1">
-                  <span className="text-xs text-gray-500 uppercase tracking-wider">USD Remaining</span>
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider">USD Remaining</span>
                   <p className="text-lg font-semibold text-emerald-400">${budget.usdRemaining.toFixed(2)}</p>
-                  <p className="text-xs text-gray-500">of ${budget.priceUsd.toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground">of ${budget.priceUsd.toFixed(2)}</p>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-xs text-gray-500 uppercase tracking-wider">Days Until Expiry</span>
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider">Days Until Expiry</span>
                   <p className="text-lg font-semibold text-emerald-400">{budget.daysUntilExpiry}</p>
-                  <p className="text-xs text-gray-500">{budget.elapsedPct.toFixed(0)}% elapsed</p>
+                  <p className="text-xs text-muted-foreground">{budget.elapsedPct.toFixed(0)}% elapsed</p>
                 </div>
               </div>
               <SimpleDivider />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="bg-[oklch(0.15_0.02_155)] rounded-lg p-3 border border-emerald-500/10">
-                  <span className="text-xs text-gray-500">Daily Safe Budget</span>
+                <div className="bg-muted/30 rounded-lg p-3 border border-emerald-500/30">
+                  <span className="text-xs text-muted-foreground">Daily Safe Budget</span>
                   <p className="text-emerald-400 font-medium">{budget.safeDailyTokenBudget.toLocaleString()} tokens</p>
-                  <p className="text-xs text-gray-500">${budget.safeDailyUsdBudget.toFixed(4)} / day</p>
+                  <p className="text-xs text-muted-foreground">${budget.safeDailyUsdBudget.toFixed(4)} / day</p>
                 </div>
-                <div className="bg-[oklch(0.15_0.02_155)] rounded-lg p-3 border border-emerald-500/10">
-                  <span className="text-xs text-gray-500">Current Pace</span>
+                <div className="bg-muted/30 rounded-lg p-3 border border-emerald-500/30">
+                  <span className="text-xs text-muted-foreground">Current Pace</span>
                   <p className="text-gray-300 font-medium">{budget.dailyTokenPace.toLocaleString()} tokens/day</p>
-                  <p className="text-xs text-gray-500">${budget.monthlyUsdPace.toFixed(2)} / month</p>
+                  <p className="text-xs text-muted-foreground">${budget.monthlyUsdPace.toFixed(2)} / month</p>
                 </div>
                 {budget.paceWarning && (
                   <div className="bg-amber-500/10 rounded-lg p-3 border border-amber-500/30">
@@ -537,22 +537,22 @@ function CostDashboard() {
             <SectionCard title="Active Plan" description="Current subscription details" icon={Zap}>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-1">
-                  <span className="text-xs text-gray-500 uppercase tracking-wider">Plan Name</span>
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider">Plan Name</span>
                   <p className="text-emerald-400 font-semibold">{activePurchase.planName}</p>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-xs text-gray-500 uppercase tracking-wider">Price / Tokens</span>
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider">Price / Tokens</span>
                   <p className="text-gray-200">${activePurchase.priceUsd.toFixed(2)} / {activePurchase.tokenAllowance.toLocaleString()} tokens</p>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-xs text-gray-500 uppercase tracking-wider">Purchase Date</span>
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider">Purchase Date</span>
                   <p className="text-gray-300">{new Date(activePurchase.purchaseDate).toLocaleDateString()}</p>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-xs text-gray-500 uppercase tracking-wider">Expiry Date</span>
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider">Expiry Date</span>
                   {editingExpiry ? (
                     <div className="flex items-center gap-2">
-                      <Input type="date" value={newExpiryDate} onChange={e => setNewExpiryDate(e.target.value)} className="h-8 text-sm bg-[oklch(0.13_0.02_155)] border-emerald-500/30" />
+                      <Input type="date" value={newExpiryDate} onChange={e => setNewExpiryDate(e.target.value)} className="h-8 text-sm bg-background border-emerald-500/30" />
                       <Button size="sm" onClick={handleSaveExpiry} className="h-7 px-2 bg-emerald-600 hover:bg-emerald-700"><Save className="w-3.5 h-3.5" /></Button>
                       <Button size="sm" variant="ghost" onClick={() => setEditingExpiry(false)} className="h-7 px-2 text-gray-400">Cancel</Button>
                     </div>
@@ -562,19 +562,19 @@ function CostDashboard() {
                       <Button size="sm" variant="ghost" onClick={() => { setEditingExpiry(true); setNewExpiryDate(new Date(activePurchase.expiryDate).toISOString().split('T')[0]); }} className="h-6 px-1.5 text-emerald-400 hover:text-emerald-300">
                         <Edit3 className="w-3 h-3" />
                       </Button>
-                      {activePurchase.manualExpiryOverride && <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-[10px]">Manual Override</Badge>}
+                      {activePurchase.manualExpiryOverride && <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs">Manual Override</Badge>}
                     </div>
                   )}
                 </div>
               </div>
               <div className="mt-4 space-y-2">
-                <div className="flex justify-between text-xs text-gray-500">
+                <div className="flex justify-between text-xs text-muted-foreground">
                   <span>Tokens used: {activePurchase.tokensUsed.toLocaleString()}</span>
                   <span>{((activePurchase.tokensUsed / activePurchase.tokenAllowance) * 100).toFixed(1)}%</span>
                 </div>
                 <SimpleProgress value={(activePurchase.tokensUsed / activePurchase.tokenAllowance) * 100} className="h-3" />
               </div>
-              <p className="text-xs text-gray-600 mt-3 flex items-center gap-1">
+              <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
                 <Info className="w-3 h-3" /> Allow manual expiry-date override because provider timezone may differ
               </p>
             </SectionCard>
@@ -584,10 +584,10 @@ function CostDashboard() {
             <SectionCard title="Remaining Video Capacity" description="Estimated videos remaining by resolution × duration (9:16 vertical)" icon={Film}>
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-[11px] text-gray-500 italic">
+                  <p className="text-xs text-muted-foreground italic">
                     Formula: remaining videos = remainingTokens ÷ tokensPerVideo · tokensPerVideo = (width × height × 24fps × duration) ÷ 1024
                   </p>
-                  <Badge variant="outline" className="text-[9px] border-gray-600 text-gray-400 bg-gray-700/20">
+                  <Badge variant="outline" className="text-xs border-border text-gray-400 bg-muted">
                     Estimate only / manual tracker
                   </Badge>
                 </div>
@@ -605,7 +605,7 @@ function CostDashboard() {
                   ].map(item => (
                     <div
                       key={`${item.res}-${item.dur}s`}
-                      className={`bg-[oklch(0.15_0.02_155)] rounded-lg p-3 border ${
+                      className={`bg-muted/30 rounded-lg p-3 border ${
                         item.color === 'emerald' ? 'border-emerald-500/20'
                         : item.color === 'amber' ? 'border-amber-500/20'
                         : 'border-red-500/20'
@@ -632,41 +632,41 @@ function CostDashboard() {
                         }`}>
                           {item.cap.videosRemaining.toLocaleString()}
                         </p>
-                        <p className="text-[10px] text-gray-500">videos remaining</p>
+                        <p className="text-xs text-muted-foreground">videos remaining</p>
                       </div>
 
                       {/* Token + cost breakdown */}
-                      <div className="space-y-1 text-[10px] font-mono border-t border-gray-700/40 pt-2">
+                      <div className="space-y-1 text-xs font-mono border-t border-border pt-2">
                         <div className="flex justify-between">
-                          <span className="text-gray-500">tokens/video</span>
+                          <span className="text-muted-foreground">tokens/video</span>
                           <span className="text-gray-300">{item.cap.tokensPerVideo.toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-500">USD/video</span>
+                          <span className="text-muted-foreground">USD/video</span>
                           <span className="text-emerald-400">${item.cap.costUsdPerVideo.toFixed(4)}</span>
                         </div>
                         {item.cap.costJpyPerVideo != null && (
                           <div className="flex justify-between">
-                            <span className="text-gray-500">JPY/video</span>
+                            <span className="text-muted-foreground">JPY/video</span>
                             <span className="text-gray-300">¥{item.cap.costJpyPerVideo.toFixed(2)}</span>
                           </div>
                         )}
                       </div>
 
                       {/* Rate source + pricing note */}
-                      <div className="mt-2 pt-2 border-t border-gray-700/40 space-y-0.5">
-                        <p className="text-[9px] text-gray-600">
-                          <span className="text-gray-500">rate:</span> {item.cap.rateSource}
+                      <div className="mt-2 pt-2 border-t border-border space-y-0.5">
+                        <p className="text-xs text-muted-foreground">
+                          <span className="text-muted-foreground">rate:</span> {item.cap.rateSource}
                         </p>
-                        <p className="text-[9px] text-gray-600">
-                          <span className="text-gray-500">note:</span> {item.cap.pricingNote}
+                        <p className="text-xs text-muted-foreground">
+                          <span className="text-muted-foreground">note:</span> {item.cap.pricingNote}
                         </p>
                       </div>
                     </div>
                   ))}
                 </div>
                 <div className="p-2 rounded-md bg-amber-500/5 border border-amber-500/20">
-                  <p className="text-[10px] text-amber-400/80 flex items-center gap-1.5">
+                  <p className="text-xs text-amber-400/80 flex items-center gap-1.5">
                     <AlertTriangle className="w-3 h-3 shrink-0" />
                     4K pricing is estimated / configurable — verify or edit 4K rates in Pricing & Plans tab. No real API connection.
                   </p>
@@ -697,11 +697,11 @@ function CostDashboard() {
               </div>
               <div className="space-y-2">
                 <Label className="text-gray-400 text-xs">Width</Label>
-                <Input type="number" value={calcWidth} onChange={e => setCalcWidth(parseInt(e.target.value) || 0)} className="bg-[oklch(0.13_0.02_155)] border-emerald-500/20" />
+                <Input type="number" value={calcWidth} onChange={e => setCalcWidth(parseInt(e.target.value) || 0)} className="bg-background border-emerald-500/20" />
               </div>
               <div className="space-y-2">
                 <Label className="text-gray-400 text-xs">Height</Label>
-                <Input type="number" value={calcHeight} onChange={e => setCalcHeight(parseInt(e.target.value) || 0)} className="bg-[oklch(0.13_0.02_155)] border-emerald-500/20" />
+                <Input type="number" value={calcHeight} onChange={e => setCalcHeight(parseInt(e.target.value) || 0)} className="bg-background border-emerald-500/20" />
               </div>
               <div className="space-y-2">
                 <Label className="text-gray-400 text-xs">FPS</Label>
@@ -713,11 +713,11 @@ function CostDashboard() {
               </div>
               <div className="space-y-2">
                 <Label className="text-gray-400 text-xs">Duration (seconds)</Label>
-                <Input type="number" value={calcDuration} onChange={e => setCalcDuration(parseInt(e.target.value) || 0)} className="bg-[oklch(0.13_0.02_155)] border-emerald-500/20" />
+                <Input type="number" value={calcDuration} onChange={e => setCalcDuration(parseInt(e.target.value) || 0)} className="bg-background border-emerald-500/20" />
               </div>
               <div className="space-y-2">
                 <Label className="text-gray-400 text-xs">Video Count</Label>
-                <Input type="number" min={1} value={calcVideoCount} onChange={e => setCalcVideoCount(parseInt(e.target.value) || 1)} className="bg-[oklch(0.13_0.02_155)] border-emerald-500/20" />
+                <Input type="number" min={1} value={calcVideoCount} onChange={e => setCalcVideoCount(parseInt(e.target.value) || 1)} className="bg-background border-emerald-500/20" />
               </div>
               <div className="space-y-2">
                 <Label className="text-gray-400 text-xs">Mode</Label>
@@ -737,7 +737,7 @@ function CostDashboard() {
               </div>
               <div className="space-y-2">
                 <Label className="text-gray-400 text-xs">Rate per 1K Tokens (USD)</Label>
-                <Input type="number" step="0.0001" value={calcRate} onChange={e => setCalcRate(parseFloat(e.target.value) || 0)} className="bg-[oklch(0.13_0.02_155)] border-emerald-500/20" />
+                <Input type="number" step="0.0001" value={calcRate} onChange={e => setCalcRate(parseFloat(e.target.value) || 0)} className="bg-background border-emerald-500/20" />
               </div>
             </div>
             <div className="flex items-center gap-3 mt-4">
@@ -746,7 +746,7 @@ function CostDashboard() {
                   type="checkbox"
                   checked={calcIntelligentMode}
                   onChange={e => setCalcIntelligentMode(e.target.checked)}
-                  className="w-4 h-4 rounded border-emerald-500/30 bg-[oklch(0.13_0.02_155)] text-emerald-500 focus:ring-emerald-500/30"
+                  className="w-4 h-4 rounded border-emerald-500/30 bg-background text-emerald-500 focus:ring-emerald-500/30"
                 />
                 <Label className="text-xs text-gray-400 cursor-pointer">Intelligent Mode</Label>
               </label>
@@ -766,28 +766,28 @@ function CostDashboard() {
           {calcResult && (
             <SectionCard title="Calculation Results" icon={Gauge}>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="bg-[oklch(0.15_0.02_155)] rounded-lg p-3 border border-emerald-500/10">
-                  <span className="text-xs text-gray-500">Estimated Tokens</span>
+                <div className="bg-muted/30 rounded-lg p-3 border border-emerald-500/30">
+                  <span className="text-xs text-muted-foreground">Estimated Tokens</span>
                   <p className="text-emerald-400 text-xl font-bold">{(calcResult.estimatedTokens as number)?.toLocaleString()}</p>
                 </div>
-                <div className="bg-[oklch(0.15_0.02_155)] rounded-lg p-3 border border-emerald-500/10">
-                  <span className="text-xs text-gray-500">Estimated USD</span>
+                <div className="bg-muted/30 rounded-lg p-3 border border-emerald-500/30">
+                  <span className="text-xs text-muted-foreground">Estimated USD</span>
                   <p className="text-emerald-400 text-xl font-bold">${(calcResult.estimatedCostUsd as number)?.toFixed(4)}</p>
                 </div>
-                <div className="bg-[oklch(0.15_0.02_155)] rounded-lg p-3 border border-emerald-500/10">
-                  <span className="text-xs text-gray-500">Estimated JPY</span>
+                <div className="bg-muted/30 rounded-lg p-3 border border-emerald-500/30">
+                  <span className="text-xs text-muted-foreground">Estimated JPY</span>
                   <p className="text-emerald-400 text-xl font-bold">¥{(calcResult.estimatedCostJpy as number)?.toLocaleString()}</p>
                 </div>
-                <div className="bg-[oklch(0.15_0.02_155)] rounded-lg p-3 border border-emerald-500/10">
-                  <span className="text-xs text-gray-500">Remaining Tokens After</span>
+                <div className="bg-muted/30 rounded-lg p-3 border border-emerald-500/30">
+                  <span className="text-xs text-muted-foreground">Remaining Tokens After</span>
                   <p className="text-gray-200 text-xl font-bold">{(calcResult.remainingTokensAfter as number)?.toLocaleString()}</p>
                 </div>
-                <div className="bg-[oklch(0.15_0.02_155)] rounded-lg p-3 border border-emerald-500/10">
-                  <span className="text-xs text-gray-500">Max More Videos</span>
+                <div className="bg-muted/30 rounded-lg p-3 border border-emerald-500/30">
+                  <span className="text-xs text-muted-foreground">Max More Videos</span>
                   <p className="text-gray-200 text-xl font-bold">{calcResult.maxMoreVideos as number}</p>
                 </div>
-                <div className="bg-[oklch(0.15_0.02_155)] rounded-lg p-3 border border-emerald-500/10">
-                  <span className="text-xs text-gray-500">Budget Badge</span>
+                <div className="bg-muted/30 rounded-lg p-3 border border-emerald-500/30">
+                  <span className="text-xs text-muted-foreground">Budget Badge</span>
                   <BudgetBadgeDisplay badge={calcResult.budgetBadge as 'green' | 'yellow' | 'red'} />
                 </div>
               </div>
@@ -808,7 +808,7 @@ function CostDashboard() {
                 <button
                   key={preset.id}
                   onClick={() => applyPreset(preset)}
-                  className="bg-[oklch(0.15_0.02_155)] rounded-lg p-4 border border-emerald-500/10 hover:border-emerald-500/40 transition-all text-left group"
+                  className="bg-muted/30 rounded-lg p-4 border border-emerald-500/30 hover:border-emerald-500/40 transition-all text-left group"
                 >
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-xl">{preset.icon}</span>
@@ -821,7 +821,7 @@ function CostDashboard() {
                     <p>Model: {preset.modelName}</p>
                     <p>Rate: ${preset.ratePerKTokens}/1K tokens</p>
                   </div>
-                  <p className="text-[10px] text-gray-600 mt-2">{preset.description}</p>
+                  <p className="text-xs text-muted-foreground mt-2">{preset.description}</p>
                 </button>
               ))}
             </div>
@@ -844,39 +844,39 @@ function CostDashboard() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {/* Project title */}
               <div className="space-y-1 sm:col-span-2">
-                <Label className="text-[10px] text-gray-500">Project title *</Label>
+                <Label className="text-xs text-muted-foreground">Project title *</Label>
                 <Input
                   value={manualEntry.projectTitle}
                   onChange={e => setManualEntry({ ...manualEntry, projectTitle: e.target.value })}
                   placeholder="e.g., WSTV Wildlife Reel #3"
-                  className="bg-[oklch(0.10_0.02_155)] border-emerald-500/30 text-gray-100 placeholder:text-gray-500 focus:border-emerald-400 text-xs h-8"
+                  className="bg-background border-emerald-500/30 text-gray-100 placeholder:text-muted-foreground/60 focus:border-emerald-400 text-xs h-8"
                   style={{ color: '#e5e7eb' }}
                 />
               </div>
               {/* Animal/Story */}
               <div className="space-y-1 sm:col-span-2">
-                <Label className="text-[10px] text-gray-500">Animal / Story</Label>
+                <Label className="text-xs text-muted-foreground">Animal / Story</Label>
                 <Input
                   value={manualEntry.animalStoryName}
                   onChange={e => setManualEntry({ ...manualEntry, animalStoryName: e.target.value })}
                   placeholder="e.g., Lion Hunt Sequence"
-                  className="bg-[oklch(0.10_0.02_155)] border-emerald-500/30 text-gray-100 placeholder:text-gray-500 focus:border-emerald-400 text-xs h-8"
+                  className="bg-background border-emerald-500/30 text-gray-100 placeholder:text-muted-foreground/60 focus:border-emerald-400 text-xs h-8"
                   style={{ color: '#e5e7eb' }}
                 />
               </div>
               {/* Model */}
               <div className="space-y-1">
-                <Label className="text-[10px] text-gray-500">Model</Label>
+                <Label className="text-xs text-muted-foreground">Model</Label>
                 <Input
                   value={manualEntry.modelName}
                   onChange={e => setManualEntry({ ...manualEntry, modelName: e.target.value })}
-                  className="bg-[oklch(0.10_0.02_155)] border-emerald-500/30 text-gray-100 focus:border-emerald-400 text-xs h-8"
+                  className="bg-background border-emerald-500/30 text-gray-100 focus:border-emerald-400 text-xs h-8"
                   style={{ color: '#e5e7eb' }}
                 />
               </div>
               {/* Mode */}
               <div className="space-y-1">
-                <Label className="text-[10px] text-gray-500">Mode</Label>
+                <Label className="text-xs text-muted-foreground">Mode</Label>
                 <SimpleSelect
                   value={manualEntry.mode}
                   onChange={v => setManualEntry({ ...manualEntry, mode: v })}
@@ -891,7 +891,7 @@ function CostDashboard() {
               </div>
               {/* Resolution */}
               <div className="space-y-1">
-                <Label className="text-[10px] text-gray-500">Resolution (9:16)</Label>
+                <Label className="text-xs text-muted-foreground">Resolution (9:16)</Label>
                 <SimpleSelect
                   value={manualEntry.resolution}
                   onChange={v => setManualEntry({ ...manualEntry, resolution: v })}
@@ -904,7 +904,7 @@ function CostDashboard() {
               </div>
               {/* FPS */}
               <div className="space-y-1">
-                <Label className="text-[10px] text-gray-500">FPS</Label>
+                <Label className="text-xs text-muted-foreground">FPS</Label>
                 <SimpleSelect
                   value={manualEntry.fps.toString()}
                   onChange={v => setManualEntry({ ...manualEntry, fps: parseInt(v) })}
@@ -913,81 +913,81 @@ function CostDashboard() {
               </div>
               {/* Duration */}
               <div className="space-y-1">
-                <Label className="text-[10px] text-gray-500">Duration (seconds)</Label>
+                <Label className="text-xs text-muted-foreground">Duration (seconds)</Label>
                 <Input
                   type="number"
                   min={1}
                   max={60}
                   value={manualEntry.durationSeconds}
                   onChange={e => setManualEntry({ ...manualEntry, durationSeconds: parseInt(e.target.value) || 15 })}
-                  className="bg-[oklch(0.10_0.02_155)] border-emerald-500/30 text-gray-100 focus:border-emerald-400 text-xs h-8"
+                  className="bg-background border-emerald-500/30 text-gray-100 focus:border-emerald-400 text-xs h-8"
                   style={{ color: '#e5e7eb' }}
                 />
               </div>
               {/* Estimated tokens */}
               <div className="space-y-1">
-                <Label className="text-[10px] text-gray-500">Estimated tokens</Label>
+                <Label className="text-xs text-muted-foreground">Estimated tokens</Label>
                 <Input
                   type="number"
                   value={manualEntry.estimatedTokens}
                   onChange={e => setManualEntry({ ...manualEntry, estimatedTokens: e.target.value })}
                   placeholder="auto if blank"
-                  className="bg-[oklch(0.10_0.02_155)] border-emerald-500/30 text-gray-100 placeholder:text-gray-500 focus:border-emerald-400 text-xs h-8"
+                  className="bg-background border-emerald-500/30 text-gray-100 placeholder:text-muted-foreground/60 focus:border-emerald-400 text-xs h-8"
                   style={{ color: '#e5e7eb' }}
                 />
               </div>
               {/* Estimated cost USD */}
               <div className="space-y-1">
-                <Label className="text-[10px] text-gray-500">Estimated cost (USD)</Label>
+                <Label className="text-xs text-muted-foreground">Estimated cost (USD)</Label>
                 <Input
                   type="number"
                   step="0.0001"
                   value={manualEntry.estimatedCostUsd}
                   onChange={e => setManualEntry({ ...manualEntry, estimatedCostUsd: e.target.value })}
                   placeholder="auto if blank"
-                  className="bg-[oklch(0.10_0.02_155)] border-emerald-500/30 text-gray-100 placeholder:text-gray-500 focus:border-emerald-400 text-xs h-8"
+                  className="bg-background border-emerald-500/30 text-gray-100 placeholder:text-muted-foreground/60 focus:border-emerald-400 text-xs h-8"
                   style={{ color: '#e5e7eb' }}
                 />
               </div>
               {/* Actual tokens */}
               <div className="space-y-1">
-                <Label className="text-[10px] text-gray-500">Actual tokens</Label>
+                <Label className="text-xs text-muted-foreground">Actual tokens</Label>
                 <Input
                   type="number"
                   value={manualEntry.actualTokens}
                   onChange={e => setManualEntry({ ...manualEntry, actualTokens: e.target.value })}
                   placeholder="from provider bill"
-                  className="bg-[oklch(0.10_0.02_155)] border-emerald-500/30 text-gray-100 placeholder:text-gray-500 focus:border-emerald-400 text-xs h-8"
+                  className="bg-background border-emerald-500/30 text-gray-100 placeholder:text-muted-foreground/60 focus:border-emerald-400 text-xs h-8"
                   style={{ color: '#e5e7eb' }}
                 />
               </div>
               {/* Actual cost USD */}
               <div className="space-y-1">
-                <Label className="text-[10px] text-gray-500">Actual cost (USD)</Label>
+                <Label className="text-xs text-muted-foreground">Actual cost (USD)</Label>
                 <Input
                   type="number"
                   step="0.0001"
                   value={manualEntry.actualCostUsd}
                   onChange={e => setManualEntry({ ...manualEntry, actualCostUsd: e.target.value })}
                   placeholder="from provider bill"
-                  className="bg-[oklch(0.10_0.02_155)] border-emerald-500/30 text-gray-100 placeholder:text-gray-500 focus:border-emerald-400 text-xs h-8"
+                  className="bg-background border-emerald-500/30 text-gray-100 placeholder:text-muted-foreground/60 focus:border-emerald-400 text-xs h-8"
                   style={{ color: '#e5e7eb' }}
                 />
               </div>
               {/* Generation date */}
               <div className="space-y-1">
-                <Label className="text-[10px] text-gray-500">Generation date</Label>
+                <Label className="text-xs text-muted-foreground">Generation date</Label>
                 <Input
                   type="date"
                   value={manualEntry.generationDate}
                   onChange={e => setManualEntry({ ...manualEntry, generationDate: e.target.value })}
-                  className="bg-[oklch(0.10_0.02_155)] border-emerald-500/30 text-gray-100 focus:border-emerald-400 text-xs h-8"
+                  className="bg-background border-emerald-500/30 text-gray-100 focus:border-emerald-400 text-xs h-8"
                   style={{ color: '#e5e7eb' }}
                 />
               </div>
               {/* Status */}
               <div className="space-y-1">
-                <Label className="text-[10px] text-gray-500">Status</Label>
+                <Label className="text-xs text-muted-foreground">Status</Label>
                 <SimpleSelect
                   value={manualEntry.status}
                   onChange={v => setManualEntry({ ...manualEntry, status: v })}
@@ -1001,19 +1001,19 @@ function CostDashboard() {
               </div>
               {/* Notes */}
               <div className="space-y-1 sm:col-span-2 lg:col-span-4">
-                <Label className="text-[10px] text-gray-500">Notes</Label>
+                <Label className="text-xs text-muted-foreground">Notes</Label>
                 <Input
                   value={manualEntry.notes}
                   onChange={e => setManualEntry({ ...manualEntry, notes: e.target.value })}
                   placeholder="Optional notes (e.g., generated via Dreamina browser, 3 retries)"
-                  className="bg-[oklch(0.10_0.02_155)] border-emerald-500/30 text-gray-100 placeholder:text-gray-500 focus:border-emerald-400 text-xs h-8"
+                  className="bg-background border-emerald-500/30 text-gray-100 placeholder:text-muted-foreground/60 focus:border-emerald-400 text-xs h-8"
                   style={{ color: '#e5e7eb' }}
                 />
               </div>
             </div>
 
             <div className="flex items-center justify-between gap-3 mt-4">
-              <p className="text-[10px] text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 * Required. Estimated tokens auto-computes from resolution × fps × duration if left blank.
               </p>
               <Button
@@ -1044,30 +1044,30 @@ function CostDashboard() {
                 className="w-40 h-8 text-xs"
               />
             </div>
-            <div className="max-h-96 overflow-y-auto rounded-lg border border-emerald-500/10">
+            <div className="max-h-96 overflow-y-auto rounded-lg border border-emerald-500/30">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-emerald-500/10">
-                    <th className="text-gray-500 text-xs font-medium px-3 py-2">Date</th>
-                    <th className="text-gray-500 text-xs font-medium px-3 py-2">Project</th>
-                    <th className="text-gray-500 text-xs font-medium px-3 py-2 hidden lg:table-cell">Animal/Story</th>
-                    <th className="text-gray-500 text-xs font-medium px-3 py-2 hidden md:table-cell">Model</th>
-                    <th className="text-gray-500 text-xs font-medium px-3 py-2 hidden md:table-cell">Mode</th>
-                    <th className="text-gray-500 text-xs font-medium px-3 py-2 hidden lg:table-cell">Res</th>
-                    <th className="text-gray-500 text-xs font-medium px-3 py-2 hidden lg:table-cell">FPS</th>
-                    <th className="text-gray-500 text-xs font-medium px-3 py-2 hidden md:table-cell">Dur</th>
-                    <th className="text-gray-500 text-xs font-medium px-3 py-2">Est.Tokens</th>
-                    <th className="text-gray-500 text-xs font-medium px-3 py-2">Est.Cost</th>
-                    <th className="text-gray-500 text-xs font-medium px-3 py-2 hidden lg:table-cell">Act.Tokens</th>
-                    <th className="text-gray-500 text-xs font-medium px-3 py-2 hidden lg:table-cell">Act.Cost</th>
-                    <th className="text-gray-500 text-xs font-medium px-3 py-2 hidden xl:table-cell">Diff</th>
-                    <th className="text-gray-500 text-xs font-medium px-3 py-2">Status</th>
-                    <th className="text-gray-500 text-xs font-medium px-3 py-2 hidden xl:table-cell">Notes</th>
+                  <tr className="border-b border-emerald-500/30">
+                    <th className="text-muted-foreground text-xs font-medium px-3 py-2">Date</th>
+                    <th className="text-muted-foreground text-xs font-medium px-3 py-2">Project</th>
+                    <th className="text-muted-foreground text-xs font-medium px-3 py-2 hidden lg:table-cell">Animal/Story</th>
+                    <th className="text-muted-foreground text-xs font-medium px-3 py-2 hidden md:table-cell">Model</th>
+                    <th className="text-muted-foreground text-xs font-medium px-3 py-2 hidden md:table-cell">Mode</th>
+                    <th className="text-muted-foreground text-xs font-medium px-3 py-2 hidden lg:table-cell">Res</th>
+                    <th className="text-muted-foreground text-xs font-medium px-3 py-2 hidden lg:table-cell">FPS</th>
+                    <th className="text-muted-foreground text-xs font-medium px-3 py-2 hidden md:table-cell">Dur</th>
+                    <th className="text-muted-foreground text-xs font-medium px-3 py-2">Est.Tokens</th>
+                    <th className="text-muted-foreground text-xs font-medium px-3 py-2">Est.Cost</th>
+                    <th className="text-muted-foreground text-xs font-medium px-3 py-2 hidden lg:table-cell">Act.Tokens</th>
+                    <th className="text-muted-foreground text-xs font-medium px-3 py-2 hidden lg:table-cell">Act.Cost</th>
+                    <th className="text-muted-foreground text-xs font-medium px-3 py-2 hidden xl:table-cell">Diff</th>
+                    <th className="text-muted-foreground text-xs font-medium px-3 py-2">Status</th>
+                    <th className="text-muted-foreground text-xs font-medium px-3 py-2 hidden xl:table-cell">Notes</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredUsageRecords.length === 0 ? (
-                    <tr><td colSpan={15} className="text-center text-gray-600 py-8 text-xs">No usage records found</td></tr>
+                    <tr><td colSpan={15} className="text-center text-muted-foreground py-8 text-xs">No usage records found</td></tr>
                   ) : (
                     filteredUsageRecords.map(record => {
                       // Prefer generatedAt (the actual generation date) over
@@ -1100,13 +1100,13 @@ function CostDashboard() {
                               </span>
                             ) : '—'}
                             {diffCost != null && (
-                              <div className={`text-[10px] ${diffCost > 0 ? 'text-amber-400' : diffCost < 0 ? 'text-emerald-400' : 'text-gray-500'}`}>
+                              <div className={`text-xs ${diffCost > 0 ? 'text-amber-400' : diffCost < 0 ? 'text-emerald-400' : 'text-muted-foreground'}`}>
                                 {diffCost > 0 ? '+' : ''}${diffCost.toFixed(4)}
                               </div>
                             )}
                           </td>
                           <td className="px-3 py-1.5"><StatusBadge status={record.status} /></td>
-                          <td className="text-xs text-gray-500 max-w-24 truncate px-3 py-1.5 hidden xl:table-cell">{record.notes || '—'}</td>
+                          <td className="text-xs text-muted-foreground max-w-24 truncate px-3 py-1.5 hidden xl:table-cell">{record.notes || '—'}</td>
                         </tr>
                       );
                     })
@@ -1140,11 +1140,11 @@ function CostDashboard() {
               </div>
               <div className="space-y-2">
                 <Label className="text-gray-400 text-xs">Actual Tokens</Label>
-                <Input type="number" value={actualTokens} onChange={e => setActualTokens(e.target.value)} placeholder="Enter actual tokens" className="bg-[oklch(0.13_0.02_155)] border-emerald-500/20" />
+                <Input type="number" value={actualTokens} onChange={e => setActualTokens(e.target.value)} placeholder="Enter actual tokens" className="bg-background border-emerald-500/20" />
               </div>
               <div className="space-y-2">
                 <Label className="text-gray-400 text-xs">Actual Cost (USD)</Label>
-                <Input type="number" step="0.0001" value={actualCostUsd} onChange={e => setActualCostUsd(e.target.value)} placeholder="Enter actual USD" className="bg-[oklch(0.13_0.02_155)] border-emerald-500/20" />
+                <Input type="number" step="0.0001" value={actualCostUsd} onChange={e => setActualCostUsd(e.target.value)} placeholder="Enter actual USD" className="bg-background border-emerald-500/20" />
               </div>
               <div className="space-y-2 flex flex-col justify-end">
                 {actualEntryRecordId && (() => {
@@ -1154,7 +1154,7 @@ function CostDashboard() {
                   const diffCost = actualCostUsd ? parseFloat(actualCostUsd) - rec.estimatedCostUsd : 0;
                   return (
                     <div className="space-y-1">
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-muted-foreground">
                         Difference: <span className={diffTokens > 0 ? 'text-amber-400' : 'text-emerald-400'}>{diffTokens > 0 ? '+' : ''}{diffTokens.toLocaleString()} tokens</span>
                         {' / '}
                         <span className={diffCost > 0 ? 'text-amber-400' : 'text-emerald-400'}>{diffCost > 0 ? '+' : ''}{diffCost.toFixed(4)} USD</span>
@@ -1177,14 +1177,14 @@ function CostDashboard() {
           <SectionCard title="Pricing Models" description="Manage model rates and pricing" icon={Layers}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {pricingModels.map(pm => (
-                <div key={pm.id} className="bg-[oklch(0.15_0.02_155)] rounded-lg p-4 border border-emerald-500/10">
+                <div key={pm.id} className="bg-muted/30 rounded-lg p-4 border border-emerald-500/30">
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <p className="text-emerald-400 font-semibold">{pm.name}</p>
-                      <p className="text-xs text-gray-500">{pm.modelId}</p>
+                      <p className="text-xs text-muted-foreground">{pm.modelId}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge className={`${pm.status === 'active' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : pm.status === 'testing' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-gray-500/20 text-gray-400 border-gray-500/30'} text-[10px]`}>
+                      <Badge className={`${pm.status === 'active' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : pm.status === 'testing' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-gray-500/20 text-gray-400 border-gray-500/30'} text-xs`}>
                         {pm.status}
                       </Badge>
                       {editingPricingId === pm.id ? (
@@ -1205,12 +1205,12 @@ function CostDashboard() {
                       { label: '1080p', field: 'rate1080p', value: pm.rate1080p, enabled: pm.supports1080p },
                       { label: '4K', field: 'rate4k', value: pm.rate4k, enabled: pm.supports4k },
                     ].map(rate => (
-                      <div key={rate.label} className="flex items-center justify-between bg-[oklch(0.13_0.02_155)] rounded px-2 py-1.5">
-                        <span className={`text-gray-500 ${!rate.enabled ? 'line-through opacity-50' : ''}`}>{rate.label}</span>
+                      <div key={rate.label} className="flex items-center justify-between bg-background rounded px-2 py-1.5">
+                        <span className={`text-muted-foreground ${!rate.enabled ? 'line-through opacity-50' : ''}`}>{rate.label}</span>
                         {editingPricingId === pm.id ? (
                           <Input
                             type="number" step="0.0001" defaultValue={rate.value}
-                            className="w-20 h-6 text-xs bg-[oklch(0.12_0.02_155)] border-emerald-500/20"
+                            className="w-20 h-6 text-xs bg-background border-border"
                             onBlur={e => handleUpdatePricing(pm.id, { [rate.field]: parseFloat(e.target.value) || 0 })}
                           />
                         ) : (
@@ -1219,7 +1219,7 @@ function CostDashboard() {
                       </div>
                     ))}
                   </div>
-                  <p className="text-[10px] text-gray-600 mt-2">Provider: {pm.provider} • {pm.pricingMode}</p>
+                  <p className="text-xs text-muted-foreground mt-2">Provider: {pm.provider} • {pm.pricingMode}</p>
                 </div>
               ))}
             </div>
@@ -1232,13 +1232,13 @@ function CostDashboard() {
               </Button>
             </div>
             {newPlanOpen && (
-              <div className="bg-[oklch(0.15_0.02_155)] rounded-lg p-4 border border-emerald-500/20 mb-4">
+              <div className="bg-muted/30 rounded-lg p-4 border border-emerald-500/20 mb-4">
                 <p className="text-emerald-400 text-sm font-semibold mb-3">New Plan</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                  <Input placeholder="Plan name" value={newPlanData.name} onChange={e => setNewPlanData(d => ({ ...d, name: e.target.value }))} className="bg-[oklch(0.13_0.02_155)] border-emerald-500/20 h-8 text-sm" />
-                  <Input type="number" placeholder="Price (USD)" value={newPlanData.priceUsd} onChange={e => setNewPlanData(d => ({ ...d, priceUsd: e.target.value }))} className="bg-[oklch(0.13_0.02_155)] border-emerald-500/20 h-8 text-sm" />
-                  <Input type="number" placeholder="Token allowance" value={newPlanData.tokenAllowance} onChange={e => setNewPlanData(d => ({ ...d, tokenAllowance: e.target.value }))} className="bg-[oklch(0.13_0.02_155)] border-emerald-500/20 h-8 text-sm" />
-                  <Input type="number" placeholder="Validity days" value={newPlanData.validityDays} onChange={e => setNewPlanData(d => ({ ...d, validityDays: e.target.value }))} className="bg-[oklch(0.13_0.02_155)] border-emerald-500/20 h-8 text-sm" />
+                  <Input placeholder="Plan name" value={newPlanData.name} onChange={e => setNewPlanData(d => ({ ...d, name: e.target.value }))} className="bg-background border-emerald-500/20 h-8 text-sm" />
+                  <Input type="number" placeholder="Price (USD)" value={newPlanData.priceUsd} onChange={e => setNewPlanData(d => ({ ...d, priceUsd: e.target.value }))} className="bg-background border-emerald-500/20 h-8 text-sm" />
+                  <Input type="number" placeholder="Token allowance" value={newPlanData.tokenAllowance} onChange={e => setNewPlanData(d => ({ ...d, tokenAllowance: e.target.value }))} className="bg-background border-emerald-500/20 h-8 text-sm" />
+                  <Input type="number" placeholder="Validity days" value={newPlanData.validityDays} onChange={e => setNewPlanData(d => ({ ...d, validityDays: e.target.value }))} className="bg-background border-emerald-500/20 h-8 text-sm" />
                   <div className="flex gap-2">
                     <Button onClick={handleCreatePlan} className="bg-emerald-600 hover:bg-emerald-700 h-8 text-xs flex-1">Create</Button>
                     <Button variant="ghost" onClick={() => setNewPlanOpen(false)} className="h-8 text-xs text-gray-400">Cancel</Button>
@@ -1248,11 +1248,11 @@ function CostDashboard() {
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {plans.map(plan => (
-                <div key={plan.id} className="bg-[oklch(0.15_0.02_155)] rounded-lg p-4 border border-emerald-500/10">
+                <div key={plan.id} className="bg-muted/30 rounded-lg p-4 border border-emerald-500/30">
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <p className="text-emerald-400 font-semibold">{plan.name}</p>
-                      <Badge className={`${plan.status === 'active' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-gray-500/20 text-gray-400 border-gray-500/30'} text-[10px]`}>
+                      <Badge className={`${plan.status === 'active' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-gray-500/20 text-gray-400 border-gray-500/30'} text-xs`}>
                         {plan.status}
                       </Badge>
                     </div>
@@ -1269,18 +1269,18 @@ function CostDashboard() {
                   {editingPlanId === plan.id ? (
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <Label className="text-xs text-gray-500 w-14">Price:</Label>
-                        <Input type="number" step="0.01" defaultValue={plan.priceUsd} className="h-7 text-xs bg-[oklch(0.13_0.02_155)] border-emerald-500/20 flex-1" onBlur={e => {
+                        <Label className="text-xs text-muted-foreground w-14">Price:</Label>
+                        <Input type="number" step="0.01" defaultValue={plan.priceUsd} className="h-7 text-xs bg-background border-emerald-500/20 flex-1" onBlur={e => {
                           fetch(`/api/subscriptions/plans`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...plan, priceUsd: parseFloat(e.target.value) || plan.priceUsd }) }).then(() => fetchAllData());
                         }} />
                       </div>
                       <div className="flex items-center gap-2">
-                        <Label className="text-xs text-gray-500 w-14">Tokens:</Label>
-                        <Input type="number" defaultValue={plan.tokenAllowance} className="h-7 text-xs bg-[oklch(0.13_0.02_155)] border-emerald-500/20 flex-1" />
+                        <Label className="text-xs text-muted-foreground w-14">Tokens:</Label>
+                        <Input type="number" defaultValue={plan.tokenAllowance} className="h-7 text-xs bg-background border-emerald-500/20 flex-1" />
                       </div>
                       <div className="flex items-center gap-2">
-                        <Label className="text-xs text-gray-500 w-14">Days:</Label>
-                        <Input type="number" defaultValue={plan.validityDays} className="h-7 text-xs bg-[oklch(0.13_0.02_155)] border-emerald-500/20 flex-1" />
+                        <Label className="text-xs text-muted-foreground w-14">Days:</Label>
+                        <Input type="number" defaultValue={plan.validityDays} className="h-7 text-xs bg-background border-emerald-500/20 flex-1" />
                       </div>
                     </div>
                   ) : (
@@ -1289,7 +1289,7 @@ function CostDashboard() {
                       <p>Tokens: <span className="text-gray-200">{plan.tokenAllowance.toLocaleString()}</span></p>
                       <p>Validity: <span className="text-gray-200">{plan.validityDays} days</span></p>
                       <p>Provider: {plan.provider}</p>
-                      {plan.description && <p className="text-gray-600 italic">{plan.description}</p>}
+                      {plan.description && <p className="text-muted-foreground italic">{plan.description}</p>}
                     </div>
                   )}
                 </div>
@@ -1314,25 +1314,25 @@ function CostDashboard() {
             </div>
 
             {/* Usage selector */}
-            <div className="p-3 rounded-md bg-[oklch(0.15_0.02_155)] border border-emerald-500/20 mb-4">
+            <div className="p-3 rounded-md bg-muted/30 border border-emerald-500/20 mb-4">
               <p className="text-sm text-gray-300 font-medium mb-3 flex items-center gap-2">
                 <Calculator className="w-4 h-4 text-emerald-400" />
                 Your Target Usage
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="space-y-1">
-                  <Label className="text-xs text-gray-500">Target videos / month</Label>
+                  <Label className="text-xs text-muted-foreground">Target videos / month</Label>
                   <Input
                     type="number"
                     min={1}
                     value={cmpUsageVideos}
                     onChange={e => setCmpUsageVideos(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="bg-[oklch(0.10_0.02_155)] border-emerald-500/30 text-gray-100 placeholder:text-gray-500 focus:border-emerald-400"
+                    className="bg-background border-emerald-500/30 text-gray-100 placeholder:text-muted-foreground/60 focus:border-emerald-400"
                     style={{ color: '#e5e7eb' }}
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-gray-500">Duration per video</Label>
+                  <Label className="text-xs text-muted-foreground">Duration per video</Label>
                   <SimpleSelect
                     value={cmpUsageDuration.toString()}
                     onChange={v => setCmpUsageDuration(parseInt(v))}
@@ -1344,7 +1344,7 @@ function CostDashboard() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-gray-500">Resolution</Label>
+                  <Label className="text-xs text-muted-foreground">Resolution</Label>
                   <SimpleSelect
                     value={cmpUsageResolution}
                     onChange={setCmpUsageResolution}
@@ -1377,11 +1377,11 @@ function CostDashboard() {
                 const remainingUnusedTokens = Math.max(0, plan.includedTokens - neededTokens);
 
                 return (
-                  <div key={idx} className="bg-[oklch(0.15_0.02_155)] rounded-lg p-4 border border-emerald-500/20 space-y-3">
+                  <div key={idx} className="bg-muted/30 rounded-lg p-4 border border-emerald-500/20 space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-500">Plan {idx + 1}</span>
+                      <span className="text-xs text-muted-foreground">Plan {idx + 1}</span>
                       {idx === 0 && (
-                        <Badge variant="outline" className="text-[9px] border-emerald-500/30 text-emerald-400 bg-emerald-500/10">
+                        <Badge variant="outline" className="text-xs border-emerald-500/30 text-emerald-400 bg-emerald-500/10">
                           ACTIVE
                         </Badge>
                       )}
@@ -1394,12 +1394,12 @@ function CostDashboard() {
                         setCmpPlans(next);
                       }}
                       placeholder={`Plan ${idx + 1} name`}
-                      className="bg-[oklch(0.10_0.02_155)] border-emerald-500/30 text-gray-100 placeholder:text-gray-500 focus:border-emerald-400 text-sm font-medium"
+                      className="bg-background border-emerald-500/30 text-gray-100 placeholder:text-muted-foreground/60 focus:border-emerald-400 text-sm font-medium"
                       style={{ color: '#e5e7eb' }}
                     />
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
-                        <Label className="text-[10px] text-gray-500">Cost (USD)</Label>
+                        <Label className="text-xs text-muted-foreground">Cost (USD)</Label>
                         <Input
                           type="number"
                           step="0.01"
@@ -1409,12 +1409,12 @@ function CostDashboard() {
                             next[idx] = { ...plan, planCostUsd: parseFloat(e.target.value) || 0 };
                             setCmpPlans(next);
                           }}
-                          className="bg-[oklch(0.10_0.02_155)] border-emerald-500/30 text-gray-100 focus:border-emerald-400 text-xs h-8"
+                          className="bg-background border-emerald-500/30 text-gray-100 focus:border-emerald-400 text-xs h-8"
                           style={{ color: '#e5e7eb' }}
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-[10px] text-gray-500">Tokens</Label>
+                        <Label className="text-xs text-muted-foreground">Tokens</Label>
                         <Input
                           type="number"
                           value={plan.includedTokens}
@@ -1423,12 +1423,12 @@ function CostDashboard() {
                             next[idx] = { ...plan, includedTokens: parseInt(e.target.value) || 0 };
                             setCmpPlans(next);
                           }}
-                          className="bg-[oklch(0.10_0.02_155)] border-emerald-500/30 text-gray-100 focus:border-emerald-400 text-xs h-8"
+                          className="bg-background border-emerald-500/30 text-gray-100 focus:border-emerald-400 text-xs h-8"
                           style={{ color: '#e5e7eb' }}
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-[10px] text-gray-500">Validity (days)</Label>
+                        <Label className="text-xs text-muted-foreground">Validity (days)</Label>
                         <Input
                           type="number"
                           value={plan.validityDays}
@@ -1437,12 +1437,12 @@ function CostDashboard() {
                             next[idx] = { ...plan, validityDays: parseInt(e.target.value) || 0 };
                             setCmpPlans(next);
                           }}
-                          className="bg-[oklch(0.10_0.02_155)] border-emerald-500/30 text-gray-100 focus:border-emerald-400 text-xs h-8"
+                          className="bg-background border-emerald-500/30 text-gray-100 focus:border-emerald-400 text-xs h-8"
                           style={{ color: '#e5e7eb' }}
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-[10px] text-gray-500">Expiry date</Label>
+                        <Label className="text-xs text-muted-foreground">Expiry date</Label>
                         <Input
                           type="date"
                           value={plan.expiryDate}
@@ -1451,7 +1451,7 @@ function CostDashboard() {
                             next[idx] = { ...plan, expiryDate: e.target.value };
                             setCmpPlans(next);
                           }}
-                          className="bg-[oklch(0.10_0.02_155)] border-emerald-500/30 text-gray-100 focus:border-emerald-400 text-xs h-8"
+                          className="bg-background border-emerald-500/30 text-gray-100 focus:border-emerald-400 text-xs h-8"
                           style={{ color: '#e5e7eb' }}
                         />
                       </div>
@@ -1464,7 +1464,7 @@ function CostDashboard() {
                         setCmpPlans(next);
                       }}
                       placeholder="Notes (optional)"
-                      className="bg-[oklch(0.10_0.02_155)] border-emerald-500/30 text-gray-100 placeholder:text-gray-500 focus:border-emerald-400 text-xs h-8"
+                      className="bg-background border-emerald-500/30 text-gray-100 placeholder:text-muted-foreground/60 focus:border-emerald-400 text-xs h-8"
                       style={{ color: '#e5e7eb' }}
                     />
 
@@ -1472,11 +1472,11 @@ function CostDashboard() {
                     <SimpleDivider className="my-2" />
                     <div className="space-y-1.5 text-xs">
                       <div className="flex justify-between">
-                        <span className="text-gray-500">USD / 1M tokens</span>
+                        <span className="text-muted-foreground">USD / 1M tokens</span>
                         <span className="text-gray-200 font-mono">${usdPerMillionTokens.toFixed(4)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-500">USD / 15s 720p video</span>
+                        <span className="text-muted-foreground">USD / 15s 720p video</span>
                         <span className="text-gray-200 font-mono">
                           ${plan.includedTokens > 0
                             ? ((plan.planCostUsd / plan.includedTokens) * calculateTokens(720, 1280, 24, 15, 1)).toFixed(4)
@@ -1484,7 +1484,7 @@ function CostDashboard() {
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-500">USD / 15s 1080p video</span>
+                        <span className="text-muted-foreground">USD / 15s 1080p video</span>
                         <span className="text-gray-200 font-mono">
                           ${plan.includedTokens > 0
                             ? ((plan.planCostUsd / plan.includedTokens) * calculateTokens(1080, 1920, 24, 15, 1)).toFixed(4)
@@ -1492,7 +1492,7 @@ function CostDashboard() {
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-500">USD / 15s 4K video</span>
+                        <span className="text-muted-foreground">USD / 15s 4K video</span>
                         <span className="text-gray-200 font-mono">
                           ${plan.includedTokens > 0
                             ? ((plan.planCostUsd / plan.includedTokens) * calculateTokens(2160, 3840, 24, 15, 1)).toFixed(4)
@@ -1500,11 +1500,11 @@ function CostDashboard() {
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Videos in plan ({cmpUsageResolution} · {cmpUsageDuration}s)</span>
+                        <span className="text-muted-foreground">Videos in plan ({cmpUsageResolution} · {cmpUsageDuration}s)</span>
                         <span className="text-emerald-400 font-mono font-semibold">{videosInPlan.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Daily token allowance</span>
+                        <span className="text-muted-foreground">Daily token allowance</span>
                         <span className="text-gray-200 font-mono">{Math.round(dailyTokenAllowance).toLocaleString()}</span>
                       </div>
                     </div>
@@ -1512,14 +1512,14 @@ function CostDashboard() {
                     {overBudget && (
                       <div className="p-2 rounded-md bg-red-500/10 border border-red-500/30 flex items-start gap-1.5">
                         <AlertTriangle className="w-3 h-3 text-red-400 shrink-0 mt-0.5" />
-                        <p className="text-[10px] text-red-400">
+                        <p className="text-xs text-red-400">
                           Over budget: your target needs {neededTokens.toLocaleString()} tokens but this plan only has {plan.includedTokens.toLocaleString()}.
                         </p>
                       </div>
                     )}
                     {!overBudget && plan.includedTokens > 0 && (
                       <div className="p-2 rounded-md bg-emerald-500/10 border border-emerald-500/30">
-                        <p className="text-[10px] text-emerald-400">
+                        <p className="text-xs text-emerald-400">
                           Remaining unused tokens after target: {remainingUnusedTokens.toLocaleString()} ({((remainingUnusedTokens / plan.includedTokens) * 100).toFixed(1)}%)
                         </p>
                       </div>
@@ -1574,26 +1574,26 @@ function CostDashboard() {
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                         <div>
-                          <p className="text-gray-500">Plan cost</p>
+                          <p className="text-muted-foreground">Plan cost</p>
                           <p className="text-gray-200 font-mono">${cheapest.plan.planCostUsd.toFixed(2)}</p>
                         </div>
                         <div>
-                          <p className="text-gray-500">Cost per video</p>
+                          <p className="text-muted-foreground">Cost per video</p>
                           <p className="text-gray-200 font-mono">${cheapest.costPerVideo.toFixed(4)}</p>
                         </div>
                         <div>
-                          <p className="text-gray-500">Total cost for {cmpUsageVideos} videos</p>
+                          <p className="text-muted-foreground">Total cost for {cmpUsageVideos} videos</p>
                           <p className="text-emerald-400 font-mono font-semibold">${cheapest.totalCostForTarget.toFixed(2)}</p>
                         </div>
                         <div>
-                          <p className="text-gray-500">Remaining unused tokens</p>
+                          <p className="text-muted-foreground">Remaining unused tokens</p>
                           <p className="text-gray-200 font-mono">
                             {(cheapest.plan.includedTokens - neededTokens).toLocaleString()}
                           </p>
                         </div>
                       </div>
                     </div>
-                    <div className="p-3 rounded-md bg-[oklch(0.15_0.02_155)] border border-emerald-500/10">
+                    <div className="p-3 rounded-md bg-muted/30 border border-emerald-500/30">
                       <p className="text-xs text-gray-400">
                         <strong className="text-gray-300">Why is this cheapest?</strong> Among plans with enough tokens for your target usage
                         ({neededTokens.toLocaleString()} tokens = {cmpUsageVideos} × {tokensPerVideo.toLocaleString()}),
@@ -1640,14 +1640,14 @@ function CostDashboard() {
               <div className="space-y-3">
                 {tokenUsageChartData.length > 0 ? tokenUsageChartData.map((d, i) => (
                   <div key={i} className="flex items-center gap-3">
-                    <span className="text-xs text-gray-500 w-16 shrink-0">{d.date}</span>
-                    <div className="flex-1 h-6 bg-gray-800 rounded overflow-hidden">
+                    <span className="text-xs text-muted-foreground w-16 shrink-0">{d.date}</span>
+                    <div className="flex-1 h-6 bg-muted rounded overflow-hidden">
                       <div className="h-full bg-emerald-500/60 rounded transition-all" style={{ width: `${budget ? Math.min(100, (d.tokens / budget.tokenAllowance) * 100) : 0}%` }} />
                     </div>
                     <span className="text-xs text-emerald-400 w-20 text-right">{(d.tokens as number).toLocaleString()}</span>
                   </div>
                 )) : (
-                  <div className="flex items-center justify-center h-32 text-gray-600 text-sm">No usage data yet</div>
+                  <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">No usage data yet</div>
                 )}
               </div>
             </SectionCard>
@@ -1656,14 +1656,14 @@ function CostDashboard() {
               <div className="space-y-3">
                 {usdSpentChartData.length > 0 ? usdSpentChartData.map((d, i) => (
                   <div key={i} className="flex items-center gap-3">
-                    <span className="text-xs text-gray-500 w-16 shrink-0">{d.date}</span>
-                    <div className="flex-1 h-6 bg-gray-800 rounded overflow-hidden">
+                    <span className="text-xs text-muted-foreground w-16 shrink-0">{d.date}</span>
+                    <div className="flex-1 h-6 bg-muted rounded overflow-hidden">
                       <div className="h-full bg-amber-500/60 rounded transition-all" style={{ width: `${budget ? Math.min(100, (d.cumulative / budget.priceUsd) * 100) : 0}%` }} />
                     </div>
                     <span className="text-xs text-amber-400 w-20 text-right">${(d.cumulative as number).toFixed(2)}</span>
                   </div>
                 )) : (
-                  <div className="flex items-center justify-center h-32 text-gray-600 text-sm">No usage data yet</div>
+                  <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">No usage data yet</div>
                 )}
               </div>
             </SectionCard>
@@ -1681,22 +1681,22 @@ function CostDashboard() {
                       </svg>
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
                         <span className="text-2xl font-bold text-emerald-400">{Math.round((budget.tokensRemaining / budget.tokenAllowance) * 100)}%</span>
-                        <span className="text-[10px] text-gray-500">remaining</span>
+                        <span className="text-xs text-muted-foreground">remaining</span>
                       </div>
                     </div>
                     <div className="flex gap-4 mt-3">
                       <div className="text-center">
                         <span className="text-xs text-red-400 font-medium">{budget.tokensUsed.toLocaleString()}</span>
-                        <p className="text-[10px] text-gray-500">Used</p>
+                        <p className="text-xs text-muted-foreground">Used</p>
                       </div>
                       <div className="text-center">
                         <span className="text-xs text-emerald-400 font-medium">{budget.tokensRemaining.toLocaleString()}</span>
-                        <p className="text-[10px] text-gray-500">Remaining</p>
+                        <p className="text-xs text-muted-foreground">Remaining</p>
                       </div>
                     </div>
                   </>
                 ) : (
-                  <p className="text-gray-600 text-sm">No active budget</p>
+                  <p className="text-muted-foreground text-sm">No active budget</p>
                 )}
               </div>
             </SectionCard>
@@ -1706,13 +1706,13 @@ function CostDashboard() {
                 {videoCountChartData.length > 0 ? videoCountChartData.map((d, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <span className="text-xs text-gray-400 w-28 shrink-0 truncate">{d.name}</span>
-                    <div className="flex-1 h-6 bg-gray-800 rounded overflow-hidden">
+                    <div className="flex-1 h-6 bg-muted rounded overflow-hidden">
                       <div className="h-full rounded transition-all" style={{ width: `${Math.min(100, (d.count / Math.max(...videoCountChartData.map(x => x.count))) * 100)}%`, backgroundColor: barColors[i % barColors.length] }} />
                     </div>
                     <span className="text-xs text-gray-300 w-8 text-right">{d.count}</span>
                   </div>
                 )) : (
-                  <div className="flex items-center justify-center h-32 text-gray-600 text-sm">No usage data yet</div>
+                  <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">No usage data yet</div>
                 )}
               </div>
             </SectionCard>
@@ -1727,13 +1727,13 @@ function CostDashboard() {
                   { label: '15s 720p', current: budget.estimatedVideosRemaining15s, perDay: budget.safeDailyTokenBudget > 0 ? Math.floor(budget.safeDailyTokenBudget / calculateTokens(720, 1280, 24, 15, 1)) : 0 },
                   { label: '15s 1080p', current: budget.estimatedVideosRemaining15s1080, perDay: budget.safeDailyTokenBudget > 0 ? Math.floor(budget.safeDailyTokenBudget / calculateTokens(1080, 1920, 24, 15, 1)) : 0 },
                 ].map(item => (
-                  <div key={item.label} className="bg-[oklch(0.15_0.02_155)] rounded-lg p-4 border border-emerald-500/10 text-center">
-                    <p className="text-xs text-gray-500">{item.label}</p>
+                  <div key={item.label} className="bg-muted/30 rounded-lg p-4 border border-emerald-500/30 text-center">
+                    <p className="text-xs text-muted-foreground">{item.label}</p>
                     <p className="text-2xl font-bold text-emerald-400">{item.current}</p>
-                    <p className="text-xs text-gray-500 mt-1">remaining now</p>
+                    <p className="text-xs text-muted-foreground mt-1">remaining now</p>
                     <SimpleDivider className="my-2" />
                     <p className="text-sm text-amber-400 font-medium">{item.perDay}</p>
-                    <p className="text-xs text-gray-500">per day safe budget</p>
+                    <p className="text-xs text-muted-foreground">per day safe budget</p>
                   </div>
                 ))}
               </div>

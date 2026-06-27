@@ -27,7 +27,7 @@ export function GenerateSafetyStrip({
   const durationLabel = duration === -1 ? 'auto' : `${duration}s`;
 
   return (
-    <div className="rounded-md border border-emerald-500/15 bg-[oklch(0.15_0.02_155)] px-3 py-2">
+    <div className="rounded-md border border-emerald-500/30 bg-muted/30 px-3 py-2">
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="outline" className={safeMode ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10' : 'border-amber-500/40 text-amber-400 bg-amber-500/10'}>
           {safeMode ? <ShieldCheck className="w-3 h-3 mr-1" /> : <ShieldOff className="w-3 h-3 mr-1" />}
@@ -41,7 +41,7 @@ export function GenerateSafetyStrip({
           <Volume2 className="w-3 h-3 mr-1" />
           generate_audio={generateAudio ? 'true' : 'false'}
         </Badge>
-        <Badge variant="outline" className="border-gray-600/50 text-gray-300 bg-gray-700/20">
+        <Badge variant="outline" className="border-border text-foreground bg-muted">
           {modelMeta.shortLabel} / {resolution} / {durationLabel}
         </Badge>
         <Badge variant="outline" className="border-blue-500/30 text-blue-300 bg-blue-500/10">
