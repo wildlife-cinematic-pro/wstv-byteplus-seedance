@@ -79,7 +79,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
   const [outputFilename, setOutputFilename] = useState('');
   const [fps, setFps] = useState(24);
   const [seed, setSeed] = useState('');
-  const [audioMode, setAudioMode] = useState('none');
+  const [audioMode, setAudioMode] = useState('auto');
   const [dryRunResult, setDryRunResult] = useState<DryRunResult | null>(null);
   const [dryRunInvalidated, setDryRunInvalidated] = useState(false);
   const [confirmationText, setConfirmationText] = useState('');

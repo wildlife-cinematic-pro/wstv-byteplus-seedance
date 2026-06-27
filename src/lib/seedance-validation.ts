@@ -215,7 +215,7 @@ export function buildSeedancePayload(input: SeedancePayloadInput): Record<string
     generationMode,
     references,
     watermark = false,
-    generateAudio = false,
+    generateAudio = true,
     returnLastFrame = true,
     callbackUrl,
   } = input;
@@ -448,7 +448,7 @@ export const WSTV_DEFAULTS = {
   duration: 15,
   resolution: '720p',
   watermark: false,
-  generateAudio: false,
+  generateAudio: true,
   returnLastFrame: true,
 } as const;
 
