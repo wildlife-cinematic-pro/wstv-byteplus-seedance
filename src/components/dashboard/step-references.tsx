@@ -293,8 +293,15 @@ export function StepReferences({
     const currentCount = references.filter(r => r.assetType === type).length;
     if (currentCount >= max) return;
     const newRef = createEmptyReference(type, currentCount);
+    // In frame mode, a new image must default to a frame role (first_frame, then
+    // last_frame) — createEmptyReference defaults to a reference-style role, which
+    // frame mode rejects and the payload builder would silently drop.
+    if (type === 'image' && generationMode === 'frame_mode') {
+      const hasFirstFrame = references.some(r => r.assetType === 'image' && r.role === 'first_frame');
+      newRef.role = hasFirstFrame ? 'last_frame' : 'first_frame';
+    }
     setReferences(prev => [...prev, newRef]);
-  }, [references, setReferences]);
+  }, [references, setReferences, generationMode]);
 
   return (
     <Card className="bg-card border-emerald-500/20">
@@ -382,21 +389,24 @@ export function StepReferences({
 
         <Separator className="bg-emerald-500/10" />
 
-        {/* ── Add Video/Audio buttons (always visible if under limit) ── */}
-        <div className="flex gap-2 flex-wrap">
-          {videoRefs.length < REFERENCE_LIMITS.video && (
-            <Button variant="outline" size="sm" className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10 text-xs"
-              onClick={() => addRef('video')}>
-              <Plus className="w-3 h-3 mr-1" /> Add Video Reference
-            </Button>
-          )}
-          {audioRefs.length < REFERENCE_LIMITS.audio && (
-            <Button variant="outline" size="sm" className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10 text-xs"
-              onClick={() => addRef('audio')}>
-              <Plus className="w-3 h-3 mr-1" /> Add Audio Reference
-            </Button>
-          )}
-        </div>
+        {/* ── Add Video/Audio buttons (hidden in frame mode — only first_frame/last_frame
+              images are allowed there; otherwise visible if under limit) ── */}
+        {!isFrameMode && (
+          <div className="flex gap-2 flex-wrap">
+            {videoRefs.length < REFERENCE_LIMITS.video && (
+              <Button variant="outline" size="sm" className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10 text-xs"
+                onClick={() => addRef('video')}>
+                <Plus className="w-3 h-3 mr-1" /> Add Video Reference
+              </Button>
+            )}
+            {audioRefs.length < REFERENCE_LIMITS.audio && (
+              <Button variant="outline" size="sm" className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10 text-xs"
+                onClick={() => addRef('audio')}>
+                <Plus className="w-3 h-3 mr-1" /> Add Audio Reference
+              </Button>
+            )}
+          </div>
+        )}
 
         {/* ── Reference Video (hidden by default, appears when added) ── */}
         {hasVideoRefs && !isFrameMode && (

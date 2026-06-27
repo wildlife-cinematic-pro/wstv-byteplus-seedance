@@ -231,11 +231,17 @@ export function buildSeedancePayload(input: SeedancePayloadInput): Record<string
   }
 
   if (generationMode === 'frame_mode') {
-    // Frame mode: only first_frame / last_frame images
-    const firstFrame = references.images.find(r => r.role === 'first_frame' && r.url.trim());
-    const lastFrame = references.images.find(r => r.role === 'last_frame' && r.url.trim());
+    // Frame mode: only first_frame / last_frame images.
+    // Be tolerant of images whose role was not explicitly set to first_frame
+    // (e.g. left at a default reference role): promote the first usable image to
+    // first_frame so the payload never silently degrades to text-only.
+    const usableImages = references.images.filter(r => r.url.trim());
+    const lastFrame = usableImages.find(r => r.role === 'last_frame');
+    const firstFrame =
+      usableImages.find(r => r.role === 'first_frame') ??
+      usableImages.find(r => r !== lastFrame);
     if (firstFrame) content.push(buildImageBlock(firstFrame.url, 'first_frame'));
-    if (lastFrame) content.push(buildImageBlock(lastFrame.url, 'last_frame'));
+    if (lastFrame && lastFrame !== firstFrame) content.push(buildImageBlock(lastFrame.url, 'last_frame'));
   } else {
     // Reference mode: all images become reference_image, videos become reference_video, audios become reference_audio
     for (const img of references.images.filter(r => r.url.trim())) {

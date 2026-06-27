@@ -29,7 +29,7 @@ import ReferenceManager from '@/components/dashboard/reference-manager';
 import PostProduction from '@/components/dashboard/post-production';
 import CalendarLearning from '@/components/dashboard/calendar-learning';
 import type { DryRunResult, TaskHistory, BudgetInfo, LatestVideo, Gates, ModelType, ToastMessage, ReferenceEntry } from '@/components/dashboard/types';
-import { groupReferencesByType } from '@/components/dashboard/types';
+import { groupReferencesByType, remapReferenceRolesForMode } from '@/components/dashboard/types';
 
 interface InitialData {
   safeMode: boolean;
@@ -254,7 +254,11 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
   }, [invalidateIfNeeded]);
 
   const setGenerationModeV = useCallback((v: 'reference_mode' | 'frame_mode') => {
-    setGenerationMode(v); invalidateIfNeeded();
+    setGenerationMode(v);
+    // Realign image roles so the new mode's payload actually carries them.
+    // (frame mode needs first_frame/last_frame; reference mode rejects those.)
+    setReferences(prev => remapReferenceRolesForMode(prev, v));
+    invalidateIfNeeded();
   }, [invalidateIfNeeded]);
   const setResolutionV = useCallback((v: string) => { setResolution(v); invalidateIfNeeded(); }, [invalidateIfNeeded]);
   const setFpsV = useCallback((v: number) => { setFps(v); invalidateIfNeeded(); }, [invalidateIfNeeded]);

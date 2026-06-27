@@ -418,6 +418,39 @@ export function createEmptyReference(type: 'image' | 'video' | 'audio', index: n
   };
 }
 
+/**
+ * Remap image reference roles to match the active generation mode.
+ *
+ * Frame mode only accepts first_frame / last_frame image roles; reference mode
+ * only accepts the reference-style roles (main_identity, etc.). Switching modes
+ * used to leave roles untouched, which left images with a role that the target
+ * mode rejects — so the payload builder silently dropped them (text-only output)
+ * and the role dropdown rendered blank. This realigns image roles on every mode
+ * switch so the payload always carries the image.
+ *
+ * Video/audio references are left untouched (they are hidden in frame mode and
+ * surface again unchanged when reference mode is restored).
+ */
+export function remapReferenceRolesForMode(refs: ReferenceEntry[], mode: GenerationMode): ReferenceEntry[] {
+  if (mode === 'frame_mode') {
+    // First image → first_frame, every subsequent image → last_frame.
+    let imageIndex = 0;
+    return refs.map(r => {
+      if (r.assetType !== 'image') return r;
+      const desired = imageIndex === 0 ? 'first_frame' : 'last_frame';
+      imageIndex += 1;
+      return r.role === desired ? r : { ...r, role: desired };
+    });
+  }
+  // reference_mode: any leftover frame role becomes the default reference role.
+  const defaultImageRole = REFERENCE_ROLES.image[0]?.value ?? 'main_identity';
+  return refs.map(r =>
+    r.assetType === 'image' && FRAME_MODE_ROLES.has(r.role)
+      ? { ...r, role: defaultImageRole }
+      : r
+  );
+}
+
 /** Derive active references grouped by type for dry-run payload */
 export function groupReferencesByType(refs: ReferenceEntry[]) {
   const active = refs.filter(r => r.url.trim() !== '');
