@@ -1,0 +1,474 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Original Models ───
+
+model VideoTask {
+  id                 String   @id @default(cuid())
+  prompt             String
+  modelType          String
+  modelId            String
+  resolution         String
+  duration           Int
+  aspectRatio        String
+  masterImageUrl     String?
+  storyboardImageUrl String?
+  audioUrl1          String?
+  audioUrl2          String?
+  audioUrl3          String?
+  videoUrl1          String?
+  videoUrl2          String?
+  videoUrl3          String?
+  audioRiskAcknowledged Boolean @default(false)
+  videoRiskAcknowledged Boolean @default(false)
+  status             String   @default("draft")
+  taskId             String?
+  videoUrl           String?
+  videoFileName      String?
+  costEstimate       Float?
+  costActual         Float?
+  safetyPassed       Boolean  @default(false)
+  safetyWarnings     String?
+  dryRunPassed       Boolean  @default(false)
+  dryRunResult       String?
+  paidConfirmation   Boolean  @default(false)
+  maxCostUsd         Float?
+  outputFilename     String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model PromptTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  category    String
+  promptFull  String
+  promptMini  String
+  hookText    String?
+  animalType  String?
+  biome       String?
+  isFavorite  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model BudgetSetting {
+  id             String   @id @default(cuid())
+  monthlyLimit   Float
+  spentThisMonth Float    @default(0)
+  currency       String   @default("USD")
+  alertThreshold Float    @default(0.8)
+  updatedAt      DateTime @updatedAt
+}
+
+model CostLedger {
+  id          String   @id @default(cuid())
+  taskId      String?
+  modelType   String
+  resolution  String
+  duration    Int
+  costUsd     Float
+  description String?
+  createdAt   DateTime @default(now())
+}
+
+model TokenPack {
+  id          String   @id @default(cuid())
+  name        String
+  tokensTotal Int
+  tokensUsed  Int      @default(0)
+  costUsd     Float
+  provider    String   @default("byteplus")
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model DashboardSettings {
+  id               String   @id @default(cuid())
+  safeMode         Boolean  @default(true)
+  outputFolder     String   @default("/Users/acharyabimal/Movies/WSTV/SeedanceVideos")
+  defaultFps       Int      @default(24)
+  defaultModel     String   @default("seedance-2.0")
+  defaultResolution String  @default("720p")
+  intelligentModeWarning Boolean @default(true)
+  updatedAt        DateTime @updatedAt
+}
+
+// ─── Cost & Budget Models ───
+
+model PricingModel {
+  id              String   @id @default(cuid())
+  name            String
+  modelId         String
+  userLabel       String?
+  provider        String   @default("byteplus")
+  pricingMode     String   @default("token-based")
+  rate480p        Float    @default(0)
+  rate720p        Float    @default(0)
+  rate1080p       Float    @default(0)
+  rate4k          Float    @default(0)
+  perVideoCost    Float?
+  supports480p    Boolean  @default(true)
+  supports720p    Boolean  @default(true)
+  supports1080p   Boolean  @default(true)
+  supports4k      Boolean  @default(false)
+  minDurationSec  Int      @default(4)
+  maxDurationSec  Int      @default(15)
+  supportedModes  String   @default("text-to-video,first-frame,first-and-last-frame,reference,extension")
+  status          String   @default("active")
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model SubscriptionPlan {
+  id              String   @id @default(cuid())
+  name            String
+  priceUsd        Float
+  tokenAllowance  Int
+  validityDays    Int      @default(90)
+  provider        String   @default("byteplus")
+  description     String?
+  status          String   @default("active")
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model SubscriptionPurchase {
+  id              String   @id @default(cuid())
+  planId          String?
+  planName        String
+  priceUsd        Float
+  tokenAllowance  Int
+  tokensUsed      Int      @default(0)
+  purchaseDate    DateTime
+  expiryDate      DateTime
+  manualExpiryOverride Boolean @default(false)
+  validityDays    Int      @default(90)
+  provider        String   @default("byteplus")
+  billingCurrency String   @default("USD")
+  status          String   @default("active")
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model VideoCostEstimate {
+  id              String   @id @default(cuid())
+  usageRecordId   String?
+  pricingModelId  String?
+  modelId         String
+  modelName       String
+  mode            String   @default("text-to-video")
+  width           Int
+  height          Int
+  fps             Int      @default(24)
+  durationSeconds Int
+  videoCount      Int      @default(1)
+  pricingMode     String   @default("token-based")
+  ratePerKTokens  Float
+  estimatedTokens Int
+  estimatedCostUsd Float
+  actualTokens    Int?
+  actualCostUsd   Float?
+  jpyExchangeRate Float?
+  estimatedCostJpy Float?
+  actualCostJpy   Float?
+  intelligentMode Boolean  @default(false)
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model UsageRecord {
+  id              String   @id @default(cuid())
+  purchaseId      String?
+  projectTitle    String?
+  animalStoryName String?
+  pricingModelId  String?
+  modelId         String
+  modelName       String
+  mode            String   @default("text-to-video")
+  width           Int
+  height          Int
+  fps             Int      @default(24)
+  durationSeconds Int
+  videoCount      Int      @default(1)
+  pricingMode     String   @default("token-based")
+  ratePerKTokens  Float
+  estimatedTokens Int
+  estimatedCostUsd Float
+  actualTokens    Int?
+  actualCostUsd   Float?
+  status          String   @default("planned")
+  notes           String?
+  generatedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model ExchangeRateSetting {
+  id              String   @id @default(cuid())
+  fromCurrency    String   @default("USD")
+  toCurrency      String   @default("JPY")
+  rate            Float    @default(149.5)
+  source          String   @default("manual")
+  lastUpdated     DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ─── Production Workflow Models ───
+
+model WSTVPreset {
+  id              String   @id @default(cuid())
+  name            String   // "Mother saves baby", "Storm survival", etc.
+  icon            String   @default("🎬")
+  category        String   @default("wildlife") // wildlife, rescue, emotional, funny, rare
+  promptTemplate  String   // Full prompt template with placeholders
+  hookTemplate    String?  // 0-3s hook text
+  structureNotes String?  // timing beats, scene structure
+  safetyRules    String?  // JSON array of safety rule strings
+  captionStyle   String?  // caption template
+  hashtagStyle   String?  // hashtag template
+  defaultModel   String   @default("seedance-2.0")
+  defaultResolution String @default("720p")
+  defaultDuration Int     @default(15)
+  defaultFps     Int      @default(24)
+  animalType     String?  // bear, eagle, lion, etc.
+  biome          String?  // forest, ocean, arctic, etc.
+  dangerType     String?  // predator, storm, river, etc.
+  emotionalBeat  String?  // rescue, reunion, learning, survival
+  sortOrder      Int      @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model PromptVersion {
+  id              String   @id @default(cuid())
+  projectId       String?  // link to project
+  versionLabel    String   // "V1", "V2", "V3", "final", "rejected", "used", "viral"
+  promptText      String
+  modelType       String?
+  resolution      String?
+  duration        Int?
+  changeNote      String?  // what changed from previous version
+  performanceNote String?  // how did this version perform
+  isFinal         Boolean  @default(false)
+  isRejected      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model GenerationQA {
+  id                String   @id @default(cuid())
+  projectId         String?  // link to project
+  // Animal Realism QA
+  habitatCorrect    Boolean?
+  behaviorRealistic Boolean?
+  movementPossible  Boolean?
+  scaleCorrect      Boolean?
+  seasonBelievable  Boolean?
+  predatorPreySafe  Boolean?
+  babyAgeBelievable Boolean?
+  realismNotes      String?
+  // Viral Hook Score (1-10)
+  viralHookScore    Int?
+  hookInstantDanger Boolean?
+  hookEmotionalClarity Boolean?
+  hookAnimalReadable Boolean?
+  hookUnusualMoment Boolean?
+  hookCuriosityGap  Boolean?
+  hookNoConfusingSetup Boolean?
+  hookNoSlowOpening  Boolean?
+  // Mobile Readability Score (1-10)
+  mobileReadabilityScore Int?
+  mobileSubjectSize Boolean?
+  mobileFullBodyVisible Boolean?
+  mobileFaceVisible Boolean?
+  mobileActionClear Boolean?
+  mobileNoTinyAnimals Boolean?
+  mobileVerticalFraming Boolean?
+  mobilePayoffReadable Boolean?
+  // Risk Level
+  riskLevel         String   @default("low") // low, medium, high
+  riskMultipleAnimals Boolean @default(false)
+  riskFastMotion    Boolean  @default(false)
+  riskWaterPhysics  Boolean  @default(false)
+  riskRainStorm     Boolean  @default(false)
+  riskSnow          Boolean  @default(false)
+  riskFurRealism    Boolean  @default(false)
+  riskBabyAnimalScale Boolean @default(false)
+  riskPredatorPreyContact Boolean @default(false)
+  riskComplexRescue Boolean  @default(false)
+  riskNotes         String?
+  // Output Rating (1-6)
+  outputRating      Int?     // 1=unusable, 2=bad, 3=needs edit, 4=usable, 5=strong, 6=viral candidate
+  outputNotes       String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model RetryStrategy {
+  id                String   @id @default(cuid())
+  projectId         String?
+  failureReason     String   // identity_drift, wrong_animal, bad_anatomy, etc.
+  suggestedFix      String   // simplify_prompt, reduce_contact, etc.
+  fixDetails        String?
+  attempted         Boolean  @default(false)
+  succeeded         Boolean?
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// ─── Reference Asset Manager ───
+
+model ReferenceAsset {
+  id          String   @id @default(cuid())
+  projectId   String?  // link to project
+  assetType   String   // image, video, audio
+  role        String   // main_identity, mother_animal, baby_animal, environment, camera, lighting, first_frame, last_frame, extra, audio_ambient, audio_reference, video_motion, video_style
+  url         String
+  label       String?
+  notes       String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ─── Post-Production Models ───
+
+model PostProduction {
+  id                    String   @id @default(cuid())
+  projectId             String?
+  // CapCut Editing Tracker
+  rawDownloaded         Boolean  @default(false)
+  bestClipSelected      Boolean  @default(false)
+  trimmed               Boolean  @default(false)
+  coverFrameSelected    Boolean  @default(false)
+  colorAdjusted         Boolean  @default(false)
+  soundChecked          Boolean  @default(false)
+  captionAdded          Boolean  @default(false)
+  exported1080p         Boolean  @default(false)
+  uploadedToFacebook    Boolean  @default(false)
+  performanceReviewed   Boolean  @default(false)
+  // Cover Frame Planner
+  coverTimestamp        String?  // "2.4s"
+  coverEmotion         String?
+  coverAnimalFaceVisible Boolean?
+  coverDangerVisible    Boolean?
+  coverNoBlur          Boolean?
+  coverStrongThumbnail Boolean?
+  coverNotes           String?
+  // Caption & Hashtag QA
+  captionText          String?
+  captionUnder150Chars Boolean?
+  captionAmericanEnglish Boolean?
+  captionEmotionallyStrong Boolean?
+  captionNoClickbait   Boolean?
+  hashtags             String?
+  hashtagCount5        Boolean?
+  hashtagsUsaRelevant  Boolean?
+  hashtagsNoRepeat     Boolean?
+  // Manual Browser Generation Tracker
+  browserModelUsed     String?
+  browserPromptUsed    String?
+  browserRefImagesUsed String?
+  browserEstimatedCost Float?
+  browserActualCost    Float?
+  browserOutputRating  Int?
+  browserVideoFileName String?
+  browserCapCutStatus  String?
+  browserPostedUrl     String?
+  // Cost Per Posted Video
+  plannedCost          Float?
+  generationCost       Float?
+  failedGenerationCost Float?
+  retryCost            Float?
+  finalUsableVideoCost Float?
+  notes                String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model PerformanceRecord {
+  id                String   @id @default(cuid())
+  projectId         String?
+  views             Int?
+  threeSecRetention Float?   // percentage
+  avgWatchTime      Float?   // seconds
+  shares            Int?
+  comments          Int?
+  saves             Int?
+  negativeComments  Int?
+  bestComment       String?
+  reasonWorked      String?
+  reasonFailed      String?
+  postedAt          DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model ViralLearning {
+  id                String   @id @default(cuid())
+  category          String   // animal, hook, ending, caption, posting_time, scene_failed
+  value             String   // e.g., "bear", "instant danger", "rescue ending"
+  performanceScore  Float?   // 0-10
+  occurrenceCount   Int      @default(1)
+  avgViews          Float?
+  avgRetention      Float?
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model ProviderComparison {
+  id                String   @id @default(cuid())
+  provider          String   // seedance-mini, seedance-full, kling, runway
+  category          String   // animal_realism, water, storm, snow, baby_animals, rescue, predator, emotional
+  rating            Int?     // 1-5
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model ContentCalendar {
+  id                String   @id @default(cuid())
+  scheduledDate     DateTime
+  projectTitle      String?
+  animalStoryName   String?
+  status            String   @default("idea") // idea, master_image, storyboard, prompted, generated, capcut_edit, scheduled, posted, reviewed
+  presetId          String?
+  promptVersionId   String?
+  qaId              String?
+  postProductionId  String?
+  performanceId     String?
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model DuplicateCheck {
+  id                String   @id @default(cuid())
+  newProjectTitle   String
+  newAnimal         String?
+  newLocation       String?
+  newDanger         String?
+  newEnding         String?
+  newEmotionalBeat  String?
+  matchedProjectId  String?
+  similarityScore   Float?   // 0-1
+  warningMessage    String?
+  createdAt         DateTime @default(now())
+}
