@@ -15,6 +15,7 @@ import { StepReferences } from '@/components/dashboard/step-references';
 import { StepOutput } from '@/components/dashboard/step-output';
 import { StepDryRun } from '@/components/dashboard/step-dryrun';
 import { SeedancePayloadPreviewPanel } from '@/components/dashboard/seedance-payload-preview';
+import { GenerateSafetyStrip } from '@/components/dashboard/generate-safety-strip';
 import { OfficialQuickstartReference } from '@/components/dashboard/official-quickstart-reference';
 import { ResourcePackBillingPanel } from '@/components/dashboard/resource-pack-billing';
 import { StepPaid } from '@/components/dashboard/step-paid';
@@ -73,7 +74,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
   const [refRiskAcknowledged, setRefRiskAcknowledged] = useState(false);
 
   const [resolution, setResolution] = useState('720p');
-  const [duration, setDuration] = useState(6);
+  const [duration, setDuration] = useState(15);
   const [aspectRatio, setAspectRatio] = useState('9:16');
   const [maxCostUsd, setMaxCostUsd] = useState('');
   const [outputFilename, setOutputFilename] = useState('');
@@ -485,6 +486,14 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
                   ))}
                 </div>
 
+                <GenerateSafetyStrip
+                  safeMode={safeMode}
+                  seedanceModelId={seedanceModelId}
+                  resolution={resolution}
+                  duration={duration}
+                  generateAudio={audioMode !== 'none'}
+                />
+
                 <StepPrompt prompt={prompt} setPrompt={setPromptV} modelType={modelType} setModelType={setModelTypeV} />
                 <StepConnector active completed={prompt.length > 0} />
                 <StepReferences
@@ -524,18 +533,6 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
                   references={references}
                   generationMode={generationMode}
                   audioMode={audioMode}
-                />
-                {/* ─── PHASE5: Official Quickstart Reference panel ─── */}
-                <OfficialQuickstartReference />
-                {/* ─── PHASE5: Resource Pack Billing / Deduction Rules panel ─── */}
-                <ResourcePackBillingPanel
-                  seedanceModelId={seedanceModelId}
-                  resolution={resolution}
-                  duration={duration}
-                  references={(() => {
-                    const groups = groupReferencesByType(references);
-                    return { videos: groups.videos };
-                  })()}
                 />
                 <StepConnector active completed={dryRunResult?.passed === true} />
                 <StepPaid
@@ -578,7 +575,15 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
 
           {/* Cost & Budget Tab */}
           <TabsContent value="budget">
-            <CostDashboard />
+            <div className="space-y-6">
+              <CostDashboard />
+              <ResourcePackBillingPanel
+                seedanceModelId={seedanceModelId}
+                resolution={resolution}
+                duration={duration}
+                references={{ videos: refGroups.videos }}
+              />
+            </div>
           </TabsContent>
 
           {/* Post-Production Tab */}
@@ -599,7 +604,10 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
 
           {/* Settings Tab */}
           <TabsContent value="settings">
-            <CostSettings initialBudget={budgetInfo} />
+            <div className="space-y-6">
+              <CostSettings initialBudget={budgetInfo} />
+              <OfficialQuickstartReference />
+            </div>
           </TabsContent>
         </Tabs>
       </main>

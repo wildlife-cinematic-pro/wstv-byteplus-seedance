@@ -6,7 +6,7 @@ This ZIP contains PHASE5 changes on top of Phase 1–4. All safety invariants ar
 
 ### 1. New component: `src/components/dashboard/official-quickstart-reference.tsx`
 
-Renders an "Official Seedance 2.0 Quickstart Reference — PHASE5.1 Only" panel on the Generate tab with:
+Renders an "Official Seedance 2.0 Quickstart Reference — PHASE5.1 Only" panel in the Settings tab with:
 
 - **Main description**: "This quickstart package is official BytePlus ModelArk reference for future real API integration. It should not be executed while WSTV is in Safe Mode / Dry Run Mode. `demo_standard.py` can create real paid generation tasks if `ARK_API_KEY` is configured."
 - **Warning badge**: "Reference only — do not run the official Python demo from this dashboard."
@@ -42,10 +42,13 @@ Renders an "Official Seedance 2.0 Quickstart Reference — PHASE5.1 Only" panel 
 - Added word count to validation log: "ℹ️ Prompt: N words"
 - A 3500-character prompt now passes dry-run with a warning instead of failing
 
-### 5. Updated `client.tsx` — renders OfficialQuickstartReference panel
+### 5. Updated `client.tsx` — daily Generate cleanup + reference relocation
 
-- Added import for `OfficialQuickstartReference`
-- Renders `<OfficialQuickstartReference />` after `<SeedancePayloadPreviewPanel />` on the Generate tab
+- Adds a compact Generate-tab safety/status strip after the workflow progress bar
+- Keeps Generate focused on daily-use components only: prompt, references, output settings, dry run, payload preview, paid gate, preview
+- Moves `<OfficialQuickstartReference />` to the Settings tab
+- Moves `<ResourcePackBillingPanel />` to the Cost tab below the main cost dashboard
+- Keeps WSTV default generation state at Standard / 9:16 / 15s / 720p / reference_mode
 
 ## Official quickstart package reference (READ-ONLY)
 
@@ -109,6 +112,9 @@ Open http://localhost:3000
 | Asset URL warning present | ✅ |
 | API key warning present | ✅ |
 | Payload Preview label present | ✅ |
+| Generate safety/status strip present | ✅ |
+| Official Quickstart Reference moved to Settings | ✅ |
+| Resource Pack Billing moved to Cost | ✅ |
 | Future endpoint note present | ✅ |
 | Word count displayed in prompt counter | ✅ |
 | 3500-char prompt does NOT hard-block dry-run | ✅ (passed=True, warning shown) |
@@ -146,10 +152,11 @@ Open http://localhost:3000
 | File | Change |
 |------|--------|
 | `src/components/dashboard/official-quickstart-reference.tsx` | **NEW** — Official Quickstart Reference panel with PHASE5.1 label, 12-item safety checklist, 3 safety warnings, 16-item PHASE6 checklist, endpoint reference |
-| `src/components/dashboard/seedance-payload-preview.tsx` | Updated — renamed lifecycle to "Future PHASE6", added "Payload Preview only" label, added future endpoint note with "do not call" warning |
+| `src/components/dashboard/generate-safety-strip.tsx` | **NEW** — Compact Generate-tab safety/status strip |
+| `src/components/dashboard/seedance-payload-preview.tsx` | Updated — renamed lifecycle to "Future PHASE6", added "Payload Preview only" label, added future endpoint note with "do not call" warning, keeps reference sections collapsed by default |
 | `src/components/dashboard/step-prompt.tsx` | Updated — word count + character count display, over-limit changed from red (hard block) to amber (warning), CharProgressBar color fix |
 | `src/app/api/dry-run/route.ts` | Updated — prompt length converted from hard error to soft warning, word count added to validation log |
-| `src/components/dashboard/client.tsx` | Updated — imports + renders OfficialQuickstartReference panel |
+| `src/components/dashboard/client.tsx` | Updated — moves docs to Settings, billing to Cost, keeps Generate daily-use focused |
 
 ## Files NOT modified (kept from Phase 1–4)
 
