@@ -171,7 +171,13 @@ export async function POST(request: NextRequest) {
     if (!rawReferences) {
       const legacyImages: RefItem[] = [];
       if (masterImageUrl) legacyImages.push({ role: 'main_identity', url: masterImageUrl });
-      if (storyboardImageUrl) legacyImages.push({ role: 'first_frame', url: storyboardImageUrl });
+      if (storyboardImageUrl) {
+        legacyImages.push({
+          role: generationMode === 'frame_mode' ? 'first_frame' : 'camera_framing',
+          url: storyboardImageUrl,
+          label: generationMode === 'frame_mode' ? 'Legacy first frame' : 'Legacy storyboard',
+        });
+      }
       references.images = legacyImages;
 
       const legacyAudios: RefItem[] = [];

@@ -79,7 +79,6 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
   const [maxCostUsd, setMaxCostUsd] = useState('');
   const [outputFilename, setOutputFilename] = useState('');
   const [fps, setFps] = useState(24);
-  const [seed, setSeed] = useState('');
   const [audioMode, setAudioMode] = useState('auto');
   const [dryRunResult, setDryRunResult] = useState<DryRunResult | null>(null);
   const [dryRunInvalidated, setDryRunInvalidated] = useState(false);
@@ -259,7 +258,6 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
   }, [invalidateIfNeeded]);
   const setResolutionV = useCallback((v: string) => { setResolution(v); invalidateIfNeeded(); }, [invalidateIfNeeded]);
   const setFpsV = useCallback((v: number) => { setFps(v); invalidateIfNeeded(); }, [invalidateIfNeeded]);
-  const setSeedV = useCallback((v: string) => { setSeed(v); invalidateIfNeeded(); }, [invalidateIfNeeded]);
   const setAudioModeV = useCallback((v: string) => { setAudioMode(v); invalidateIfNeeded(); }, [invalidateIfNeeded]);
 
   // Invalidate dry run when references change
@@ -508,7 +506,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
                 <StepOutput modelType={modelType} resolution={resolution} setResolution={setResolutionV}
                   duration={duration} setDuration={setDurationV} aspectRatio={aspectRatio} setAspectRatio={setAspectRatioV}
                   maxCostUsd={maxCostUsd} setMaxCostUsd={setMaxCostUsdV} outputFilename={outputFilename} setOutputFilename={setOutputFilename}
-                  fps={fps} setFps={setFpsV} seed={seed} setSeed={setSeedV} audioMode={audioMode} setAudioMode={setAudioModeV}
+                  fps={fps} setFps={setFpsV} audioMode={audioMode} setAudioMode={setAudioModeV}
                   seedanceModelId={seedanceModelId} setSeedanceModelId={setSeedanceModelIdV}
                   generationMode={generationMode} setGenerationMode={setGenerationModeV} />
                 <StepConnector active completed />

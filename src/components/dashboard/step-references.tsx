@@ -103,7 +103,7 @@ function ReferenceTips() {
   const [open, setOpen] = useState(false);
   const tips = [
     { icon: <ImageIcon className="w-4 h-4 text-emerald-400" />, label: 'Image Tips', text: 'Use high-contrast images (1024x1024+). Main identity sets the subject. First/Last frame guide scene composition.' },
-    { icon: <Music className="w-4 h-4 text-emerald-400" />, label: 'Audio Tips', text: 'Use short clips (5-15s). MP3/WAV preferred. Audio may override prompt-driven audio.' },
+    { icon: <Music className="w-4 h-4 text-emerald-400" />, label: 'Audio Tips', text: 'generate_audio true creates synchronized audio. Optional audio references can influence ambience, but use them carefully.' },
     { icon: <Video className="w-4 h-4 text-emerald-400" />, label: 'Video Tips', text: 'Use 9:16 vertical clips for best results. Keep under 15s. May override text-driven motion.' },
   ];
   return (
