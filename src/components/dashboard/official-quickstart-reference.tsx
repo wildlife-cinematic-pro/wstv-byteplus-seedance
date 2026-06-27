@@ -119,7 +119,7 @@ export function OfficialQuickstartReference() {
             <div><span className="text-gray-500">Ratio:</span> <span className="text-gray-300">9:16</span></div>
             <div><span className="text-gray-500">Duration:</span> <span className="text-gray-300">15s</span></div>
             <div><span className="text-gray-500">Resolution:</span> <span className="text-gray-300">720p</span></div>
-            <div><span className="text-gray-500">generate_audio:</span> <span className="text-gray-300">false</span></div>
+            <div><span className="text-gray-500">generate_audio:</span> <span className="text-gray-300">true</span></div>
             <div><span className="text-gray-500">watermark:</span> <span className="text-gray-300">false</span></div>
             <div><span className="text-gray-500">return_last_frame:</span> <span className="text-gray-300">true</span></div>
           </div>
