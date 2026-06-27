@@ -3,13 +3,13 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Leaf, Shield, ShieldCheck, ShieldOff, DollarSign, History, Cpu, Monitor, Keyboard, LayoutDashboard, Calculator, Film, Clapperboard, FolderOpen, Calendar, GraduationCap, Info } from 'lucide-react';
+import { StepShell, StepAccordion } from '@/components/dashboard/shared';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { StepConnector } from '@/components/dashboard/shared';
 import { StepPrompt } from '@/components/dashboard/step-prompt';
 import { StepReferences } from '@/components/dashboard/step-references';
 import { StepOutput } from '@/components/dashboard/step-output';
@@ -496,68 +496,71 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
                   generateAudio={audioMode !== 'none'}
                 />
 
-                <StepPrompt prompt={prompt} setPrompt={setPromptV} modelType={modelType} setModelType={setModelTypeV} />
-                <StepConnector active completed={prompt.length > 0} />
-                <StepReferences
-                  references={references}
-                  setReferences={setReferencesV}
-                  riskAcknowledged={refRiskAcknowledged}
-                  setRiskAcknowledged={setRefRiskAcknowledged}
-                  generationMode={generationMode}
-                  setGenerationMode={setGenerationModeV}
-                />
-                <StepConnector active completed={refCount > 0} />
-                <StepOutput modelType={modelType} resolution={resolution} setResolution={setResolutionV}
-                  duration={duration} setDuration={setDurationV} aspectRatio={aspectRatio} setAspectRatio={setAspectRatioV}
-                  maxCostUsd={maxCostUsd} setMaxCostUsd={setMaxCostUsdV} outputFilename={outputFilename} setOutputFilename={setOutputFilename}
-                  fps={fps} setFps={setFpsV} audioMode={audioMode} setAudioMode={setAudioModeV}
-                  seedanceModelId={seedanceModelId} setSeedanceModelId={setSeedanceModelIdV}
-                  generationMode={generationMode} setGenerationMode={setGenerationModeV} />
-                <StepConnector active completed />
-                <StepDryRun
-                  dryRunResult={dryRunResult} dryRunInvalidated={dryRunInvalidated}
-                  prompt={prompt} modelType={modelType} resolution={resolution} duration={duration} aspectRatio={aspectRatio}
-                  references={references}
-                  maxCostUsd={maxCostUsd} outputFilename={outputFilename}
-                  currentTaskId={currentTaskId} safeMode={safeMode}
-                  onResult={onDryRunResult}
-                  onTaskId={setCurrentTaskId} onInvalidatedClear={onInvalidatedClear}
-                  seedanceModelId={seedanceModelId}
-                  generationMode={generationMode}
-                />
-                {/* ─── PHASE4: Seedance API Payload Preview + Examples + Lifecycle ─── */}
-                <SeedancePayloadPreviewPanel
-                  prompt={prompt}
-                  seedanceModelId={seedanceModelId}
-                  resolution={resolution}
-                  duration={duration}
-                  aspectRatio={aspectRatio}
-                  references={references}
-                  generationMode={generationMode}
-                  audioMode={audioMode}
-                />
-                <StepConnector active completed={dryRunResult?.passed === true} />
-                <StepPaid
-                  visible={paidZoneVisible} safeMode={safeMode} gates={gates} allGatesPassed={allGatesPassed}
-                  confirmationText={confirmationText} setConfirmationText={setConfirmationText}
-                  paidLoading={paidLoading} currentTaskId={currentTaskId}
-                  storyboardRiskAcknowledged={true}
-                  audioRiskAcknowledged={refRiskAcknowledged}
-                  videoRiskAcknowledged={refRiskAcknowledged}
-                  estimatedCost={estimateCost()}
-                  onPaidSuccess={onPaidSuccess}
-                  paidUnlocked={paidUnlocked}
-                  unlockInput={unlockInput}
-                  setUnlockInput={setUnlockInput}
-                  unlockError={unlockError}
-                  onUnlockSubmit={handleUnlockSubmit}
-                  onLock={handleLockPaidZone}
-                />
-                <StepConnector active completed={false} />
-                <StepPreview latestVideo={latestVideo} onRefreshVideo={refreshVideo} onOpenFolder={openFolder}
-                  dryRunPassed={dryRunResult?.passed && !dryRunInvalidated}
-                  hasPaidTask={taskHistory.some(t => t.status === 'submitted' || t.status === 'processing')}
-                  modelType={modelType} resolution={resolution} duration={duration} estimatedCost={estimateCost()} />
+                {/* Step stack — collapsible rows with Prev/Next navigation */}
+                <StepAccordion
+                  order={['prompt', 'references', 'output', 'dryrun', 'payload', 'preview']}
+                  defaultOpenValue="prompt"
+                >
+                <div className="space-y-3">
+                  <StepPrompt prompt={prompt} setPrompt={setPromptV} modelType={modelType} setModelType={setModelTypeV} />
+                  <StepReferences
+                    references={references}
+                    setReferences={setReferencesV}
+                    riskAcknowledged={refRiskAcknowledged}
+                    setRiskAcknowledged={setRefRiskAcknowledged}
+                    generationMode={generationMode}
+                    setGenerationMode={setGenerationModeV}
+                  />
+                  <StepOutput modelType={modelType} resolution={resolution} setResolution={setResolutionV}
+                    duration={duration} setDuration={setDurationV} aspectRatio={aspectRatio} setAspectRatio={setAspectRatioV}
+                    maxCostUsd={maxCostUsd} setMaxCostUsd={setMaxCostUsdV} outputFilename={outputFilename} setOutputFilename={setOutputFilename}
+                    fps={fps} setFps={setFpsV} audioMode={audioMode} setAudioMode={setAudioModeV}
+                    seedanceModelId={seedanceModelId} setSeedanceModelId={setSeedanceModelIdV}
+                    generationMode={generationMode} setGenerationMode={setGenerationModeV} />
+                  <StepDryRun
+                    dryRunResult={dryRunResult} dryRunInvalidated={dryRunInvalidated}
+                    prompt={prompt} modelType={modelType} resolution={resolution} duration={duration} aspectRatio={aspectRatio}
+                    references={references}
+                    maxCostUsd={maxCostUsd} outputFilename={outputFilename}
+                    currentTaskId={currentTaskId} safeMode={safeMode}
+                    onResult={onDryRunResult}
+                    onTaskId={setCurrentTaskId} onInvalidatedClear={onInvalidatedClear}
+                    seedanceModelId={seedanceModelId}
+                    generationMode={generationMode}
+                  />
+                  {/* ─── PHASE4: Seedance API Payload Preview + Examples + Lifecycle ─── */}
+                  <SeedancePayloadPreviewPanel
+                    prompt={prompt}
+                    seedanceModelId={seedanceModelId}
+                    resolution={resolution}
+                    duration={duration}
+                    aspectRatio={aspectRatio}
+                    references={references}
+                    generationMode={generationMode}
+                    audioMode={audioMode}
+                  />
+                  <StepPaid
+                    visible={paidZoneVisible} safeMode={safeMode} gates={gates} allGatesPassed={allGatesPassed}
+                    confirmationText={confirmationText} setConfirmationText={setConfirmationText}
+                    paidLoading={paidLoading} currentTaskId={currentTaskId}
+                    storyboardRiskAcknowledged={true}
+                    audioRiskAcknowledged={refRiskAcknowledged}
+                    videoRiskAcknowledged={refRiskAcknowledged}
+                    estimatedCost={estimateCost()}
+                    onPaidSuccess={onPaidSuccess}
+                    paidUnlocked={paidUnlocked}
+                    unlockInput={unlockInput}
+                    setUnlockInput={setUnlockInput}
+                    unlockError={unlockError}
+                    onUnlockSubmit={handleUnlockSubmit}
+                    onLock={handleLockPaidZone}
+                  />
+                  <StepPreview latestVideo={latestVideo} onRefreshVideo={refreshVideo} onOpenFolder={openFolder}
+                    dryRunPassed={dryRunResult?.passed && !dryRunInvalidated}
+                    hasPaidTask={taskHistory.some(t => t.status === 'submitted' || t.status === 'processing')}
+                    modelType={modelType} resolution={resolution} duration={duration} estimatedCost={estimateCost()} />
+                </div>
+                </StepAccordion>
               </div>
               <Sidebar open={sidebarOpen} taskHistory={taskHistory} budgetInfo={budgetInfo} />
             </div>
@@ -565,7 +568,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
 
           {/* Workflow Tab — Presets, QA, Versions, References, Retry */}
           <TabsContent value="workflow">
-            <div className="space-y-6">
+            <div className="space-y-3">
               <div className="text-xs text-muted-foreground bg-muted/30 border border-emerald-500/30 rounded-md px-3 py-2 flex items-center gap-2">
                 <Info className="w-3 h-3 shrink-0 text-emerald-500/70" />
                 <span>Production planning tools — some sections are experimental. All data stays local.</span>
@@ -577,8 +580,10 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
 
           {/* Cost & Budget Tab */}
           <TabsContent value="budget">
-            <div className="space-y-6">
-              <CostDashboard />
+            <div className="space-y-3">
+              <StepShell icon={<LayoutDashboard className="w-5 h-5" />} title="Cost Dashboard" bodyClassName="">
+                <CostDashboard />
+              </StepShell>
               <ResourcePackBillingPanel
                 seedanceModelId={seedanceModelId}
                 resolution={resolution}
@@ -595,7 +600,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
 
           {/* Calendar & Learning Tab */}
           <TabsContent value="calendar">
-            <div className="space-y-6">
+            <div className="space-y-3">
               <div className="text-xs text-muted-foreground bg-muted/30 border border-emerald-500/30 rounded-md px-3 py-2 flex items-center gap-2">
                 <Info className="w-3 h-3 shrink-0 text-emerald-500/70" />
                 <span>Local planning calendar — no Google Calendar connection. All data stays in your local SQLite DB.</span>
@@ -606,8 +611,10 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
 
           {/* Settings Tab */}
           <TabsContent value="settings">
-            <div className="space-y-6">
-              <CostSettings initialBudget={budgetInfo} />
+            <div className="space-y-3">
+              <StepShell icon={<Calculator className="w-5 h-5" />} title="Budget & Cost Settings">
+                <CostSettings initialBudget={budgetInfo} />
+              </StepShell>
               <OfficialQuickstartReference />
             </div>
           </TabsContent>

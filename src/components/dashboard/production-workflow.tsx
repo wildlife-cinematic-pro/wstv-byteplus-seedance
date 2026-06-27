@@ -7,7 +7,7 @@ import {
   Binoculars, PawPrint, TreePine, AlertTriangle, CheckCircle2,
   XCircle, Star, ChevronDown, ChevronUp, Copy, X, Loader2, Clipboard
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StepShell } from './shared';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -323,13 +323,12 @@ export default function ProductionWorkflow() {
   const calcRiskLevel = activeRiskCount <= 2 ? 'Low' : activeRiskCount <= 5 ? 'Medium' : 'High';
 
   return (
-    <Card className="bg-[oklch(0.18_0.03_155)] border-emerald-500/20">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-emerald-400 flex items-center gap-2">
-          <Sparkles className="w-5 h-5" /> Production Workflow
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+    <StepShell
+      icon={<Sparkles className="w-5 h-5" />}
+      title="Production Workflow"
+      cardClassName="bg-[oklch(0.18_0.03_155)]"
+      bodyClassName=""
+    >
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="bg-[oklch(0.15_0.02_155)] border border-emerald-500/20 mb-4">
             <TabsTrigger value="presets" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-gray-400 text-xs gap-1">
@@ -730,7 +729,6 @@ export default function ProductionWorkflow() {
             {toastMsg}
           </div>
         )}
-      </CardContent>
-    </Card>
+    </StepShell>
   );
 }

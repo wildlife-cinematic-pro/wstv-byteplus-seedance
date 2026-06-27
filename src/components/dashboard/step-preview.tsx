@@ -6,10 +6,9 @@ import {
   Play, Pause, Volume2, VolumeX, Maximize, Copy, Check, ExternalLink, Clock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
-import { StepNumber, StatusBadge, CostDisplay } from './shared';
+import { StatusBadge, CostDisplay, StepShell, StepChip } from './shared';
 import type { LatestVideo, ModelType } from './types';
 
 interface StepPreviewProps {
@@ -199,14 +198,20 @@ export function StepPreview({
   }, [latestVideo]);
 
   return (
-    <Card className="bg-[oklch(0.18_0.03_155)] border-emerald-500/20">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-3 text-lg">
-          <StepNumber num={6} active completed={!!latestVideo} />
-          Video Preview
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <StepShell
+      num={6}
+      title="Video Preview"
+      value="preview"
+      active
+      completed={!!latestVideo}
+      defaultOpen={false}
+      cardClassName="bg-[oklch(0.18_0.03_155)]"
+      summary={
+        latestVideo
+          ? <StepChip>✓ Ready</StepChip>
+          : <StepChip tone="muted">No video</StepChip>
+      }
+    >
         {latestVideo ? (
           <div className="space-y-3">
             {latestVideo.videoUrl ? <VideoPlayer videoUrl={latestVideo.videoUrl} /> : (
@@ -265,7 +270,6 @@ export function StepPreview({
         ) : (
           <EmptyState onRefreshVideo={onRefreshVideo} onOpenFolder={onOpenFolder} dryRunPassed={dryRunPassed} hasPaidTask={hasPaidTask} />
         )}
-      </CardContent>
-    </Card>
+    </StepShell>
   );
 }

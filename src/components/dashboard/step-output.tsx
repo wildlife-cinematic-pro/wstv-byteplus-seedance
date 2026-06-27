@@ -1,14 +1,13 @@
 'use client';
 
 import { DollarSign, Clock, Monitor, FileVideo, Zap, Film, Info, AlertTriangle } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { StepNumber, CostDisplay } from './shared';
+import { CostDisplay, StepShell, StepChip } from './shared';
 import type { ModelType } from './types';
 import {
   SEEDANCE_MODEL_IDS,
@@ -188,14 +187,20 @@ export function StepOutput({
   };
 
   return (
-    <Card className="bg-card border-emerald-500/20">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-3 text-lg">
-          <StepNumber num={3} active completed={false} />
-          Output Settings
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <StepShell
+      num={3}
+      title="Output Settings"
+      value="output"
+      active
+      defaultOpen={false}
+      summary={
+        <>
+          <StepChip>{resolution}</StepChip>
+          <StepChip>{duration === -1 ? 'auto' : `${duration}s`}</StepChip>
+          <StepChip tone="muted">{aspectRatio}</StepChip>
+        </>
+      }
+    >
         {/* ─── PHASE4: Official Seedance Model Selector ─── */}
         <div>
           <Label className="text-sm text-gray-400 mb-2 block">
@@ -396,7 +401,6 @@ export function StepOutput({
 
         {/* Enhanced Cost Display */}
         <CostBreakdownBar seedanceModelId={seedanceModelId} resolution={resolution} duration={duration} />
-      </CardContent>
-    </Card>
+    </StepShell>
   );
 }

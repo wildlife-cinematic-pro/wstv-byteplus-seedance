@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
-import { CheckCircle2, Clock, XCircle, Loader2, ChevronDown, AlertTriangle, Info } from 'lucide-react';
+import React, { useState, useContext, createContext } from 'react';
+import { CheckCircle2, Clock, XCircle, Loader2, ChevronDown, ChevronLeft, ChevronRight, AlertTriangle, Info } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils';
 
 /** Numbered step circle with glow effect when completed */
 export function StepNumber({ num, active, completed }: { num: number; active: boolean; completed: boolean }) {
@@ -111,6 +113,142 @@ export function CostDisplay({ usd, cny, size = 'md', showLabel = true }: {
     <div className="flex items-baseline gap-2">
       <span className={`${textSizes[size]} font-bold ${color}`}>${usd.toFixed(2)}</span>
       {showLabel && <span className={`${subSizes[size]} text-muted-foreground`}>≈ ¥{cny.toFixed(2)}</span>}
+    </div>
+  );
+}
+
+/** Compact status chip used in StepShell header summaries */
+export function StepChip({ children, tone = 'emerald', className }: {
+  children: React.ReactNode; tone?: 'emerald' | 'amber' | 'red' | 'muted'; className?: string;
+}) {
+  const tones: Record<string, string> = {
+    emerald: 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10',
+    amber: 'border-amber-500/30 text-amber-400 bg-amber-500/10',
+    red: 'border-red-500/30 text-red-400 bg-red-500/10',
+    muted: 'border-border text-muted-foreground bg-muted/30',
+  };
+  return (
+    <span className={cn('inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium whitespace-nowrap', tones[tone], className)}>
+      {children}
+    </span>
+  );
+}
+
+/**
+ * StepAccordion — coordinates a group of StepShells so only one is open at a
+ * time and Prev/Next navigation can move between them. Provide the ordered list
+ * of step `value`s and the value that should start open. StepShells with a
+ * matching `value` become controlled by this provider; StepShells used outside a
+ * provider stay self-managed (uncontrolled).
+ */
+interface StepAccordionCtx {
+  openValue: string | null;
+  setOpenValue: (v: string | null) => void;
+  order: string[];
+}
+const StepAccordionContext = createContext<StepAccordionCtx | null>(null);
+
+export function StepAccordion({ order, defaultOpenValue = null, children }: {
+  order: string[];
+  defaultOpenValue?: string | null;
+  children: React.ReactNode;
+}) {
+  const [openValue, setOpenValue] = useState<string | null>(defaultOpenValue);
+  return (
+    <StepAccordionContext.Provider value={{ openValue, setOpenValue, order }}>
+      {children}
+    </StepAccordionContext.Provider>
+  );
+}
+
+/**
+ * Collapsible step container — a table-row style header (number/icon · title ·
+ * summary chips · chevron) over a collapsible body. Replaces the per-step
+ * Card/CardHeader/CardContent so every step shares one consistent, compact look
+ * and can be collapsed to reduce vertical clutter. When given a `value` inside a
+ * <StepAccordion>, it is driven by that provider and shows Prev/Next controls.
+ */
+export function StepShell({
+  num, icon, title, value, active = false, completed = false,
+  summary, headerBadge, defaultOpen = true,
+  cardClassName, bodyClassName = 'space-y-4', children,
+}: {
+  num?: number;
+  icon?: React.ReactNode;
+  title: string;
+  value?: string;
+  active?: boolean;
+  completed?: boolean;
+  summary?: React.ReactNode;
+  headerBadge?: React.ReactNode;
+  defaultOpen?: boolean;
+  cardClassName?: string;
+  bodyClassName?: string;
+  children: React.ReactNode;
+}) {
+  const ctx = useContext(StepAccordionContext);
+  const controlled = ctx !== null && value !== undefined;
+
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
+  const open = controlled ? ctx!.openValue === value : uncontrolledOpen;
+  const setOpen = controlled
+    ? (o: boolean) => ctx!.setOpenValue(o ? value! : null)
+    : setUncontrolledOpen;
+
+  // Prev/Next targets (controlled mode only)
+  const idx = controlled ? ctx!.order.indexOf(value!) : -1;
+  const prevValue = idx > 0 ? ctx!.order[idx - 1] : null;
+  const nextValue = idx >= 0 && idx < ctx!.order.length - 1 ? ctx!.order[idx + 1] : null;
+
+  return (
+    <div className={cn(
+      'rounded-xl border bg-card overflow-hidden transition-colors duration-300',
+      completed ? 'border-emerald-500/40' : 'border-emerald-500/20',
+      cardClassName,
+    )}>
+      <Collapsible open={open} onOpenChange={setOpen}>
+        <CollapsibleTrigger asChild>
+          <button
+            type="button"
+            className="w-full flex items-center gap-3 px-4 sm:px-5 py-3 text-left group hover:bg-emerald-500/[0.04] data-[state=open]:bg-emerald-500/[0.02] transition-colors"
+          >
+            {icon
+              ? <span className="flex items-center justify-center w-9 h-9 rounded-full bg-emerald-500/10 text-emerald-400 shrink-0">{icon}</span>
+              : <StepNumber num={num ?? 0} active={active || open} completed={completed} />}
+            <span className="text-base sm:text-lg font-semibold text-foreground flex-1 min-w-0 truncate">{title}</span>
+            <div className="flex items-center gap-2 shrink-0">
+              {headerBadge}
+              {summary && <div className="hidden md:flex items-center gap-1.5">{summary}</div>}
+              <ChevronDown className={cn('w-4 h-4 text-muted-foreground transition-transform duration-200 group-hover:text-emerald-400', open && 'rotate-180')} />
+            </div>
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+          <div className={cn('px-4 sm:px-5 pb-5 pt-0', bodyClassName)}>
+            {children}
+            {controlled && (
+              <div className="flex items-center justify-between gap-2 pt-4 mt-2 border-t border-border/60">
+                <Button
+                  type="button" variant="ghost" size="sm"
+                  disabled={!prevValue}
+                  onClick={() => ctx!.setOpenValue(prevValue)}
+                  className="text-muted-foreground hover:text-emerald-400 disabled:opacity-40"
+                >
+                  <ChevronLeft className="w-4 h-4 mr-1" /> Previous
+                </Button>
+                <Button
+                  type="button" variant="ghost" size="sm"
+                  disabled={!nextValue}
+                  onClick={() => ctx!.setOpenValue(nextValue)}
+                  className="text-emerald-400 hover:text-emerald-300 disabled:opacity-40"
+                >
+                  Next <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+            )}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }

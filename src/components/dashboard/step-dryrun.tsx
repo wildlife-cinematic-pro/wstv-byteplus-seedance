@@ -3,11 +3,10 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Play, CheckCircle2, XCircle, AlertTriangle, Loader2, RotateCcw, ChevronDown, ChevronRight, Type, Cpu, ImageIcon, DollarSign, Film, Music, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { StepNumber, GateProgress, CostDisplay } from './shared';
+import { GateProgress, CostDisplay, StepShell, StepChip } from './shared';
 import type { DryRunResult, ModelType, Gates, ReferenceEntry } from './types';
 import { groupReferencesByType } from './types';
 
@@ -367,20 +366,26 @@ export function StepDryRun({
   const headerColor = dryRunResult?.passed ? (dryRunInvalidated ? 'text-amber-400' : 'text-emerald-400') : 'text-red-400';
 
   return (
-    <Card className="bg-card border-emerald-500/20">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-3 text-lg">
-            <StepNumber num={4} active completed={passed} /> Dry Run
-          </CardTitle>
-          {dryRunInvalidated && dryRunResult && (
-            <Badge variant="outline" className="text-amber-400 border-amber-500/30 bg-amber-500/10 text-xs">
-              <RotateCcw className="w-3 h-3 mr-1" /> STALE — Re-run required
-            </Badge>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <StepShell
+      num={4}
+      title="Dry Run"
+      value="dryrun"
+      active
+      completed={passed}
+      defaultOpen={false}
+      headerBadge={
+        dryRunInvalidated && dryRunResult ? (
+          <Badge variant="outline" className="text-amber-400 border-amber-500/30 bg-amber-500/10 text-xs">
+            <RotateCcw className="w-3 h-3 mr-1" /> STALE
+          </Badge>
+        ) : undefined
+      }
+      summary={
+        dryRunResult
+          ? <StepChip tone={passed ? 'emerald' : 'red'}>{passed ? '✓ Passed' : '✗ Failed'}</StepChip>
+          : <StepChip tone="muted">Not run</StepChip>
+      }
+    >
         <p className="text-sm text-gray-400">Validates your configuration locally — no paid API request is made.</p>
         <Button onClick={runDryRun} disabled={loading || prompt.trim().length === 0}
           data-dry-run-btn
@@ -453,7 +458,6 @@ export function StepDryRun({
             </Collapsible>
           </div>
         )}
-      </CardContent>
-    </Card>
+    </StepShell>
   );
 }

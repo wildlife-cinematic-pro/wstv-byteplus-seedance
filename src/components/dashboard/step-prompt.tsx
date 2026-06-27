@@ -3,12 +3,11 @@
 import { useState, useMemo } from 'react';
 import { Sparkles, Zap, ArrowLeftRight, Info, Clipboard, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { QualityMeter, StepNumber } from './shared';
+import { QualityMeter, StepShell, StepChip } from './shared';
 import type { ModelType } from './types';
 
 /* ─── Helpers ─── */
@@ -181,14 +180,19 @@ export function StepPrompt({ prompt, setPrompt, modelType, setModelType }: StepP
   const quality = useMemo(() => analyzeQuality(prompt, modelType), [prompt, modelType]);
 
   return (
-    <Card className="bg-card border-emerald-500/20">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-3 text-lg">
-          <StepNumber num={1} active completed={prompt.length > 0} />
-          Prompt
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <StepShell
+      num={1}
+      title="Prompt"
+      value="prompt"
+      active
+      completed={prompt.length > 0}
+      summary={
+        <>
+          <StepChip tone="muted">{prompt.length} chars</StepChip>
+          <StepChip>{modelType === 'mini' ? 'Mini' : 'Full'}</StepChip>
+        </>
+      }
+    >
         {/* Model Selector + Compare — always visible in both modes */}
         <div className="space-y-3">
           <div className="flex flex-col sm:flex-row gap-3">
@@ -297,7 +301,6 @@ export function StepPrompt({ prompt, setPrompt, modelType, setModelType }: StepP
         {mode === 'ai-writer' && (
           <FutureAiWriterPanel />
         )}
-      </CardContent>
-    </Card>
+    </StepShell>
   );
 }

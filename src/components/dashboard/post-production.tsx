@@ -5,7 +5,7 @@ import {
   Film, ImageIcon, Type, Globe, DollarSign, BarChart3, Save, CheckCircle2,
   ClipboardCheck, Eye, AlertTriangle, TrendingUp, TrendingDown, Hash
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StepShell } from './shared';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -202,13 +202,12 @@ export default function PostProduction() {
   }, [views, retention3s, avgWatchTime, shares, comments, saves, negativeComments, bestComment, reasonWorked, reasonFailed, showToast]);
 
   return (
-    <Card className="bg-[oklch(0.18_0.03_155)] border-emerald-500/20">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-emerald-400 flex items-center gap-2">
-          <Film className="w-5 h-5" /> Post-Production Tracker
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+    <StepShell
+      icon={<Film className="w-5 h-5" />}
+      title="Post-Production Tracker"
+      cardClassName="bg-[oklch(0.18_0.03_155)]"
+      bodyClassName=""
+    >
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="bg-[oklch(0.15_0.02_155)] border border-emerald-500/20 mb-4 flex-wrap h-auto gap-1 p-1">
             <TabsTrigger value="capcut" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-gray-400 text-xs gap-1">
@@ -560,7 +559,6 @@ export default function PostProduction() {
             {toastMsg}
           </div>
         )}
-      </CardContent>
-    </Card>
+    </StepShell>
   );
 }

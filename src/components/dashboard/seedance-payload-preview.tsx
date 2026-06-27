@@ -2,11 +2,10 @@
 
 import { useMemo, useState } from 'react';
 import { Code2, FileText, Info, AlertTriangle, ChevronDown, ChevronRight, Copy, Clock, ShieldCheck } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { StepNumber } from './shared';
+import { StepShell, StepChip } from './shared';
 import type { ReferenceEntry } from './types';
 import {
   buildSeedancePayload,
@@ -208,13 +207,22 @@ export function SeedancePayloadPreviewPanel({
   const modelMeta = MODEL_METADATA[seedanceModelId] ?? MODEL_METADATA[SEEDANCE_MODEL_IDS.STANDARD];
 
   return (
-    <Card className="bg-card border-border">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-3 text-lg">
-          <Code2 className="w-5 h-5 text-emerald-400" />
-          Seedance 2.0 API Validation & Payload Preview
-        </CardTitle>
-        <div className="flex flex-wrap gap-2 mt-2">
+    <StepShell
+      icon={<Code2 className="w-5 h-5" />}
+      title="Seedance 2.0 API Validation & Payload Preview"
+      value="payload"
+      defaultOpen={false}
+      completed={validation.valid}
+      summary={
+        <>
+          <StepChip tone={validation.valid ? 'emerald' : 'red'}>
+            {validation.valid ? '✓ Valid' : `✗ ${validation.errors.length} err`}
+          </StepChip>
+          <StepChip tone="muted">{generationMode === 'reference_mode' ? 'Reference' : 'Frame'}</StepChip>
+        </>
+      }
+    >
+        <div className="flex flex-wrap gap-2">
           <Badge variant="outline" className="text-xs border-amber-500/30 text-amber-400 bg-amber-500/10">
             Payload preview only — no real API call
           </Badge>
@@ -228,8 +236,6 @@ export function SeedancePayloadPreviewPanel({
             {validation.valid ? '✓ Valid' : `✗ ${validation.errors.length} error(s)`}
           </Badge>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
         {/* Quick info row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
           <div className="bg-muted/30 rounded p-2 border border-emerald-500/30">
@@ -480,7 +486,6 @@ export function SeedancePayloadPreviewPanel({
             </div>
           </CollapsibleContent>
         </Collapsible>
-      </CardContent>
-    </Card>
+    </StepShell>
   );
 }

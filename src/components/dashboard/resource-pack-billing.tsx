@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { CreditCard, AlertTriangle, CheckCircle2, Info, ChevronDown, ChevronRight, Calculator } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StepShell } from './shared';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -63,13 +63,13 @@ export function ResourcePackBillingPanel({
   }), [seedanceModelId]);
 
   return (
-    <Card className="bg-card border-blue-500/30">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-3 text-lg">
-          <CreditCard className="w-5 h-5 text-blue-400" />
-          Official Resource Pack Billing / Deduction Rules
-        </CardTitle>
-        <div className="flex flex-wrap gap-2 mt-2">
+    <StepShell
+      icon={<CreditCard className="w-5 h-5" />}
+      title="Official Resource Pack Billing / Deduction Rules"
+      cardClassName="border-blue-500/30"
+      defaultOpen={false}
+    >
+        <div className="flex flex-wrap gap-2">
           <Badge variant="outline" className="text-xs border-blue-500/30 text-blue-400 bg-blue-500/10">
             PHASE5 — Billing reference
           </Badge>
@@ -77,8 +77,6 @@ export function ResourcePackBillingPanel({
             Official BytePlus deduction ratios
           </Badge>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
         {/* WSTV Active Pack card */}
         <div className="p-4 rounded-lg bg-muted/30 border border-emerald-500/20 space-y-3">
           <div className="flex items-center justify-between">
@@ -255,7 +253,6 @@ export function ResourcePackBillingPanel({
             </div>
           </CollapsibleContent>
         </Collapsible>
-      </CardContent>
-    </Card>
+    </StepShell>
   );
 }

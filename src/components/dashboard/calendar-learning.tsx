@@ -5,7 +5,7 @@ import {
   Calendar, BookOpen, GitCompare, Download, ChevronLeft, ChevronRight,
   Plus, Save, Star, Copy, TrendingUp, Eye, Clock
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StepShell } from './shared';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -265,13 +265,12 @@ export default function CalendarLearning() {
   }, []);
 
   return (
-    <Card className="bg-[oklch(0.18_0.03_155)] border-emerald-500/20">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-emerald-400 flex items-center gap-2">
-          <Calendar className="w-5 h-5" /> Calendar & Learning Center
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+    <StepShell
+      icon={<Calendar className="w-5 h-5" />}
+      title="Calendar & Learning Center"
+      cardClassName="bg-[oklch(0.18_0.03_155)]"
+      bodyClassName=""
+    >
         <div className="flex flex-wrap gap-1 mb-4 p-1 bg-[oklch(0.15_0.02_155)] border border-emerald-500/20 rounded-md">
           {[
             { id: 'calendar', label: 'Calendar', icon: <Calendar className="w-3 h-3" /> },
@@ -582,7 +581,6 @@ export default function CalendarLearning() {
             {toastMsg}
           </div>
         )}
-      </CardContent>
-    </Card>
+    </StepShell>
   );
 }

@@ -8,7 +8,6 @@ import {
   Clipboard, X, Eye, Lightbulb, ExternalLink,
   Plus, Trash2, Camera, Sun, PawPrint, MapPin, Mic2, Volume2,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -20,7 +19,7 @@ import { Separator } from '@/components/ui/separator';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { StepNumber } from './shared';
+import { StepShell, StepChip } from './shared';
 import {
   REFERENCE_ROLES, REFERENCE_LIMITS,
   FRAME_MODE_ROLES,
@@ -304,19 +303,22 @@ export function StepReferences({
   }, [references, setReferences, generationMode]);
 
   return (
-    <Card className="bg-card border-emerald-500/20">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-3 text-lg">
-          <StepNumber num={2} active completed={totalRefs > 0} />
-          References
-          <div className="flex gap-1.5 ml-1">
-            <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 text-xs px-1.5 gap-0.5">📸{filledImages}/9</Badge>
-            <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 text-xs px-1.5 gap-0.5">🎵{filledAudio}/3</Badge>
-            <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 text-xs px-1.5 gap-0.5">🎬{filledVideo}/3</Badge>
-          </div>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
+    <StepShell
+      num={2}
+      title="References"
+      value="references"
+      active
+      completed={totalRefs > 0}
+      defaultOpen={false}
+      bodyClassName="space-y-3"
+      summary={
+        <>
+          <StepChip>📸 {filledImages}/9</StepChip>
+          <StepChip>🎵 {filledAudio}/3</StepChip>
+          <StepChip>🎬 {filledVideo}/3</StepChip>
+        </>
+      }
+    >
         {/* Tips */}
         <ReferenceTips />
 
@@ -475,7 +477,6 @@ export function StepReferences({
 
         {/* Summary */}
         <SummaryCard filledImages={filledImages} filledAudio={filledAudio} filledVideo={filledVideo} />
-      </CardContent>
-    </Card>
+    </StepShell>
   );
 }
