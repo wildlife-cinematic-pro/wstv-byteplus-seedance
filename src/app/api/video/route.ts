@@ -18,13 +18,20 @@ function isNotFoundError(error: unknown) {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT';
 }
 
-function streamResponse(filePath: string, start: number, end: number, headers: Headers, includeBody: boolean) {
+function streamResponse(
+  filePath: string,
+  start: number,
+  end: number,
+  headers: Headers,
+  includeBody: boolean,
+  status = 200
+) {
   if (!includeBody) {
-    return new Response(null, { headers });
+    return new Response(null, { status, headers });
   }
 
   const fileStream = createReadStream(filePath, { start, end });
-  return new Response(Readable.toWeb(fileStream) as ReadableStream, { headers });
+  return new Response(Readable.toWeb(fileStream) as ReadableStream, { status, headers });
 }
 
 export async function GET(request: NextRequest) {
@@ -155,7 +162,7 @@ async function handleVideoRequest(request: NextRequest, includeBody: boolean) {
         'Content-Length': String(contentLength),
         'Content-Type': contentType,
         'Cache-Control': 'no-store',
-      }), includeBody);
+      }), includeBody, 206);
     }
 
     return streamResponse(resolvedFile, 0, fileSize - 1, new Headers({
