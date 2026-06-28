@@ -791,11 +791,11 @@ function CostDashboard() {
                   <BudgetBadgeDisplay badge={calcResult.budgetBadge as 'green' | 'yellow' | 'red'} />
                 </div>
               </div>
-              {calcResult.warningText && (
+              {typeof calcResult.warningText === 'string' && calcResult.warningText && (
                 <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
                   <p className="text-xs text-amber-400 flex items-start gap-1.5">
                     <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                    {calcResult.warningText as string}
+                    {calcResult.warningText}
                   </p>
                 </div>
               )}

@@ -40,7 +40,7 @@ const GATE_EXPLANATIONS: Record<string, string> = {
   'Safe Mode is OFF': 'Required: Safe Mode prevents all paid API calls',
   'Dry run passed (not stale)': 'A successful dry run validates your configuration without cost',
   'Prompt within character limit': 'Prompt is non-empty (length is a warning, not a hard limit — long prompts show a warning but do not block)',
-  'All reference URLs are valid HTTPS': 'All provided URLs must use HTTPS protocol',
+  'All reference media URIs are API-ready': 'References must use official API-ready media URIs: HTTPS, asset://, or supported Base64 where allowed',
   'Storyboard risk acknowledged': 'You must acknowledge storyboard reference risks',
   'Audio reference risk acknowledged': 'You must acknowledge audio reference risks',
   'Video reference risk acknowledged': 'You must acknowledge video reference risks',
@@ -78,8 +78,8 @@ function CostBreakdownCard({ estimatedCost, duration }: { estimatedCost: number;
         <span>${costPerSec.toFixed(3)}/sec</span>
         <span>≈ ¥{cny.toFixed(2)} CNY</span>
       </div>
-      <p className="text-xs text-red-400 font-bold flex items-center gap-1">
-        <DollarSign className="w-3.5 h-3.5" /> This is a REAL paid request
+      <p className="text-xs text-amber-400 font-bold flex items-center gap-1">
+        <DollarSign className="w-3.5 h-3.5" /> Simulation only — no real BytePlus request is available
       </p>
     </div>
   );
@@ -109,7 +109,7 @@ function ConfirmProgress({ text, target }: { text: string; target: string }) {
 }
 
 function SubmitOverlay({ stage }: { stage: 'validating' | 'submitting' | 'done' }) {
-  const labels = { validating: 'Validating...', submitting: 'Submitting...', done: 'Task submitted!' };
+  const labels = { validating: 'Validating...', submitting: 'Simulating...', done: 'Simulation complete!' };
   const icons = { validating: <Loader2 className="w-5 h-5 animate-spin" />, submitting: <Loader2 className="w-5 h-5 animate-spin" />, done: <CheckCircle2 className="w-5 h-5" /> };
   return (
     <div className="absolute inset-0 bg-black/60 rounded-lg flex flex-col items-center justify-center gap-2 z-10 backdrop-blur-sm transition-all">
@@ -338,7 +338,7 @@ export function StepPaid({
       { label: 'Safe Mode is OFF', passed: gates.safeModeOff },
       { label: 'Dry run passed (not stale)', passed: gates.dryRunPassed },
       { label: 'Prompt within character limit', passed: gates.promptWithinLimit },
-      { label: 'All reference URLs are valid HTTPS', passed: gates.urlsValid },
+      { label: 'All reference media URIs are API-ready', passed: gates.urlsValid },
       { label: 'Storyboard risk acknowledged', passed: gates.storyboardAcknowledged },
       { label: 'Audio reference risk acknowledged', passed: gates.audioRiskAcknowledged },
       { label: 'Video reference risk acknowledged', passed: gates.videoRiskAcknowledged },
@@ -406,7 +406,7 @@ export function StepPaid({
     { label: 'Safe Mode is OFF', passed: gates.safeModeOff },
     { label: 'Dry run passed (not stale)', passed: gates.dryRunPassed },
     { label: 'Prompt within character limit', passed: gates.promptWithinLimit },
-    { label: 'All reference URLs are valid HTTPS', passed: gates.urlsValid },
+    { label: 'All reference media URIs are API-ready', passed: gates.urlsValid },
     { label: 'Storyboard risk acknowledged', passed: gates.storyboardAcknowledged },
     { label: 'Audio reference risk acknowledged', passed: gates.audioRiskAcknowledged },
     { label: 'Video reference risk acknowledged', passed: gates.videoRiskAcknowledged },
@@ -468,7 +468,7 @@ export function StepPaid({
               paidSubmitEnabled && countdown === 0 ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-[0_0_16px_rgba(217,119,6,0.4)]' : 'bg-gray-700 text-muted-foreground cursor-not-allowed'
             }`} size="lg">
             {paidLoading || submitStage !== 'idle' ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <DollarSign className="w-5 h-5 mr-2" />}
-            {countdown > 0 ? `Wait ${countdown}s...` : submitStage === 'done' ? 'Task submitted!' : 'Submit Paid Task'}
+            {countdown > 0 ? `Wait ${countdown}s...` : submitStage === 'done' ? 'Simulation complete!' : 'Simulate Paid Task'}
           </Button>
         </div>
 

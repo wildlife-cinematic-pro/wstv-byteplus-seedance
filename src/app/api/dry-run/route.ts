@@ -5,6 +5,8 @@ import {
   isResolutionSupported,
   getSupportedResolutions,
   validateSeedancePayload,
+  validateSeedanceMediaUri,
+  normalizeSeedanceResolution,
   SEEDANCE_MODEL_IDS,
   MODEL_METADATA,
   VALID_RATIOS,
@@ -24,7 +26,7 @@ const COST_TABLE: Record<string, Record<string, number>> = {
     '480p': 0.03,
     '720p': 0.06,
     '1080p': 0.10,
-    '4K': 0.18,
+    '4k': 0.18,
   },
 };
 
@@ -36,18 +38,6 @@ function getCharLimit(modelType: string) {
 
 function getCharLimitForSeedance(seedanceModelId: string): number {
   return MODEL_METADATA[seedanceModelId]?.charLimit ?? 2000;
-}
-
-function isValidAudioUrl(url: string) {
-  return url.startsWith('https://') && /\.(mp3|wav|m4a)(\?|$)/i.test(url);
-}
-
-function isValidVideoUrl(url: string) {
-  return url.startsWith('https://') && /\.(mp4|mov)(\?|$)/i.test(url);
-}
-
-function isValidImageUrl(url: string) {
-  return url.startsWith('https://');
 }
 
 interface RefItem {
@@ -124,7 +114,8 @@ export async function POST(request: NextRequest) {
     validationLog.push(`✅ Model: ${modelMeta.label} (${seedanceModelId})`);
 
     // 3. Validate resolution (PHASE4: model-specific rules)
-    if (!resolution || !isResolutionSupported(seedanceModelId, resolution)) {
+    const normalizedResolution = normalizeSeedanceResolution(resolution || '');
+    if (!normalizedResolution || !isResolutionSupported(seedanceModelId, normalizedResolution)) {
       const supported = getSupportedResolutions(seedanceModelId);
       if (seedanceModelId === SEEDANCE_MODEL_IDS.FAST || seedanceModelId === SEEDANCE_MODEL_IDS.MINI) {
         errors.push(`1080p/4k is only supported by Seedance 2.0 Standard. Fast and Mini support 480p/720p only. (Supported: ${supported.join(', ')})`);
@@ -133,7 +124,7 @@ export async function POST(request: NextRequest) {
       }
       validationLog.push(`❌ Resolution: ${resolution || 'none'} — invalid for ${modelMeta.shortLabel}`);
     } else {
-      validationLog.push(`✅ Resolution: ${resolution} (supported by ${modelMeta.shortLabel})`);
+      validationLog.push(`✅ Resolution: ${normalizedResolution} (supported by ${modelMeta.shortLabel})`);
     }
 
     // 4. Validate duration (PHASE4: integer 4–15 or -1 for auto)
@@ -199,11 +190,12 @@ export async function POST(request: NextRequest) {
     referenceImageCount = imageRefs.length;
 
     for (const ref of imageRefs) {
-      if (!isValidImageUrl(ref.url)) {
-        errors.push(`Image reference "${ref.role}" URL must be HTTPS`);
-        validationLog.push(`❌ Image [${ref.role}]: not HTTPS — ${ref.url.substring(0, 50)}`);
+      const result = validateSeedanceMediaUri('image', ref.url);
+      if (!result.valid) {
+        errors.push(`Image reference "${ref.role}" is invalid: ${result.error}`);
+        validationLog.push(`❌ Image [${ref.role}]: ${result.error}`);
       } else {
-        validationLog.push(`✅ Image [${ref.role}]: valid HTTPS`);
+        validationLog.push(`✅ Image [${ref.role}]: valid ${result.kind || 'media'} URI`);
       }
     }
 
@@ -223,11 +215,12 @@ export async function POST(request: NextRequest) {
     referenceAudioCount = audioRefs.length;
 
     for (const ref of audioRefs) {
-      if (!isValidAudioUrl(ref.url)) {
-        errors.push(`Audio reference "${ref.role}" must be HTTPS with .mp3/.wav/.m4a extension`);
-        validationLog.push(`❌ Audio [${ref.role}]: invalid format — must be HTTPS with .mp3/.wav/.m4a`);
+      const result = validateSeedanceMediaUri('audio', ref.url);
+      if (!result.valid) {
+        errors.push(`Audio reference "${ref.role}" is invalid: ${result.error}`);
+        validationLog.push(`❌ Audio [${ref.role}]: ${result.error}`);
       } else {
-        validationLog.push(`✅ Audio [${ref.role}]: valid HTTPS audio`);
+        validationLog.push(`✅ Audio [${ref.role}]: valid ${result.kind || 'media'} URI`);
       }
     }
 
@@ -247,11 +240,12 @@ export async function POST(request: NextRequest) {
     referenceVideoCount = videoRefs.length;
 
     for (const ref of videoRefs) {
-      if (!isValidVideoUrl(ref.url)) {
-        errors.push(`Video reference "${ref.role}" must be HTTPS with .mp4/.mov extension`);
-        validationLog.push(`❌ Video [${ref.role}]: invalid format — must be HTTPS with .mp4/.mov`);
+      const result = validateSeedanceMediaUri('video', ref.url);
+      if (!result.valid) {
+        errors.push(`Video reference "${ref.role}" is invalid: ${result.error}`);
+        validationLog.push(`❌ Video [${ref.role}]: ${result.error}`);
       } else {
-        validationLog.push(`✅ Video [${ref.role}]: valid HTTPS video`);
+        validationLog.push(`✅ Video [${ref.role}]: valid ${result.kind || 'media'} URI`);
       }
     }
 
@@ -268,7 +262,7 @@ export async function POST(request: NextRequest) {
     const totalReferenceDuration = 0; // In dry-run mode, we don't have actual durations
 
     // 9. Estimate cost (PHASE4: handle -1 auto duration — cost unknown)
-    const costPerSecond = COST_TABLE[modelType]?.[resolution] || 0;
+    const costPerSecond = COST_TABLE[modelType]?.[normalizedResolution] || 0;
     const estimatedCost = duration === AUTO_DURATION ? 0 : costPerSecond * duration;
     if (duration === AUTO_DURATION) {
       validationLog.push(`💰 Estimated cost: unknown (auto duration — model will choose)`);
@@ -309,7 +303,7 @@ export async function POST(request: NextRequest) {
       prompt: prompt || '',
       ratio: aspectRatio,
       duration,
-      resolution,
+      resolution: normalizedResolution,
       generationMode,
       references: {
         images: imageRefs,
@@ -338,7 +332,7 @@ export async function POST(request: NextRequest) {
       modelId: modelId || modelType,
       duration: duration || 0,
       frameCount,
-      resolution,
+      resolution: normalizedResolution,
       aspectRatio,
       referenceImageCount,
       referenceAudioCount,

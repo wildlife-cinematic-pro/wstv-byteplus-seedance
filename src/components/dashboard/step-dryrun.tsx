@@ -9,6 +9,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { GateProgress, CostDisplay, StepShell, StepChip } from './shared';
 import type { DryRunResult, ModelType, Gates, ReferenceEntry } from './types';
 import { groupReferencesByType } from './types';
+import { normalizeSeedanceResolution } from '@/lib/seedance-validation';
 
 interface StepDryRunProps {
   dryRunResult: DryRunResult | null;
@@ -52,8 +53,8 @@ const LOG_CATEGORIES = [
 ];
 
 function costPerSec(model: ModelType, res: string) {
-  const table: Record<string, Record<string, number>> = { mini: { '480p': 0.02, '720p': 0.04 }, full: { '480p': 0.03, '720p': 0.06, '1080p': 0.10, '4K': 0.18 } };
-  return table[model]?.[res] || 0;
+  const table: Record<string, Record<string, number>> = { mini: { '480p': 0.02, '720p': 0.04 }, full: { '480p': 0.03, '720p': 0.06, '1080p': 0.10, '4k': 0.18 } };
+  return table[model]?.[normalizeSeedanceResolution(res)] || 0;
 }
 
 /* ── Sub-components ── */
@@ -220,7 +221,7 @@ function GatePreview({ result, safeMode }: { result: DryRunResult; safeMode: boo
     { label: 'Safe Mode Off', pass: !safeMode },
     { label: 'Dry Run Passed', pass: result.passed },
     { label: 'Prompt Length Warning', pass: true, warning: promptOverRecommended },
-    { label: 'URLs Valid', pass: result.errors.every(e => !e.toLowerCase().includes('url')) },
+    { label: 'Media URIs Valid', pass: result.errors.every(e => !e.toLowerCase().includes('uri') && !e.toLowerCase().includes('url')) },
     { label: 'Budget OK', pass: !result.errors.some(e => e.toLowerCase().includes('budget')) },
     { label: 'Cost Cap', pass: !result.errors.some(e => e.toLowerCase().includes('cost cap')) },
     { label: 'No Duplicate', pass: true },
@@ -259,7 +260,7 @@ export function StepDryRun({
   const [loading, setLoading] = useState(false);
   const [progressStep, setProgressStep] = useState(-1);
   const [showTechDetails, setShowTechDetails] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (loading) {
@@ -309,7 +310,11 @@ export function StepDryRun({
             outputFilename: outputFilename || undefined,
           }),
         });
-        if (createRes.ok) { const data = await createRes.json(); taskId = data.task.id; onTaskId(taskId); }
+        if (createRes.ok) {
+          const data = await createRes.json();
+          taskId = typeof data.task?.id === 'string' ? data.task.id : null;
+          if (taskId) onTaskId(taskId);
+        }
       } else {
         await fetch(`/api/tasks/${taskId}`, {
           method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -441,7 +446,7 @@ export function StepDryRun({
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div className="mt-2 p-3 rounded bg-muted/50 text-xs font-mono text-muted-foreground space-y-1">
-                  <div>POST /api/v1/contents/generations/tasks</div>
+                  <div>POST /api/v3/contents/generations/tasks</div>
                   <div>model_id: {dryRunResult.modelId}</div>
                   <div>dry_run_version: 2.0</div>
                   <div>validation_engine: local</div>

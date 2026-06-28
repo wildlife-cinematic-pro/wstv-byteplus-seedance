@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { normalizeSeedanceResolution, validateSeedanceMediaUri } from '@/lib/seedance-validation';
 
 // PHASE5.1 simulation route only.
 // This route never calls BytePlus / ModelArk and must remain behind Safe Mode.
@@ -7,19 +8,11 @@ import { db } from '@/lib/db';
 // Cost estimation table (USD per second)
 const COST_TABLE: Record<string, Record<string, number>> = {
   mini: { '480p': 0.02, '720p': 0.04 },
-  full: { '480p': 0.03, '720p': 0.06, '1080p': 0.10, '4K': 0.18 },
+  full: { '480p': 0.03, '720p': 0.06, '1080p': 0.10, '4k': 0.18 },
 };
 
 function getCharLimit(modelType: string) {
   return modelType === 'mini' ? 1500 : 2000;
-}
-
-function isValidAudioUrl(url: string) {
-  return url.startsWith('https://') && /\.(mp3|wav|m4a)(\?|$)/i.test(url);
-}
-
-function isValidVideoUrl(url: string) {
-  return url.startsWith('https://') && /\.(mp4|mov)(\?|$)/i.test(url);
 }
 
 export async function POST(request: NextRequest) {
@@ -74,16 +67,18 @@ export async function POST(request: NextRequest) {
       ? `Prompt exceeds recommended ${charLimit} characters (${task.prompt.length}). Warning only; PHASE5.1 simulation is not blocked.`
       : null;
 
-    // Gate 6: Reference image URLs must be valid HTTPS
-    if (task.masterImageUrl && !task.masterImageUrl.startsWith('https://')) {
+    // Gate 6: Reference image URIs must be official API-ready media URIs.
+    if (task.masterImageUrl && !validateSeedanceMediaUri('image', task.masterImageUrl).valid) {
+      const result = validateSeedanceMediaUri('image', task.masterImageUrl);
       return NextResponse.json(
-        { success: false, error: 'Master image URL must be HTTPS' },
+        { success: false, error: `Master image URI is invalid: ${result.error}` },
         { status: 400 }
       );
     }
-    if (task.storyboardImageUrl && !task.storyboardImageUrl.startsWith('https://')) {
+    if (task.storyboardImageUrl && !validateSeedanceMediaUri('image', task.storyboardImageUrl).valid) {
+      const result = validateSeedanceMediaUri('image', task.storyboardImageUrl);
       return NextResponse.json(
-        { success: false, error: 'Storyboard image URL must be HTTPS' },
+        { success: false, error: `Storyboard image URI is invalid: ${result.error}` },
         { status: 400 }
       );
     }
@@ -99,9 +94,10 @@ export async function POST(request: NextRequest) {
     // Gate 7b: Audio URL validation + risk acknowledgement
     const audioUrls = [task.audioUrl1, task.audioUrl2, task.audioUrl3].filter(Boolean) as string[];
     for (const url of audioUrls) {
-      if (!isValidAudioUrl(url)) {
+      const result = validateSeedanceMediaUri('audio', url);
+      if (!result.valid) {
         return NextResponse.json(
-          { success: false, error: `Audio URL must be HTTPS with .mp3/.wav/.m4a extension: ${url}` },
+          { success: false, error: `Audio reference URI is invalid: ${result.error}` },
           { status: 400 }
         );
       }
@@ -116,9 +112,10 @@ export async function POST(request: NextRequest) {
     // Gate 7c: Video URL validation + risk acknowledgement
     const videoUrls = [task.videoUrl1, task.videoUrl2, task.videoUrl3].filter(Boolean) as string[];
     for (const url of videoUrls) {
-      if (!isValidVideoUrl(url)) {
+      const result = validateSeedanceMediaUri('video', url);
+      if (!result.valid) {
         return NextResponse.json(
-          { success: false, error: `Video URL must be HTTPS with .mp4/.mov extension: ${url}` },
+          { success: false, error: `Video reference URI is invalid: ${result.error}` },
           { status: 400 }
         );
       }
@@ -132,7 +129,8 @@ export async function POST(request: NextRequest) {
 
     // Gate 8: Budget check
     const budget = await db.budgetSetting.findFirst();
-    const costPerSecond = COST_TABLE[task.modelType]?.[task.resolution] || 0;
+    const normalizedResolution = normalizeSeedanceResolution(task.resolution);
+    const costPerSecond = COST_TABLE[task.modelType]?.[normalizedResolution] || 0;
     const estimatedCost = costPerSecond * task.duration;
 
     if (budget) {

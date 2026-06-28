@@ -17,6 +17,7 @@ import {
   SEED_NOT_SUPPORTED_NOTE,
   CAMERA_FIXED_NOT_SUPPORTED_NOTE,
   MEDIA_LIMITS,
+  normalizeSeedanceResolution,
   SEEDANCE_TASK_STATUSES,
   CANCEL_DELETE_RULES,
   type GenerationMode,
@@ -86,14 +87,13 @@ const EXAMPLE_PAYLOADS: { label: string; description: string; payload: Record<st
     },
   },
   {
-    label: 'D. Reference mode: master + storyboard',
-    description: 'WSTV default — master identity image + storyboard shot-order image.',
+    label: 'D. Reference mode: text + reference_image',
+    description: 'Single multimodal reference image using the official reference_image role.',
     payload: {
       model: SEEDANCE_MODEL_IDS.STANDARD,
       content: [
         { type: 'text', text: 'Timing guide:\nOpening beat: Lioness crouches low in the grass.\nMiddle beat: She tracks movement across the plain.\nPeak beat: The chase surges forward.\nResolution beat: The action slows near the ridge.\nFinal beat: Hold on her alert profile.' },
         { type: 'image_url', image_url: { url: 'https://cdn.example.com/master_identity.png' }, role: 'reference_image' },
-        { type: 'image_url', image_url: { url: 'https://cdn.example.com/storyboard.png' }, role: 'reference_image' },
       ],
       ratio: '9:16',
       duration: 15,
@@ -255,7 +255,7 @@ export function SeedancePayloadPreviewPanel({
           </div>
           <div className="bg-muted/30 rounded p-2 border border-emerald-500/30">
             <p className="text-muted-foreground text-xs">Resolution</p>
-            <p className="text-gray-300">{resolution}</p>
+            <p className="text-gray-300">{normalizeSeedanceResolution(resolution)}</p>
           </div>
           <div className="bg-muted/30 rounded p-2 border border-emerald-500/30">
             <p className="text-muted-foreground text-xs">Duration</p>
@@ -371,7 +371,7 @@ export function SeedancePayloadPreviewPanel({
               </div>
             ))}
             <p className="text-xs text-muted-foreground italic">
-              WSTV default example = D (Reference mode: master + storyboard). Model: {SEEDANCE_MODEL_IDS.STANDARD}, ratio 9:16, duration 15, resolution 720p, return_last_frame true.
+              WSTV default shape uses Reference Mode with one or more reference_image entries. Model: {SEEDANCE_MODEL_IDS.STANDARD}, ratio 9:16, duration 15, resolution 720p, return_last_frame true.
             </p>
           </CollapsibleContent>
         </Collapsible>
@@ -449,10 +449,13 @@ export function SeedancePayloadPreviewPanel({
           <CollapsibleContent className="pt-2 space-y-2">
             <div className="p-2 rounded-md bg-muted/30 border border-emerald-500/30 text-xs text-muted-foreground space-y-1">
               <p className="text-emerald-400 font-medium">Images:</p>
+              <p>• Formats: {MEDIA_LIMITS.image.formats.join(', ')}</p>
+              <p>• Width/height {MEDIA_LIMITS.image.minDimensionPx}–{MEDIA_LIMITS.image.maxDimensionPx} px</p>
+              <p>• Aspect ratio {MEDIA_LIMITS.image.minAspectRatio}–{MEDIA_LIMITS.image.maxAspectRatio}</p>
               <p>• Single image under {MEDIA_LIMITS.image.maxSingleSizeMB} MB</p>
               <p>• Total request body under {MEDIA_LIMITS.image.maxTotalRequestMB} MB</p>
               <p>• Prefer URL or asset ID over Base64 for large media</p>
-              <p>• Input types: public URL, Base64, <code className="text-gray-300">asset://&lt;ASSET_ID&gt;</code></p>
+              <p>• Input types: public HTTPS URL, image Base64, <code className="text-gray-300">asset://&lt;ASSET_ID&gt;</code></p>
             </div>
             <div className="p-2 rounded-md bg-muted/30 border border-emerald-500/30 text-xs text-muted-foreground space-y-1">
               <p className="text-emerald-400 font-medium">Videos:</p>
@@ -460,7 +463,8 @@ export function SeedancePayloadPreviewPanel({
               <p>• Each reference video {MEDIA_LIMITS.video.minDurationSec}–{MEDIA_LIMITS.video.maxDurationSec} seconds</p>
               <p>• Max {MEDIA_LIMITS.video.maxCount} reference videos</p>
               <p>• Total reference video duration max {MEDIA_LIMITS.video.maxTotalDurationSec} seconds</p>
-              <p>• Input types: public URL, asset ID</p>
+              <p>• FPS {MEDIA_LIMITS.video.minFps}–{MEDIA_LIMITS.video.maxFps}; each video under {MEDIA_LIMITS.video.maxSingleSizeMB} MB</p>
+              <p>• Input types: public HTTPS URL, <code className="text-gray-300">asset://&lt;ASSET_ID&gt;</code></p>
             </div>
             <div className="p-2 rounded-md bg-muted/30 border border-emerald-500/30 text-xs text-muted-foreground space-y-1">
               <p className="text-emerald-400 font-medium">Audio:</p>
@@ -468,6 +472,8 @@ export function SeedancePayloadPreviewPanel({
               <p>• Each reference audio {MEDIA_LIMITS.audio.minDurationSec}–{MEDIA_LIMITS.audio.maxDurationSec} seconds</p>
               <p>• Max {MEDIA_LIMITS.audio.maxCount} reference audio clips</p>
               <p>• Total reference audio duration max {MEDIA_LIMITS.audio.maxTotalDurationSec} seconds</p>
+              <p>• Each audio under {MEDIA_LIMITS.audio.maxSingleSizeMB} MB</p>
+              <p>• Input types: public HTTPS URL, audio Base64, <code className="text-gray-300">asset://&lt;ASSET_ID&gt;</code></p>
               <p>• Audio reference must be paired with at least one image or video reference</p>
               <p>• Do not submit audio alone</p>
             </div>

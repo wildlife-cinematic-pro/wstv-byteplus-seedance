@@ -32,7 +32,7 @@ export function OfficialQuickstartReference() {
     { icon: '🔑', text: 'ARK_API_KEY required later', detail: 'Server-side only — never in frontend or GitHub' },
     { icon: '⚡', text: 'Model activation required', detail: 'Activate Seedance 2.0 models in the console before calling' },
     { icon: '💳', text: 'Prepaid Seedance 2.0 resource package required', detail: 'Purchase a prepaid resource package before creating tasks' },
-    { icon: '🔗', text: 'Public media URLs required', detail: 'Reference images/videos/audios must be publicly accessible' },
+    { icon: '🔗', text: 'API-ready media URIs required', detail: 'Use public HTTPS URLs, asset:// IDs, or supported Base64 where allowed' },
     { icon: '☁️', text: 'BytePlus TOS public-read storage recommended', detail: 'Use TOS or another public CDN for reference media' },
     { icon: '🆔', text: 'Create task returns provider task ID', detail: 'POST /api/v3/contents/generations/tasks → task_id' },
     { icon: '🔄', text: 'Poll status every 10–30 seconds', detail: 'GET /api/v3/contents/generations/tasks/{id} — poll until succeeded/failed' },
@@ -121,11 +121,11 @@ export function OfficialQuickstartReference() {
           </div>
         </div>
 
-        {/* 4K warning */}
+        {/* 4k warning */}
         <div className="p-2 rounded-md bg-amber-500/10 border border-amber-500/30">
           <p className="text-xs text-amber-400 flex items-start gap-1.5">
             <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
-            <span>4K is Standard-only and may have lower concurrency / higher cost. Use 720p for normal WSTV testing.</span>
+            <span>4k is Standard-only and may have lower concurrency / higher cost. Use 720p for normal WSTV testing.</span>
           </p>
         </div>
 
@@ -177,7 +177,7 @@ export function OfficialQuickstartReference() {
             <div className="p-2 rounded-md bg-amber-500/10 border border-amber-500/30">
               <p className="text-xs text-amber-400 flex items-start gap-1.5">
                 <Cloud className="w-3 h-3 shrink-0 mt-0.5" />
-                <span><strong>Asset URL warning:</strong> Future real API requires public media URLs. Use BytePlus TOS public-read storage or another public CDN. Do not use private local file paths.</span>
+                <span><strong>Media URI warning:</strong> Future real API requires API-ready media URIs. Use public HTTPS URLs, asset:// IDs, or supported Base64 where allowed. Do not use private local file paths.</span>
               </p>
             </div>
             <div className="p-2 rounded-md bg-red-500/10 border border-red-500/30">

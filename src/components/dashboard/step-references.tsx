@@ -27,6 +27,7 @@ import {
   type ReferenceEntry,
   type GenerationMode,
 } from './types';
+import { validateSeedanceMediaUri } from '@/lib/seedance-validation';
 
 // ─── Role icons ───
 const ROLE_ICONS: Record<string, React.ReactNode> = {
@@ -57,19 +58,21 @@ interface StepReferencesProps {
   setGenerationMode: (v: GenerationMode) => void;
 }
 
-function isValidAudioUrl(url: string) { return !url || (url.startsWith('https://') && /\.(mp3|wav|m4a)(\?|$)/i.test(url)); }
-function isValidVideoUrl(url: string) { return !url || (url.startsWith('https://') && /\.(mp4|mov)(\?|$)/i.test(url)); }
-function isValidImageUrl(url: string) { return !url || url.startsWith('https://'); }
 function extractExt(url: string) { const m = url.match(/\.(\w{2,4})(\?|$)/i); return m ? m[1].toLowerCase() : null; }
 
 /* ─── Sub: URL Validation indicator ─── */
-function UrlValidation({ url, isValid, type }: { url: string; isValid: boolean; type: 'image' | 'audio' | 'video' }) {
+function UrlValidation({ url, type }: { url: string; type: 'image' | 'audio' | 'video' }) {
   if (!url) return null;
-  const msgs: Record<string, string> = { audio: 'HTTPS + .mp3/.wav/.m4a required', video: 'HTTPS + .mp4/.mov required', image: 'Valid HTTPS image URL' };
+  const validation = validateSeedanceMediaUri(type, url);
+  const validLabel: Record<string, string> = {
+    image: 'Valid image URI: HTTPS, asset://, or image Base64',
+    video: 'Valid video URI: HTTPS or asset://',
+    audio: 'Valid audio URI: HTTPS, asset://, or audio Base64',
+  };
   return (
-    <div className={`flex items-center gap-1 mt-1 text-xs ${isValid ? 'text-emerald-400' : 'text-red-400'}`}>
-      {isValid ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-      {isValid ? `Valid HTTPS ${type} URL` : msgs[type]}
+    <div className={`flex items-center gap-1 mt-1 text-xs ${validation.valid ? 'text-emerald-400' : 'text-red-400'}`}>
+      {validation.valid ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+      {validation.valid ? validLabel[type] : validation.error}
     </div>
   );
 }
@@ -101,9 +104,10 @@ function RiskAckCard({ id, title, desc, detail, checked, onCheck }: {
 function ReferenceTips() {
   const [open, setOpen] = useState(false);
   const tips = [
-    { icon: <ImageIcon className="w-4 h-4 text-emerald-400" />, label: 'Image Tips', text: 'Use high-contrast images (1024x1024+). Main identity sets the subject. First/Last frame guide scene composition.' },
-    { icon: <Music className="w-4 h-4 text-emerald-400" />, label: 'Audio Tips', text: 'generate_audio true creates synchronized audio. Optional audio references can influence ambience, but use them carefully.' },
-    { icon: <Video className="w-4 h-4 text-emerald-400" />, label: 'Video Tips', text: 'Use 9:16 vertical clips for best results. Keep under 15s. May override text-driven motion.' },
+    { icon: <ImageIcon className="w-4 h-4 text-emerald-400" />, label: 'Reference Mode', text: 'Multimodal reference generation uses reference_image, reference_video, and reference_audio. It can softly guide first/last-frame intent in the prompt, but it is not an exact frame lock.' },
+    { icon: <Film className="w-4 h-4 text-emerald-400" />, label: 'Frame Mode', text: 'Strict exact first_frame and optional last_frame control. Frame Mode and Reference Mode cannot be mixed.' },
+    { icon: <Music className="w-4 h-4 text-emerald-400" />, label: 'Audio Rules', text: 'Audio references cannot be submitted alone; include at least one image or video reference. Official audio formats are wav and mp3.' },
+    { icon: <Video className="w-4 h-4 text-emerald-400" />, label: 'Input URIs', text: 'Use public HTTPS URLs, supported asset:// IDs, or supported Base64 data URIs. Local/private file paths are not API-ready.' },
   ];
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
@@ -161,10 +165,9 @@ function RefRow({ entry, index, onUpdate, onRemove, type, generationMode }: {
   const roles = generationMode === 'frame_mode'
     ? allRoles.filter(r => FRAME_MODE_ROLES.has(r.value))
     : allRoles.filter(r => !FRAME_MODE_ROLES.has(r.value));
-  const validFn = type === 'audio' ? isValidAudioUrl : type === 'video' ? isValidVideoUrl : isValidImageUrl;
-  const valid = validFn(entry.url);
+  const validation = validateSeedanceMediaUri(type, entry.url);
   const ext = extractExt(entry.url);
-  const isImage = type === 'image' && entry.url && valid;
+  const isImage = type === 'image' && entry.url && validation.valid && validation.kind !== 'asset';
 
   const handlePaste = useCallback(async () => {
     try { const t = await navigator.clipboard.readText(); if (t) onUpdate(index, 'url', t); } catch { /* clipboard denied */ }
@@ -194,7 +197,11 @@ function RefRow({ entry, index, onUpdate, onRemove, type, generationMode }: {
             <Input
               value={entry.url}
               onChange={e => onUpdate(index, 'url', e.target.value)}
-              placeholder={`https://example.com/${type}-reference.${type === 'audio' ? 'mp3' : type === 'video' ? 'mp4' : 'jpg'}`}
+              placeholder={type === 'video'
+                ? 'https://example.com/reference.mp4 or asset://ASSET_ID'
+                : type === 'audio'
+                ? 'https://example.com/reference.wav, asset://ASSET_ID, or data:audio/wav;base64,...'
+                : 'https://example.com/reference.png, asset://ASSET_ID, or data:image/png;base64,...'}
               className="bg-muted/30 border-emerald-500/20 focus:border-emerald-500/50 pr-16 h-8 text-xs"
             />
             <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
@@ -206,7 +213,7 @@ function RefRow({ entry, index, onUpdate, onRemove, type, generationMode }: {
             <Clipboard className="w-3.5 h-3.5" />
           </Button>
         </div>
-        <UrlValidation url={entry.url} isValid={valid} type={type} />
+        <UrlValidation url={entry.url} type={type} />
         {isImage && (
           <div className="mt-1.5 flex items-center gap-2">
             <img src={entry.url} alt="Preview" className="h-8 w-8 rounded object-cover border border-emerald-500/20 bg-muted/30" onError={(e) => (e.currentTarget.style.display = 'none')} />
@@ -343,7 +350,7 @@ export function StepReferences({
             <AlertDescription className="text-amber-300 text-xs">
               <strong>Frame Mode active:</strong> Only first_frame / last_frame image roles are allowed.
               Video and audio references are hidden. If last_frame is used, first_frame is also required.
-              Storyboard image should use reference mode, not first-frame mode.
+              Frame Mode is for strict exact frame lock; use Reference Mode for multimodal storyboard/reference media.
             </AlertDescription>
           </Alert>
         )}
@@ -352,7 +359,7 @@ export function StepReferences({
             <AlertTriangle className="text-amber-400" />
             <AlertDescription className="text-amber-300 text-xs">
               <strong>Reference Mode active:</strong> first_frame / last_frame roles are not allowed in reference mode.
-              Switch to Frame Mode to use them, or remove them.
+              Reference Mode can softly guide first/last intent in the prompt, but exact frame matching requires Frame Mode.
             </AlertDescription>
           </Alert>
         )}
@@ -384,7 +391,7 @@ export function StepReferences({
               </Button>
             )}
             {filledImages > 0 && (
-              <p className="text-xs text-muted-foreground">Image references set subject identity, environment, camera framing, lighting, and scene composition.</p>
+              <p className="text-xs text-muted-foreground">Images map to reference_image in Reference Mode. Requirements: jpeg, png, webp, bmp, tiff, gif, heic/heif; width/height 300-6000 px; aspect ratio 0.4-2.5; single image &lt;30 MB; request body &lt;=64 MB.</p>
             )}
           </CollapsibleContent>
         </Collapsible>
@@ -433,7 +440,7 @@ export function StepReferences({
               />
             ))}
             {filledVideo > 0 && (
-              <p className="text-xs text-muted-foreground">Video references guide camera movement, pacing, and motion. 9:16 vertical clips recommended, under 15s.</p>
+              <p className="text-xs text-muted-foreground">Videos map to reference_video. Requirements: mp4 or mov, each 2-15 seconds, up to 3 videos, total video duration &lt;=15 seconds, 24-60 fps, each video &lt;=200 MB.</p>
             )}
           </div>
         )}
@@ -461,7 +468,7 @@ export function StepReferences({
               />
             ))}
             {filledAudio > 0 && (
-              <p className="text-xs text-muted-foreground">Audio references guide sound design but may override prompt-driven audio. MP3/WAV/M4A, under 15s total.</p>
+              <p className="text-xs text-muted-foreground">Audio maps to reference_audio. Requirements: wav or mp3, each 2-15 seconds, up to 3 audio files, total audio duration &lt;=15 seconds, each audio &lt;=15 MB. Audio cannot be submitted alone.</p>
             )}
           </div>
         )}

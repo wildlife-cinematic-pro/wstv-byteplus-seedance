@@ -30,6 +30,7 @@ import PostProduction from '@/components/dashboard/post-production';
 import CalendarLearning from '@/components/dashboard/calendar-learning';
 import type { DryRunResult, TaskHistory, BudgetInfo, LatestVideo, Gates, ModelType, ToastMessage, ReferenceEntry } from '@/components/dashboard/types';
 import { groupReferencesByType, remapReferenceRolesForMode } from '@/components/dashboard/types';
+import { isValidSeedanceMediaUri, normalizeSeedanceResolution } from '@/lib/seedance-validation';
 
 interface InitialData {
   safeMode: boolean;
@@ -235,7 +236,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
   const setAspectRatioV = useCallback((v: string) => { setAspectRatio(v); invalidateIfNeeded(); }, [invalidateIfNeeded]);
   const setModelTypeV = useCallback((v: ModelType) => {
     setModelType(v); invalidateIfNeeded();
-    const avail = v === 'mini' ? ['480p', '720p'] : ['480p', '720p', '1080p', '4K'];
+    const avail = v === 'mini' ? ['480p', '720p'] : ['480p', '720p', '1080p', '4k'];
     setResolution(prev => avail.includes(prev) ? prev : avail[avail.length - 1]);
   }, [invalidateIfNeeded]);
 
@@ -247,7 +248,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
     // Import is at top of file via seedance-validation; use inline rules to avoid circular import
     const supported = v === 'dreamina-seedance-2-0-fast-260128' || v === 'dreamina-seedance-2-0-mini-260615'
       ? ['480p', '720p']
-      : ['480p', '720p', '1080p', '4K'];
+      : ['480p', '720p', '1080p', '4k'];
     setResolution(prev => supported.includes(prev) ? prev : '720p');
     // Sync legacy modelType for backward compat
     setModelType(v === 'dreamina-seedance-2-0-mini-260615' ? 'mini' : 'full');
@@ -260,7 +261,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
     setReferences(prev => remapReferenceRolesForMode(prev, v));
     invalidateIfNeeded();
   }, [invalidateIfNeeded]);
-  const setResolutionV = useCallback((v: string) => { setResolution(v); invalidateIfNeeded(); }, [invalidateIfNeeded]);
+  const setResolutionV = useCallback((v: string) => { setResolution(normalizeSeedanceResolution(v)); invalidateIfNeeded(); }, [invalidateIfNeeded]);
   const setFpsV = useCallback((v: number) => { setFps(v); invalidateIfNeeded(); }, [invalidateIfNeeded]);
   const setAudioModeV = useCallback((v: string) => { setAudioMode(v); invalidateIfNeeded(); }, [invalidateIfNeeded]);
 
@@ -324,9 +325,9 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
   const estimateCost = useCallback(() => {
     const table: Record<string, Record<string, number>> = {
       mini: { '480p': 0.02, '720p': 0.04 },
-      full: { '480p': 0.03, '720p': 0.06, '1080p': 0.10, '4K': 0.18 },
+      full: { '480p': 0.03, '720p': 0.06, '1080p': 0.10, '4k': 0.18 },
     };
-    return (table[modelType]?.[resolution] || 0) * duration;
+    return (table[modelType]?.[normalizeSeedanceResolution(resolution)] || 0) * duration;
   }, [modelType, resolution, duration]);
 
   // PHASE5.1: charLimit is a RECOMMENDED range, not a hard limit.
@@ -343,9 +344,9 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
   const hasAnyVideo = refGroups.videos.length > 0;
 
   const allUrlsValid =
-    refGroups.images.every(r => r.url.startsWith('https://')) &&
-    refGroups.audios.every(r => r.url.startsWith('https://') && /\.(mp3|wav|m4a)(\?|$)/i.test(r.url)) &&
-    refGroups.videos.every(r => r.url.startsWith('https://') && /\.(mp4|mov)(\?|$)/i.test(r.url));
+    refGroups.images.every(r => isValidSeedanceMediaUri('image', r.url)) &&
+    refGroups.audios.every(r => isValidSeedanceMediaUri('audio', r.url)) &&
+    refGroups.videos.every(r => isValidSeedanceMediaUri('video', r.url));
 
   const gates: Gates = {
     safeModeOff: !safeMode, dryRunPassed: dryRunResult?.passed === true && !dryRunInvalidated,

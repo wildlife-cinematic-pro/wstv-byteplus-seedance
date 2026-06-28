@@ -73,7 +73,7 @@ function CharProgressBar({ len, limit }: { len: number; limit: number }) {
 
 function ModelCompareDialog() {
   const specs = [
-    { label: 'Resolution', full: '480p–4K', mini: '480p–720p' },
+    { label: 'Resolution', full: '480p–4k', mini: '480p–720p' },
     { label: 'Duration', full: '4–15s', mini: '4–15s' },
     { label: 'Speed', full: 'Standard', mini: 'Fast' },
     { label: 'Cost/s', full: '$0.03–0.18', mini: '$0.02–0.04' },

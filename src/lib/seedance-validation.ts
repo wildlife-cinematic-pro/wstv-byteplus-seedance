@@ -134,11 +134,128 @@ export function getSupportedResolutions(modelId: string): string[] {
   return MODEL_RESOLUTION_RULES[modelId] ?? MODEL_RESOLUTION_RULES[SEEDANCE_MODEL_IDS.STANDARD];
 }
 
+export function normalizeSeedanceResolution(resolution: string): string {
+  return resolution.toLowerCase() === '4k' ? '4k' : resolution;
+}
+
 export function isResolutionSupported(modelId: string, resolution: string): boolean {
   const supported = getSupportedResolutions(modelId);
-  // Normalize: "4K" and "4k" are equivalent
+  // Normalize legacy uppercase display values before comparing.
   const norm = (r: string) => r.toLowerCase();
   return supported.some(r => norm(r) === norm(resolution));
+}
+
+// ─── Official Seedance 2.0 media URI validation ───
+
+export type SeedanceMediaType = 'image' | 'video' | 'audio';
+
+export interface SeedanceMediaUriValidation {
+  valid: boolean;
+  kind?: 'https' | 'asset' | 'base64';
+  error?: string;
+}
+
+const IMAGE_DATA_FORMATS = ['jpeg', 'png', 'webp', 'bmp', 'tiff', 'gif', 'heic', 'heif'];
+const AUDIO_DATA_FORMATS = ['wav', 'mp3'];
+const IMAGE_URL_FORMATS = ['jpg', ...IMAGE_DATA_FORMATS];
+const VIDEO_URL_FORMATS = ['mp4', 'mov'];
+const AUDIO_URL_FORMATS = AUDIO_DATA_FORMATS;
+
+function getUrlExtension(value: string): string | null {
+  const withoutQuery = value.split(/[?#]/, 1)[0];
+  const match = withoutQuery.match(/\.([a-z0-9]+)$/i);
+  return match ? match[1].toLowerCase() : null;
+}
+
+function validateKnownUrlExtension(type: SeedanceMediaType, url: string): string | null {
+  const ext = getUrlExtension(url);
+  if (!ext) return null;
+
+  if (type === 'image' && !IMAGE_URL_FORMATS.includes(ext)) {
+    return `Unsupported image URL format ".${ext}". Use jpeg, jpg, png, webp, bmp, tiff, gif, heic, or heif.`;
+  }
+  if (type === 'video' && !VIDEO_URL_FORMATS.includes(ext)) {
+    return `Unsupported video URL format ".${ext}". Use mp4 or mov.`;
+  }
+  if (type === 'audio' && !AUDIO_URL_FORMATS.includes(ext)) {
+    return `Unsupported audio URL format ".${ext}". Use wav or mp3.`;
+  }
+  return null;
+}
+
+function isLocalOrPrivatePath(value: string): boolean {
+  return (
+    value.startsWith('/') ||
+    value.startsWith('./') ||
+    value.startsWith('../') ||
+    value.startsWith('~/') ||
+    value.startsWith('file://') ||
+    /^[a-zA-Z]:[\\/]/.test(value) ||
+    value.includes('\\')
+  );
+}
+
+export function validateSeedanceMediaUri(type: SeedanceMediaType, rawUrl: string): SeedanceMediaUriValidation {
+  const url = rawUrl.trim();
+  if (!url) return { valid: true };
+
+  if (isLocalOrPrivatePath(url)) {
+    return {
+      valid: false,
+      error: 'Local/private file paths are not API-ready. Use a public HTTPS URL, supported Base64 data URI, or asset:// URI.',
+    };
+  }
+
+  if (url.startsWith('https://')) {
+    const extensionError = validateKnownUrlExtension(type, url);
+    if (extensionError) return { valid: false, error: extensionError };
+    return { valid: true, kind: 'https' };
+  }
+
+  if (url.startsWith('asset://')) {
+    return url.length > 'asset://'.length
+      ? { valid: true, kind: 'asset' }
+      : { valid: false, error: 'asset:// URI must include an asset ID.' };
+  }
+
+  if (type === 'image' && url.startsWith('data:image/')) {
+    const match = url.match(/^data:image\/([a-z0-9]+);base64,[A-Za-z0-9+/=]+$/);
+    if (!match) {
+      return { valid: false, error: 'Image Base64 must use data:image/<lowercase-format>;base64,...' };
+    }
+    return IMAGE_DATA_FORMATS.includes(match[1])
+      ? { valid: true, kind: 'base64' }
+      : { valid: false, error: `Unsupported image Base64 format "${match[1]}". Use jpeg, png, webp, bmp, tiff, gif, heic, or heif.` };
+  }
+
+  if (type === 'audio' && url.startsWith('data:audio/')) {
+    const match = url.match(/^data:audio\/([a-z0-9]+);base64,[A-Za-z0-9+/=]+$/);
+    if (!match) {
+      return { valid: false, error: 'Audio Base64 must use data:audio/<lowercase-format>;base64,...' };
+    }
+    return AUDIO_DATA_FORMATS.includes(match[1])
+      ? { valid: true, kind: 'base64' }
+      : { valid: false, error: `Unsupported audio Base64 format "${match[1]}". Use wav or mp3.` };
+  }
+
+  if (url.startsWith('data:')) {
+    return {
+      valid: false,
+      error: type === 'video'
+        ? 'Seedance 2.0 video references support HTTPS URLs or asset:// URIs, not Base64 data URIs.'
+        : `Unsupported ${type} data URI format.`,
+    };
+  }
+
+  const accepted =
+    type === 'video'
+      ? 'public HTTPS URL or asset:// URI'
+      : `public HTTPS URL, asset:// URI, or ${type} Base64 data URI`;
+  return { valid: false, error: `Invalid ${type} reference URI. Use ${accepted}.` };
+}
+
+export function isValidSeedanceMediaUri(type: SeedanceMediaType, url: string): boolean {
+  return validateSeedanceMediaUri(type, url).valid;
 }
 
 // ─── Reference item type ───
@@ -169,6 +286,9 @@ export interface SeedancePayloadInput {
   generateAudio?: boolean;
   returnLastFrame?: boolean;
   callbackUrl?: string;
+  executionExpiresAfter?: number;
+  safetyIdentifier?: string;
+  priority?: number;
 }
 
 // ─── Content block builders ───
@@ -220,6 +340,9 @@ export function buildSeedancePayload(input: SeedancePayloadInput): Record<string
     generateAudio = true,
     returnLastFrame = true,
     callbackUrl,
+    executionExpiresAfter,
+    safetyIdentifier,
+    priority,
   } = input;
 
   // Build content array
@@ -260,7 +383,7 @@ export function buildSeedancePayload(input: SeedancePayloadInput): Record<string
     content,
     ratio,
     duration,
-    resolution,
+    resolution: normalizeSeedanceResolution(resolution),
     watermark,
     generate_audio: generateAudio,
     return_last_frame: returnLastFrame,
@@ -268,6 +391,15 @@ export function buildSeedancePayload(input: SeedancePayloadInput): Record<string
 
   if (callbackUrl) {
     payload.callback_url = callbackUrl;
+  }
+  if (executionExpiresAfter !== undefined) {
+    payload.execution_expires_after = executionExpiresAfter;
+  }
+  if (safetyIdentifier) {
+    payload.safety_identifier = safetyIdentifier;
+  }
+  if (priority !== undefined) {
+    payload.priority = priority;
   }
 
   return payload;
@@ -381,16 +513,18 @@ export function validateSeedancePayload(input: SeedancePayloadInput): SeedanceVa
     warnings.push('Text prompt is optional for multimodal reference, but WSTV recommends including one for best results.');
   }
 
-  // 12. URL format validation (HTTPS required)
-  const allRefs = [
-    ...input.references.images,
-    ...input.references.videos,
-    ...input.references.audios,
-  ].filter(r => r.url.trim());
-  for (const ref of allRefs) {
-    if (!ref.url.startsWith('https://') && !ref.url.startsWith('asset://') && !ref.url.startsWith('data:')) {
-      warnings.push(`Reference URL should be HTTPS, asset://, or Base64 data URI: ${ref.url.substring(0, 50)}...`);
-    }
+  // 12. Official media URI validation. Local/private paths are hard-blocked.
+  for (const ref of input.references.images.filter(r => r.url.trim())) {
+    const result = validateSeedanceMediaUri('image', ref.url);
+    if (!result.valid) errors.push(`Image reference "${ref.role}" is invalid: ${result.error}`);
+  }
+  for (const ref of input.references.videos.filter(r => r.url.trim())) {
+    const result = validateSeedanceMediaUri('video', ref.url);
+    if (!result.valid) errors.push(`Video reference "${ref.role}" is invalid: ${result.error}`);
+  }
+  for (const ref of input.references.audios.filter(r => r.url.trim())) {
+    const result = validateSeedanceMediaUri('audio', ref.url);
+    if (!result.valid) errors.push(`Audio reference "${ref.role}" is invalid: ${result.error}`);
   }
 
   return {
@@ -464,14 +598,19 @@ export const WSTV_DEFAULTS = {
 
 export const MEDIA_INPUT_LABELS = {
   image: ['public URL', 'Base64', 'asset://<ASSET_ID>'],
-  video: ['public URL', 'asset ID'],
-  audio: ['public URL', 'asset ID'],
+  video: ['public URL', 'asset://<ASSET_ID>'],
+  audio: ['public URL', 'Base64', 'asset://<ASSET_ID>'],
 } as const;
 
 // ─── Media size/duration limits (for UI warnings) ───
 
 export const MEDIA_LIMITS = {
   image: {
+    formats: ['jpeg', 'png', 'webp', 'bmp', 'tiff', 'gif', 'heic', 'heif'],
+    minDimensionPx: 300,
+    maxDimensionPx: 6000,
+    minAspectRatio: 0.4,
+    maxAspectRatio: 2.5,
     maxSingleSizeMB: 30,
     maxTotalRequestMB: 64,
     note: 'Prefer public URL or asset ID over Base64 for large media. BytePlus TOS public-read storage is recommended for future real calls.',
@@ -482,6 +621,9 @@ export const MEDIA_LIMITS = {
     maxDurationSec: 15,
     maxCount: 3,
     maxTotalDurationSec: 15,
+    minFps: 24,
+    maxFps: 60,
+    maxSingleSizeMB: 200,
     note: 'Use public URLs or asset IDs for future real calls. Total reference video duration should not exceed 15 seconds.',
   },
   audio: {
@@ -490,6 +632,8 @@ export const MEDIA_LIMITS = {
     maxDurationSec: 15,
     maxCount: 3,
     maxTotalDurationSec: 15,
+    maxSingleSizeMB: 15,
+    maxTotalRequestMB: 64,
     note: 'Audio reference must be paired with at least one image or video reference. Do not submit audio alone.',
   },
 } as const;
@@ -507,10 +651,10 @@ export const FRAMES_NOT_SUPPORTED_NOTE =
 // ─── Seed / camera_fixed notes (NOT active controls) ───
 
 export const SEED_NOT_SUPPORTED_NOTE =
-  'Seed is documented for some video generation flows, but WSTV keeps it inactive in PHASE5.1 preview. Evaluate in PHASE6 before adding it to the payload.';
+  'Seed is not supported by Seedance 2.0. Do not add it to Seedance 2.0 payloads.';
 
 export const CAMERA_FIXED_NOT_SUPPORTED_NOTE =
-  'camera_fixed is documented for some video generation flows, but WSTV keeps it inactive in PHASE5.1 preview. Evaluate in PHASE6 before adding it to the payload.';
+  'camera_fixed is not currently supported by Seedance 2.0. Do not add it to Seedance 2.0 payloads.';
 
 // ═══════════════════════════════════════════════════════════════════════
 // PHASE5: Resource Pack Billing / Deduction Rules

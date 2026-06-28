@@ -15,7 +15,9 @@ import {
   MODEL_RESOLUTION_RULES,
   VALID_DURATION_MIN,
   VALID_DURATION_MAX,
+  VALID_RATIOS,
   isValidSeedanceDuration,
+  normalizeSeedanceResolution,
   type GenerationMode,
 } from '@/lib/seedance-validation';
 
@@ -23,17 +25,18 @@ import {
 function costPerSec(model: ModelType, res: string) {
   const table: Record<string, Record<string, number>> = {
     mini: { '480p': 0.02, '720p': 0.04 },
-    full: { '480p': 0.03, '720p': 0.06, '1080p': 0.10, '4K': 0.18 },
+    full: { '480p': 0.03, '720p': 0.06, '1080p': 0.10, '4k': 0.18 },
   };
-  return table[model]?.[res] || 0;
+  return table[model]?.[normalizeSeedanceResolution(res)] || 0;
 }
 function estimateCost(model: ModelType, res: string, dur: number) {
   if (dur === -1) return 0; // auto duration — cost unknown
   return costPerSec(model, res) * dur;
 }
 function getPixelDims(res: string) {
-  const map: Record<string, string> = { '480p': '854×480', '720p': '1280×720', '1080p': '1920×1080', '4K': '3840×2160' };
-  return map[res] || res;
+  const normalized = normalizeSeedanceResolution(res);
+  const map: Record<string, string> = { '480p': '854×480', '720p': '1280×720', '1080p': '1920×1080', '4k': '3840×2160' };
+  return map[normalized] || res;
 }
 
 // Map Seedance model ID to legacy ModelType for cost table lookups
@@ -44,7 +47,7 @@ function seedanceIdToModelType(id: string): ModelType {
 const PRESETS = [
   { name: 'Social Reel', icon: '🎬', resolution: '720p', duration: 15, aspectRatio: '9:16' },
   { name: 'Cinematic', icon: '🌅', resolution: '1080p', duration: 10, aspectRatio: '16:9' },
-  { name: 'Detail Shot', icon: '🔬', resolution: '4K', duration: 6, aspectRatio: '1:1' },
+  { name: 'Detail Shot', icon: '🔬', resolution: '4k', duration: 6, aspectRatio: '1:1' },
   { name: 'Quick Preview', icon: '⚡', resolution: '480p', duration: 4, aspectRatio: '9:16' },
   { name: 'Story Clip', icon: '📱', resolution: '720p', duration: 6, aspectRatio: '9:16' },
 ];
@@ -114,7 +117,7 @@ function CostBreakdownBar({ seedanceModelId, resolution, duration }: { seedanceM
   const resMult = base > 0 ? current / base : 1;
   const total = duration === -1 ? 0 : current * duration;
   const cny = total * 7.25;
-  const barMax = costPerSec('full', '4K') * 15;
+  const barMax = costPerSec('full', '4k') * 15;
   return (
     <div className="p-4 rounded-lg bg-muted/30 border border-emerald-500/20 space-y-3">
       <div className="flex items-center justify-between">
@@ -181,7 +184,7 @@ export function StepOutput({
   const modelMeta = MODEL_METADATA[seedanceModelId] ?? MODEL_METADATA[SEEDANCE_MODEL_IDS.STANDARD];
 
   const applyPreset = (p: typeof PRESETS[number]) => {
-    setResolution(p.resolution);
+    setResolution(normalizeSeedanceResolution(p.resolution));
     setDuration(p.duration);
     setAspectRatio(p.aspectRatio);
   };
@@ -246,7 +249,8 @@ export function StepOutput({
               }`}
             >
               <div className="text-sm font-bold text-gray-200">Reference Mode</div>
-              <div className="text-xs text-muted-foreground mt-0.5">Master image + storyboard + character/environment references</div>
+              <div className="text-xs text-muted-foreground mt-0.5">Multimodal references: reference_image, reference_video, reference_audio</div>
+              <div className="text-xs text-emerald-500/70 mt-1">Soft first/last guidance through prompt, not exact frame lock</div>
               <Badge variant="outline" className="text-xs mt-1 border-emerald-500/30 text-emerald-400 bg-emerald-500/10">WSTV default</Badge>
             </button>
             <button
@@ -258,13 +262,13 @@ export function StepOutput({
               }`}
             >
               <div className="text-sm font-bold text-gray-200">Frame Mode</div>
-              <div className="text-xs text-muted-foreground mt-0.5">Exact first-frame / first+last-frame control</div>
+              <div className="text-xs text-muted-foreground mt-0.5">Strict exact first_frame and optional last_frame</div>
               <div className="text-xs text-amber-500/70 mt-1">Cannot mix with reference media</div>
             </button>
           </div>
           <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1.5">
             <Info className="w-3 h-3 shrink-0 text-emerald-500/70" />
-            Frame mode and reference mode cannot be mixed in one request. Use reference mode for master image + storyboard. Use frame mode only for first-frame / last-frame lock.
+            Reference Mode and Frame Mode cannot be mixed. Use Reference Mode for soft multimodal guidance; use Frame Mode only for exact first/last frame lock.
           </p>
         </div>
 
@@ -291,11 +295,18 @@ export function StepOutput({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="9:16">9:16 (Vertical)</SelectItem>
                 <SelectItem value="16:9">16:9 (Landscape)</SelectItem>
+                <SelectItem value="4:3">4:3</SelectItem>
                 <SelectItem value="1:1">1:1 (Square)</SelectItem>
+                <SelectItem value="3:4">3:4</SelectItem>
+                <SelectItem value="9:16">9:16 (Vertical, WSTV default)</SelectItem>
+                <SelectItem value="21:9">21:9</SelectItem>
+                <SelectItem value="adaptive">adaptive</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Official ratios: {VALID_RATIOS.join(', ')}. WSTV defaults to 9:16.
+            </p>
           </div>
           {/* FPS — kept for cost/frame display only, NOT sent to Seedance API */}
           <div>

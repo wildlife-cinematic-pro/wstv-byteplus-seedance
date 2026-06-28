@@ -35,7 +35,6 @@ export async function POST(request: Request) {
       reasonWorked,
       reasonFailed,
       postedAt,
-      notes,
     } = body;
 
     const performanceRecord = await db.performanceRecord.create({
@@ -52,7 +51,6 @@ export async function POST(request: Request) {
         reasonWorked,
         reasonFailed,
         postedAt: postedAt ? new Date(postedAt) : null,
-        notes,
       },
     });
 

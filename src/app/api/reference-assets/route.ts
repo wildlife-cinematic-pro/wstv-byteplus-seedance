@@ -1,5 +1,19 @@
 import { db } from '@/lib/db';
+import { Prisma, type ReferenceAsset } from '@prisma/client';
 import { NextResponse } from 'next/server';
+
+interface ReferenceAssetPayload {
+  dbId?: string;
+  id?: string;
+  assetType?: string;
+  role?: string;
+  url?: string;
+  label?: string | null;
+  notes?: string | null;
+  isActive?: boolean;
+  sortOrder?: number;
+  projectId?: string | null;
+}
 
 // GET /api/reference-assets — List reference assets (optional: ?projectId=xxx, ?assetType=image)
 export async function GET(request: Request) {
@@ -8,7 +22,7 @@ export async function GET(request: Request) {
     const projectId = searchParams.get('projectId');
     const assetType = searchParams.get('assetType');
 
-    const where: Record<string, unknown> = {};
+    const where: Prisma.ReferenceAssetWhereInput = {};
     if (projectId) where.projectId = projectId;
     if (assetType) where.assetType = assetType;
 
@@ -35,7 +49,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { assets } = body;
+    const { assets } = body as { assets?: ReferenceAssetPayload[] };
 
     if (!Array.isArray(assets)) {
       return NextResponse.json(
@@ -45,9 +59,9 @@ export async function POST(request: Request) {
     }
 
     // Validate limits
-    const imageCount = assets.filter((a: { assetType: string; url: string }) => a.assetType === 'image' && a.url?.trim()).length;
-    const videoCount = assets.filter((a: { assetType: string; url: string }) => a.assetType === 'video' && a.url?.trim()).length;
-    const audioCount = assets.filter((a: { assetType: string; url: string }) => a.assetType === 'audio' && a.url?.trim()).length;
+    const imageCount = assets.filter((a) => a.assetType === 'image' && a.url?.trim()).length;
+    const videoCount = assets.filter((a) => a.assetType === 'video' && a.url?.trim()).length;
+    const audioCount = assets.filter((a) => a.assetType === 'audio' && a.url?.trim()).length;
 
     if (imageCount > 9) return NextResponse.json({ error: `Too many image references (${imageCount}/9 max)` }, { status: 400 });
     if (videoCount > 3) return NextResponse.json({ error: `Too many video references (${videoCount}/3 max)` }, { status: 400 });
@@ -59,11 +73,11 @@ export async function POST(request: Request) {
 
     // Determine which assets to create, update, or delete
     const assetDbIds = new Set<string>();
-    const toCreate: Array<Record<string, unknown>> = [];
-    const toUpdate: Array<{ id: string; data: Record<string, unknown> }> = [];
+    const toCreate: Prisma.ReferenceAssetCreateInput[] = [];
+    const toUpdate: Array<{ id: string; data: Prisma.ReferenceAssetUpdateInput }> = [];
 
     for (const asset of assets) {
-      const { dbId, id, assetType, role, url, label, notes, isActive, sortOrder, projectId } = asset;
+      const { dbId, assetType, role, url, label, notes, isActive, sortOrder, projectId } = asset;
 
       // Validate required fields
       if (!assetType) continue;
@@ -111,7 +125,7 @@ export async function POST(request: Request) {
     }
 
     // Create new
-    const created = [];
+    const created: ReferenceAsset[] = [];
     for (const data of toCreate) {
       const asset = await db.referenceAsset.create({ data });
       created.push(asset);
