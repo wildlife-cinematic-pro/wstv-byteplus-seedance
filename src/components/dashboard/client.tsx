@@ -279,7 +279,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
 
   const onDryRunResult = useCallback((r: DryRunResult) => {
     setDryRunResult(r);
-    if (r.passed) addToastRef.current({ type: 'success', title: 'Dry Run Passed', message: 'Ready for paid generation' });
+    if (r.passed) addToastRef.current({ type: 'success', title: 'Dry Run Passed', message: 'Ready for simulated generation' });
     else if (r.errors.length) addToastRef.current({ type: 'error', title: 'Dry Run Failed', message: r.errors[0] });
   }, []);
   const onInvalidatedClear = useCallback(() => setDryRunInvalidated(false), []);
