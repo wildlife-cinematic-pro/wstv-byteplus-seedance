@@ -16,6 +16,8 @@ export interface DryRunResult {
   characterLimit: number;
   model: string;
   modelId: string;
+  seedanceModelId?: string;
+  generationMode?: 'reference_mode' | 'frame_mode';
   duration: number;
   frameCount: number;
   resolution: string;

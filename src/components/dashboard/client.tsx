@@ -19,6 +19,7 @@ import { GenerateSafetyStrip } from '@/components/dashboard/generate-safety-stri
 import { OfficialQuickstartReference } from '@/components/dashboard/official-quickstart-reference';
 import { ResourcePackBillingPanel } from '@/components/dashboard/resource-pack-billing';
 import { StepPaid } from '@/components/dashboard/step-paid';
+import { RealGenerationPanel } from '@/components/dashboard/real-generation-panel';
 import { StepPreview } from '@/components/dashboard/step-preview';
 import { Sidebar } from '@/components/dashboard/sidebar';
 import { ToastContainer } from '@/components/dashboard/toast';
@@ -337,8 +338,8 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
     const r2 = await fetch('/api/cost-summary'); if (r2.ok) { const d = await r2.json(); setBudgetInfo(d.budget); }
   }, [addToast]);
 
-  const estimateCost = useCallback(() => {
-    if (duration === -1) return 0;
+  const estimatePlanning = useCallback(() => {
+    if (duration === -1) return null;
     const grouped = groupReferencesByType(references);
     return estimateSeedancePlanningCost({
       modelId: seedanceModelId,
@@ -346,8 +347,16 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
       aspectRatio,
       outputDurationSec: duration,
       inputMode: grouped.videos.length > 0 ? 'with_video' : 'without_video',
-    }).estimatedCostUsd;
+    });
   }, [seedanceModelId, resolution, aspectRatio, duration, references]);
+  const estimateCost = useCallback(() => {
+    const estimate = estimatePlanning();
+    return estimate?.estimatedCostUsd ?? 0;
+  }, [estimatePlanning]);
+  const estimateTokens = useCallback(() => {
+    const estimate = estimatePlanning();
+    return estimate?.estimatedTokens ?? 0;
+  }, [estimatePlanning]);
 
   // PHASE5.1: charLimit is a RECOMMENDED range, not a hard limit.
   // promptWithinLimit gate is always true (warning only) — a long prompt
@@ -585,6 +594,12 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
                     unlockError={unlockError}
                     onUnlockSubmit={handleUnlockSubmit}
                     onLock={handleLockPaidZone}
+                  />
+                  <RealGenerationPanel
+                    currentTaskId={currentTaskId}
+                    dryRunPassed={Boolean(dryRunResult?.passed && !dryRunInvalidated)}
+                    estimatedCost={estimateCost()}
+                    estimatedTokens={estimateTokens()}
                   />
                   <StepPreview latestVideo={latestVideo} onRefreshVideo={refreshVideo} onOpenFolder={openFolder}
                     dryRunPassed={dryRunResult?.passed && !dryRunInvalidated}

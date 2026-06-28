@@ -33,6 +33,8 @@ model VideoTask {
   videoFileName      String?
   costEstimate       Float?
   costActual         Float?
+  actualTokens       Int?
+  actualBillingStatus String?
   safetyPassed       Boolean  @default(false)
   safetyWarnings     String?
   dryRunPassed       Boolean  @default(false)
