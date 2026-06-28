@@ -26,6 +26,11 @@ export interface DryRunResult {
   totalReferenceDuration: number;
   estimatedCost: number;
   estimatedCostCny: number;
+  estimatedTokens?: number;
+  modelRateUsdPerMillionTokens?: number;
+  pricingMode?: 'official_token_estimate_only';
+  pricingEstimateOnly?: boolean;
+  actualUsageRequiredForFinalBilling?: boolean;
   validationLog: string[];
   errors: string[];
   timestamp: string;

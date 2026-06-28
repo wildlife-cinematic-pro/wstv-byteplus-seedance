@@ -35,8 +35,8 @@ function EmptyState({ onRefreshVideo, onOpenFolder, dryRunPassed, hasPaidTask }:
 }) {
   const steps = [
     { label: 'Complete Dry Run', done: !!dryRunPassed },
-    { label: 'Submit Paid Task', done: !!hasPaidTask },
-    { label: 'Wait for Generation', done: false },
+    { label: 'Run Simulation', done: !!hasPaidTask },
+    { label: 'Wait for Sim Result', done: false },
     { label: 'Preview Here', done: false },
   ];
   return (

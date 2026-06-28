@@ -160,7 +160,7 @@ export function SeedancePayloadPreviewPanel({
   const [showFutureControls, setShowFutureControls] = useState(false);
   const [copiedExample, setCopiedExample] = useState<number | null>(null);
 
-  // Whether ARK_API_KEY is configured server-side (the key itself never leaves the server).
+  // Whether a server-side API key is configured. The key itself never leaves the server.
   const [arkConfigured, setArkConfigured] = useState<boolean | null>(null);
   useEffect(() => {
     let cancelled = false;
@@ -329,8 +329,8 @@ export function SeedancePayloadPreviewPanel({
               </p>
               <p className={`text-xs mt-1 ${arkConfigured ? 'text-amber-400/80' : 'text-red-400/80'}`}>
                 {arkConfigured
-                  ? '⚠ ARK_API_KEY is configured (server-side). This preview still makes no call — real generation remains gated by Safe Mode.'
-                  : '⚠ Do not call this endpoint. ARK_API_KEY is not configured. Safe Mode is ON.'}
+                  ? '⚠ A server-side API key is configured. This preview still makes no call — real generation remains gated by Safe Mode.'
+                  : '⚠ Do not call this endpoint. No server-side API key is configured. Safe Mode is ON.'}
               </p>
             </div>
           </CollapsibleContent>

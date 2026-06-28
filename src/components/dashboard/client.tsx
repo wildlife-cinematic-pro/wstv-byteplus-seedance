@@ -31,6 +31,10 @@ import CalendarLearning from '@/components/dashboard/calendar-learning';
 import type { DryRunResult, TaskHistory, BudgetInfo, LatestVideo, Gates, ModelType, ToastMessage, ReferenceEntry } from '@/components/dashboard/types';
 import { groupReferencesByType, remapReferenceRolesForMode } from '@/components/dashboard/types';
 import { isValidSeedanceMediaUri, normalizeSeedanceResolution } from '@/lib/seedance-validation';
+import {
+  ACTUAL_CONSOLE_USAGE,
+  estimateSeedancePlanningCost,
+} from '@/lib/seedance-pricing';
 
 interface InitialData {
   safeMode: boolean;
@@ -56,15 +60,15 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
   // WSTV default: reference_mode (master image + storyboard)
   const [generationMode, setGenerationMode] = useState<'reference_mode' | 'frame_mode'>('reference_mode');
 
-  // ─── Paid Zone unlock state (LOCAL UI LOCK ONLY — not real security) ───
+  // ─── Simulation Zone unlock state (LOCAL UI LOCK ONLY — not real security) ───
   // The unlock phrase is hardcoded in the frontend. Anyone with browser
   // devtools can bypass this. The real protection against accidental paid
   // submission remains:
   //   - Server-side safeMode check at /api/generate (returns 403 if on)
   //   - The 10 pre-submission gates
-  //   - The SUBMIT_ONE_PAID_TASK confirmation text
+  //   - The CONFIRM_SIMULATED_GENERATION confirmation text
   //   - The 3-second countdown
-  // This lock ONLY hides the Paid Zone UI so it doesn't visually distract
+  // This lock ONLY hides the Simulation Zone UI so it doesn't visually distract
   // the user during normal Dry-Run / Planning workflow.
   const [paidUnlocked, setPaidUnlocked] = useState(false);
   const [unlockInput, setUnlockInput] = useState('');
@@ -102,7 +106,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
-  // ─── Paid Zone unlock handlers (must be after addToast) ───
+  // ─── Simulation Zone unlock handlers (must be after addToast) ───
   // Restore unlock state from localStorage on mount
   useEffect(() => {
     try {
@@ -119,7 +123,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
       setUnlockError(false);
       setUnlockInput('');
       try { localStorage.setItem('wstv_paid_unlocked', 'true'); } catch {}
-      addToast({ type: 'info', title: 'Paid Zone Unlocked', message: 'Safe Mode is still ON — all gates still apply' });
+      addToast({ type: 'info', title: 'Simulation Zone Unlocked', message: 'Safe Mode is still ON — all gates still apply' });
     } else {
       setUnlockError(true);
     }
@@ -130,7 +134,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
     setUnlockInput('');
     setUnlockError(false);
     try { localStorage.removeItem('wstv_paid_unlocked'); } catch {}
-    addToast({ type: 'info', title: 'Paid Zone Locked' });
+    addToast({ type: 'info', title: 'Simulation Zone Locked' });
   }, [addToast]);
 
   // Budget refresh function — used as a fallback when no detail payload is
@@ -296,7 +300,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
   const toggleSafeMode = useCallback(async () => {
     const v = !safeMode;
     setSafeMode(v);
-    addToast({ type: v ? 'info' : 'warning', title: v ? 'Safe Mode ON' : 'Safe Mode OFF', message: v ? 'Paid generation disabled' : 'Paid generation enabled — proceed with caution' });
+    addToast({ type: v ? 'info' : 'warning', title: v ? 'Safe Mode ON' : 'Safe Mode OFF', message: v ? 'Simulated generation only' : 'Simulation controls visible — real BytePlus API remains disabled' });
     try { await fetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ safeMode: v }) }); } catch (e) { console.error(e); }
   }, [safeMode, addToast]);
 
@@ -313,7 +317,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
 
   const onPaidSuccess = useCallback(async () => {
     setPaidLoading(false);
-    addToast({ type: 'success', title: 'Paid Task Submitted', message: 'Your video is being generated' });
+    addToast({ type: 'success', title: 'Simulation Complete', message: 'Dry-run generation was simulated locally' });
     setTimeout(async () => {
       const r = await fetch('/api/latest-video');
       if (r.ok) { const d = await r.json(); setLatestVideo(d.video); }
@@ -323,16 +327,20 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
   }, [addToast]);
 
   const estimateCost = useCallback(() => {
-    const table: Record<string, Record<string, number>> = {
-      mini: { '480p': 0.02, '720p': 0.04 },
-      full: { '480p': 0.03, '720p': 0.06, '1080p': 0.10, '4k': 0.18 },
-    };
-    return (table[modelType]?.[normalizeSeedanceResolution(resolution)] || 0) * duration;
-  }, [modelType, resolution, duration]);
+    if (duration === -1) return 0;
+    const grouped = groupReferencesByType(references);
+    return estimateSeedancePlanningCost({
+      modelId: seedanceModelId,
+      resolution: normalizeSeedanceResolution(resolution),
+      aspectRatio,
+      outputDurationSec: duration,
+      inputMode: grouped.videos.length > 0 ? 'with_video' : 'without_video',
+    }).estimatedCostUsd;
+  }, [seedanceModelId, resolution, aspectRatio, duration, references]);
 
   // PHASE5.1: charLimit is a RECOMMENDED range, not a hard limit.
   // promptWithinLimit gate is always true (warning only) — a long prompt
-  // does NOT hard-block Dry Run or the Paid Zone. The gate just requires
+  // does NOT hard-block Dry Run or the Simulation Zone. The gate just requires
   // the prompt to be non-empty.
   const recommendedCharLimit = modelType === 'mini' ? 1500 : 2000;
   const promptOverRecommended = prompt.length > recommendedCharLimit;
@@ -352,7 +360,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
     safeModeOff: !safeMode, dryRunPassed: dryRunResult?.passed === true && !dryRunInvalidated,
     // PHASE5.1: Prompt length is a WARNING, not a hard gate. Always passes
     // as long as the prompt is non-empty. Long prompts show a warning but
-    // do NOT block Dry Run or Paid Zone.
+    // do NOT block Dry Run or Simulation Zone.
     promptWithinLimit: prompt.length > 0, urlsValid: allUrlsValid,
     storyboardAcknowledged: true, // Always true - storyboard is now just another image ref role
     audioRiskAcknowledged: !hasAnyAudio || refRiskAcknowledged,
@@ -415,6 +423,16 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
               <Shield className="w-3.5 h-3.5" /> Safe Mode ON — DRY RUN only. No real paid generation.
             </div>
           )}
+          <div className="mt-2 grid gap-2 lg:grid-cols-[1.5fr_1fr]">
+            <div className="flex items-center gap-2 text-xs text-amber-300 bg-amber-500/10 rounded-md px-3 py-2 border border-amber-500/30">
+              <Shield className="w-3.5 h-3.5 shrink-0" />
+              DRY RUN / PLANNING MODE — no paid BytePlus API calls. All generation results are simulated.
+            </div>
+            <div className="text-xs text-muted-foreground bg-card rounded-md px-3 py-2 border border-emerald-500/20">
+              <span className="text-emerald-400 font-medium">Actual Console Usage:</span>{' '}
+              {ACTUAL_CONSOLE_USAGE.usedTokens.toLocaleString()} used · {ACTUAL_CONSOLE_USAGE.remainingTokens.toLocaleString()} remaining · safe planned calls {ACTUAL_CONSOLE_USAGE.safePlannedRemainingCalls}
+            </div>
+          </div>
         </div>
       </header>
 
@@ -467,6 +485,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
                   </div>
                   <div className="text-sm text-muted-foreground">
                     Est. cost: <span className="text-emerald-400 font-medium">${estimateCost().toFixed(2)}</span>
+                    <span className="ml-1 text-xs">(official token estimate only)</span>
                   </div>
                 </div>
 
@@ -478,7 +497,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
                     { label: 'Refs', done: refCount > 0 },
                     { label: 'Settings', done: true },
                     { label: 'Dry Run', done: dryRunResult?.passed === true },
-                    { label: 'Paid', done: false },
+                    { label: 'Simulation', done: false },
                     { label: 'Preview', done: !!latestVideo },
                   ].map((s, i) => (
                     <span key={s.label} className="flex items-center gap-1">
@@ -635,7 +654,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
               <span>Seedance 2.0</span>
               <div className="flex items-center gap-1">
                 <Shield className={`w-3.5 h-3.5 ${safeMode ? 'text-emerald-500' : 'text-amber-500'}`} />
-                <span>{safeMode ? 'DRY RUN' : 'LIVE'}</span>
+                <span>{safeMode ? 'DRY RUN' : 'SIM'}</span>
               </div>
               <span>v5.0.0</span>
             </div>

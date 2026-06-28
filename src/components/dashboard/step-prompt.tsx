@@ -76,7 +76,7 @@ function ModelCompareDialog() {
     { label: 'Resolution', full: '480p–4k', mini: '480p–720p' },
     { label: 'Duration', full: '4–15s', mini: '4–15s' },
     { label: 'Speed', full: 'Standard', mini: 'Fast' },
-    { label: 'Cost/s', full: '$0.03–0.18', mini: '$0.02–0.04' },
+    { label: 'Pricing', full: 'official token estimate', mini: 'official token estimate' },
     { label: 'Max Inputs', full: '9 img / 3 aud / 3 vid', mini: '9 img / 3 aud / 3 vid' },
     { label: 'Audio Gen', full: 'Yes / Supported / generate_audio true', mini: 'Yes / Supported / generate_audio true' },
     { label: 'Quality', full: 'Highest', mini: 'Good' },

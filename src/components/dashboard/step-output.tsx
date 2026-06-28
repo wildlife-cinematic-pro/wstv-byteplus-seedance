@@ -20,28 +20,12 @@ import {
   normalizeSeedanceResolution,
   type GenerationMode,
 } from '@/lib/seedance-validation';
+import { estimateSeedancePlanningCost } from '@/lib/seedance-pricing';
 
-// Legacy cost table (kept for Cost Breakdown Bar display only — not used for API validation)
-function costPerSec(model: ModelType, res: string) {
-  const table: Record<string, Record<string, number>> = {
-    mini: { '480p': 0.02, '720p': 0.04 },
-    full: { '480p': 0.03, '720p': 0.06, '1080p': 0.10, '4k': 0.18 },
-  };
-  return table[model]?.[normalizeSeedanceResolution(res)] || 0;
-}
-function estimateCost(model: ModelType, res: string, dur: number) {
-  if (dur === -1) return 0; // auto duration — cost unknown
-  return costPerSec(model, res) * dur;
-}
 function getPixelDims(res: string) {
   const normalized = normalizeSeedanceResolution(res);
   const map: Record<string, string> = { '480p': '854×480', '720p': '1280×720', '1080p': '1920×1080', '4k': '3840×2160' };
   return map[normalized] || res;
-}
-
-// Map Seedance model ID to legacy ModelType for cost table lookups
-function seedanceIdToModelType(id: string): ModelType {
-  return id === SEEDANCE_MODEL_IDS.MINI ? 'mini' : 'full';
 }
 
 const PRESETS = [
@@ -78,7 +62,6 @@ function QuickPresets({ seedanceModelId, onApply }: { seedanceModelId: string; o
 
 function ResolutionCards({ seedanceModelId, resolution, setResolution }: { seedanceModelId: string; resolution: string; setResolution: (v: string) => void }) {
   const resList = MODEL_RESOLUTION_RULES[seedanceModelId] ?? MODEL_RESOLUTION_RULES[SEEDANCE_MODEL_IDS.STANDARD];
-  const modelType = seedanceIdToModelType(seedanceModelId);
   const isMiniOrFast = seedanceModelId === SEEDANCE_MODEL_IDS.MINI || seedanceModelId === SEEDANCE_MODEL_IDS.FAST;
   return (
     <div className="space-y-2">
@@ -94,7 +77,7 @@ function ResolutionCards({ seedanceModelId, resolution, setResolution }: { seeda
               }`}>
               <div className="text-sm font-bold text-gray-200">{r}</div>
               <div className="text-xs text-muted-foreground">{getPixelDims(r)}</div>
-              <div className="text-xs text-muted-foreground">${costPerSec(modelType, r).toFixed(2)}/s</div>
+              <div className="text-xs text-muted-foreground">official token estimate</div>
             </button>
           );
         })}
@@ -110,14 +93,26 @@ function ResolutionCards({ seedanceModelId, resolution, setResolution }: { seeda
   );
 }
 
-function CostBreakdownBar({ seedanceModelId, resolution, duration }: { seedanceModelId: string; resolution: string; duration: number }) {
-  const modelType = seedanceIdToModelType(seedanceModelId);
-  const base = costPerSec(modelType, '480p');
-  const current = costPerSec(modelType, resolution);
-  const resMult = base > 0 ? current / base : 1;
-  const total = duration === -1 ? 0 : current * duration;
+function CostBreakdownBar({
+  seedanceModelId,
+  resolution,
+  duration,
+  aspectRatio,
+}: {
+  seedanceModelId: string;
+  resolution: string;
+  duration: number;
+  aspectRatio: string;
+}) {
+  const estimate = duration === -1 ? null : estimateSeedancePlanningCost({
+    modelId: seedanceModelId,
+    resolution,
+    aspectRatio,
+    outputDurationSec: duration,
+    inputMode: 'without_video',
+  });
+  const total = estimate?.estimatedCostUsd ?? 0;
   const cny = total * 7.25;
-  const barMax = costPerSec('full', '4k') * 15;
   return (
     <div className="p-4 rounded-lg bg-muted/30 border border-emerald-500/20 space-y-3">
       <div className="flex items-center justify-between">
@@ -128,25 +123,24 @@ function CostBreakdownBar({ seedanceModelId, resolution, duration }: { seedanceM
           <CostDisplay usd={total} cny={cny} size="md" />
         )}
       </div>
-      {duration !== -1 && (
-        <div className="space-y-1.5">
-          {[
-            { label: 'Base (480p)', value: base * duration, color: 'bg-emerald-600' },
-            { label: `Res ×${resMult.toFixed(1)}`, value: total - base * duration, color: 'bg-amber-500' },
-            { label: 'Duration', value: total * 0.1, color: 'bg-sky-500' },
-          ].map(item => (
-            <div key={item.label} className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground w-20 shrink-0">{item.label}</span>
-              <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                <div className={`h-full rounded-full ${item.color}`} style={{ width: `${Math.min(100, (item.value / barMax) * 100)}%` }} />
-              </div>
-              <span className="text-xs text-gray-400 w-14 text-right">${item.value.toFixed(2)}</span>
-            </div>
-          ))}
+      {estimate && (
+        <div className="grid grid-cols-3 gap-2 text-xs">
+          <div className="rounded bg-background/40 p-2">
+            <div className="text-muted-foreground">Tokens</div>
+            <div className="text-gray-200 font-mono">{estimate.estimatedTokens.toLocaleString()}</div>
+          </div>
+          <div className="rounded bg-background/40 p-2">
+            <div className="text-muted-foreground">Rate</div>
+            <div className="text-gray-200 font-mono">${estimate.usdPerMillionTokens.toFixed(1)}/M</div>
+          </div>
+          <div className="rounded bg-background/40 p-2">
+            <div className="text-muted-foreground">Mode</div>
+            <div className="text-gray-200 font-mono">estimate</div>
+          </div>
         </div>
       )}
       <div className="flex items-center justify-between text-xs">
-        <span className="text-muted-foreground">{duration === -1 ? 'auto duration' : `${(total / Math.max(duration, 1)).toFixed(3)}/sec`}</span>
+        <span className="text-muted-foreground">{duration === -1 ? 'auto duration' : 'official_token_estimate_only'}</span>
         {duration !== -1 && <span className="text-muted-foreground">¥{cny.toFixed(2)} CNY</span>}
       </div>
     </div>
@@ -179,7 +173,6 @@ export function StepOutput({
   seedanceModelId, setSeedanceModelId,
   generationMode, setGenerationMode,
 }: StepOutputProps) {
-  const cost = estimateCost(seedanceIdToModelType(seedanceModelId), resolution, duration);
   const durationValid = isValidSeedanceDuration(duration);
   const modelMeta = MODEL_METADATA[seedanceModelId] ?? MODEL_METADATA[SEEDANCE_MODEL_IDS.STANDARD];
 
@@ -411,7 +404,7 @@ export function StepOutput({
         </div>
 
         {/* Enhanced Cost Display */}
-        <CostBreakdownBar seedanceModelId={seedanceModelId} resolution={resolution} duration={duration} />
+        <CostBreakdownBar seedanceModelId={seedanceModelId} resolution={resolution} duration={duration} aspectRatio={aspectRatio} />
     </StepShell>
   );
 }

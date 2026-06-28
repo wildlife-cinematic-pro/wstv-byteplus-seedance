@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { GateProgress, StepNumber, CostDisplay } from './shared';
 import type { Gates } from './types';
 
+const SIMULATION_CONFIRMATION = 'CONFIRM_SIMULATED_GENERATION';
+
 interface StepPaidProps {
   visible: boolean;
   safeMode: boolean;
@@ -26,7 +28,7 @@ interface StepPaidProps {
   estimatedCost: number;
   onPaidSuccess: () => void;
   // ─── Local UI Lock (NOT real security) ───
-  // paidUnlocked=false  → show "Advanced Paid Controls Locked" + unlock input
+  // paidUnlocked=false  → show "Advanced Simulation Controls Locked" + unlock input
   // paidUnlocked=true   → show advanced controls, but Safe Mode + gates still apply
   paidUnlocked: boolean;
   unlockInput: string;
@@ -62,20 +64,19 @@ function GateItem({ label, passed }: { label: string; passed: boolean }) {
   );
 }
 
-function CostBreakdownCard({ estimatedCost, duration }: { estimatedCost: number; duration: number }) {
-  const costPerSec = duration > 0 ? estimatedCost / duration : 0;
+function CostBreakdownCard({ estimatedCost }: { estimatedCost: number }) {
   const cny = estimatedCost * 7.25;
   return (
     <div className="p-3 rounded-md bg-muted/30 border border-amber-500/20 space-y-2">
       <div className="flex items-center gap-2">
         <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-        <span className="text-xs text-amber-400 font-semibold uppercase tracking-wide">Cost Breakdown</span>
+        <span className="text-xs text-amber-400 font-semibold uppercase tracking-wide">Simulation Estimate</span>
       </div>
       <div className="flex items-baseline gap-3">
         <CostDisplay usd={estimatedCost} cny={cny} size="lg" />
       </div>
       <div className="flex items-center gap-4 text-xs text-gray-400">
-        <span>${costPerSec.toFixed(3)}/sec</span>
+        <span>official token estimate only</span>
         <span>≈ ¥{cny.toFixed(2)} CNY</span>
       </div>
       <p className="text-xs text-amber-400 font-bold flex items-center gap-1">
@@ -151,12 +152,11 @@ export function StepPaid({
   paidUnlocked, unlockInput, setUnlockInput, unlockError, onUnlockSubmit, onLock,
 }: StepPaidProps) {
   const [submitStage, setSubmitStage] = useState<'idle' | 'validating' | 'submitting' | 'done'>('idle');
-  const paidSubmitEnabled = allGatesPassed && confirmationText === 'SUBMIT_ONE_PAID_TASK';
-  const duration = 6;
+  const paidSubmitEnabled = allGatesPassed && confirmationText === SIMULATION_CONFIRMATION;
   const countdown = useCountdown(paidSubmitEnabled && submitStage === 'idle');
 
   const submitPaid = useCallback(async () => {
-    if (!currentTaskId || confirmationText !== 'SUBMIT_ONE_PAID_TASK') return;
+    if (!currentTaskId || confirmationText !== SIMULATION_CONFIRMATION) return;
     setSubmitStage('validating');
     await new Promise(r => setTimeout(r, 800));
     setSubmitStage('submitting');
@@ -179,15 +179,15 @@ export function StepPaid({
       }
       setSubmitStage('idle');
     } catch (err) {
-      console.error('Paid generation error:', err);
+      console.error('Simulation generation error:', err);
       setSubmitStage('idle');
     }
   }, [currentTaskId, confirmationText, storyboardRiskAcknowledged, audioRiskAcknowledged, videoRiskAcknowledged, onPaidSuccess, setConfirmationText]);
 
   // ═══════════════════════════════════════════════════════════════════
   // STATE 1: LOCKED (default)
-  // Show ONLY the lock card. Do NOT show SUBMIT_ONE_PAID_TASK, the submit
-  // button, the cost breakdown, the gate list, or the real-paid-request
+  // Show ONLY the lock card. Do NOT show the simulation confirmation, the submit
+  // button, the cost estimate, the gate list, or the generation simulation
   // warning. This is the default state on every page load.
   // ═══════════════════════════════════════════════════════════════════
   if (!paidUnlocked) {
@@ -198,14 +198,14 @@ export function StepPaid({
             <StepNumber num={5} active completed={false} />
             <span className="text-gray-400 flex items-center gap-2">
               <Lock className="w-4 h-4" />
-              Advanced Paid Controls Locked
+              Advanced Simulation Controls Locked
             </span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="p-3 rounded-md bg-muted/30 border border-border space-y-2">
             <p className="text-xs text-gray-400 leading-relaxed">
-              Paid generation controls are hidden by default to prevent accidental submissions during Dry-Run / Planning workflow.
+              Simulated generation controls are hidden by default during the normal Dry-Run / Planning workflow.
             </p>
             <p className="text-xs text-muted-foreground">
               Safe Mode is <span className="text-emerald-400 font-semibold">ON</span> · Dry-Run only · No real API calls
@@ -256,7 +256,7 @@ export function StepPaid({
   // ═══════════════════════════════════════════════════════════════════
   // STATE 2: UNLOCKED but Safe Mode is ON
   // Show advanced controls area + Lock button + clear warning, but do NOT
-  // show SUBMIT_ONE_PAID_TASK input or the submit button. The user must
+  // show the simulation confirmation input or the submit button. The user must
   // turn Safe Mode OFF first.
   // ═══════════════════════════════════════════════════════════════════
   if (safeMode) {
@@ -267,17 +267,17 @@ export function StepPaid({
             <StepNumber num={5} active completed={false} />
             <span className="text-amber-400 flex items-center gap-2">
               <ShieldCheck className="w-4 h-4" />
-              Advanced Paid Controls
+              Advanced Simulation Controls
             </span>
             <Button
               variant="ghost"
               size="sm"
               onClick={onLock}
               className="ml-auto text-xs text-muted-foreground hover:text-gray-300 h-6 px-2"
-              title="Re-hide the Paid Zone"
+              title="Re-hide the Simulation Zone"
             >
               <Lock className="w-3 h-3 mr-1" />
-              Lock Paid Controls
+              Lock Simulation Controls
             </Button>
           </CardTitle>
         </CardHeader>
@@ -287,11 +287,11 @@ export function StepPaid({
             <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
             <div className="space-y-1">
               <p className="text-sm font-medium text-amber-400">
-                Safe Mode is ON. Paid submit remains disabled.
+                Safe Mode is ON. Simulation submit remains disabled.
               </p>
               <p className="text-xs text-gray-400">
-                To submit a paid task, you must: (1) turn Safe Mode OFF, (2) pass a dry run,
-                (3) pass all 10 pre-submission gates, (4) type SUBMIT_ONE_PAID_TASK.
+                To run a local simulation, you must: (1) turn Safe Mode OFF, (2) pass a dry run,
+                (3) pass all 10 pre-submission gates, (4) type {SIMULATION_CONFIRMATION}.
               </p>
             </div>
           </div>
@@ -310,8 +310,8 @@ export function StepPaid({
             </Badge>
           </div>
 
-          {/* Show cost breakdown as info-only — but NOT the submit UI */}
-          <CostBreakdownCard estimatedCost={estimatedCost} duration={duration} />
+          {/* Show cost estimate as info-only — but NOT the submit UI */}
+          <CostBreakdownCard estimatedCost={estimatedCost} />
 
           <div className="p-3 rounded-md bg-muted/30 border border-border">
             <p className="text-xs text-gray-400 leading-relaxed">
@@ -320,7 +320,7 @@ export function StepPaid({
               The unlock phrase only reveals this advanced controls area. It does NOT bypass
               Safe Mode, the dry-run requirement, or any of the 10 pre-submission gates.
               Once you turn Safe Mode OFF (top-right header toggle) AND pass a dry run AND
-              pass all gates, the SUBMIT_ONE_PAID_TASK input and submit button will appear here.
+              pass all gates, the {SIMULATION_CONFIRMATION} input and simulation button will appear here.
             </p>
           </div>
         </CardContent>
@@ -331,7 +331,7 @@ export function StepPaid({
   // ═══════════════════════════════════════════════════════════════════
   // STATE 3: UNLOCKED + Safe Mode OFF, but dry run not passed OR gates not passed
   // Show the gate list (so the user can see what's missing), but do NOT
-  // show SUBMIT_ONE_PAID_TASK input or the submit button.
+  // show the simulation confirmation input or the submit button.
   // ═══════════════════════════════════════════════════════════════════
   if (!allGatesPassed || !visible) {
     const gateItems = [
@@ -355,22 +355,22 @@ export function StepPaid({
             <StepNumber num={5} active completed={false} />
             <span className="text-amber-400 flex items-center gap-2">
               <ShieldAlert className="w-4 h-4" />
-              Advanced Paid Controls — Gates Not Passed
+              Advanced Simulation Controls — Gates Not Passed
             </span>
             <Button
               variant="ghost"
               size="sm"
               onClick={onLock}
               className="ml-auto text-xs text-muted-foreground hover:text-gray-300 h-6 px-2"
-              title="Re-hide the Paid Zone"
+              title="Re-hide the Simulation Zone"
             >
               <Lock className="w-3 h-3 mr-1" />
-              Lock Paid Controls
+              Lock Simulation Controls
             </Button>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <CostBreakdownCard estimatedCost={estimatedCost} duration={duration} />
+          <CostBreakdownCard estimatedCost={estimatedCost} />
 
           <div className="p-3 rounded-md bg-amber-500/10 border border-amber-500/40 flex items-start gap-3">
             <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
@@ -379,7 +379,7 @@ export function StepPaid({
                 Not all gates have passed yet.
               </p>
               <p className="text-xs text-gray-400">
-                Once all 10 gates below show green, the SUBMIT_ONE_PAID_TASK input will appear here.
+                Once all 10 gates below show green, the {SIMULATION_CONFIRMATION} input will appear here.
               </p>
             </div>
           </div>
@@ -398,7 +398,7 @@ export function StepPaid({
 
   // ═══════════════════════════════════════════════════════════════════
   // STATE 4: UNLOCKED + Safe Mode OFF + dry run passed + ALL gates passed
-  // NOW show SUBMIT_ONE_PAID_TASK input and the submit button.
+  // NOW show the simulation confirmation input and the submit button.
   // The submit button is still disabled until the user types the exact
   // confirmation text AND the 3-second countdown completes.
   // ═══════════════════════════════════════════════════════════════════
@@ -421,21 +421,21 @@ export function StepPaid({
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-3 text-lg">
           <StepNumber num={5} active completed={allGatesPassed} />
-          <span className="text-amber-400">Paid Zone — All Gates Passed</span>
+          <span className="text-amber-400">Simulation Zone — All Gates Passed</span>
           <Button
             variant="ghost"
             size="sm"
             onClick={onLock}
             className="ml-auto text-xs text-muted-foreground hover:text-gray-300 h-6 px-2"
-            title="Re-hide the Paid Zone"
+            title="Re-hide the Simulation Zone"
           >
             <Lock className="w-3 h-3 mr-1" />
-            Lock Paid Controls
+            Lock Simulation Controls
           </Button>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <CostBreakdownCard estimatedCost={estimatedCost} duration={duration} />
+        <CostBreakdownCard estimatedCost={estimatedCost} />
 
         <div className="space-y-2">
           <Label className="text-sm text-gray-400">Pre-submission Gates</Label>
@@ -449,16 +449,16 @@ export function StepPaid({
 
         <div>
           <Label className="text-sm text-gray-400 mb-2 block">
-            Type <code className="text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded text-xs font-mono">SUBMIT_ONE_PAID_TASK</code> to confirm
+            Type <code className="text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded text-xs font-mono">{SIMULATION_CONFIRMATION}</code> to confirm
           </Label>
           <Input
             value={confirmationText}
             onChange={(e) => setConfirmationText(e.target.value)}
-            placeholder="SUBMIT_ONE_PAID_TASK"
+            placeholder={SIMULATION_CONFIRMATION}
             className={`${PAID_INPUT_CLASS} font-mono`}
             style={{ color: '#e5e7eb' }}
           />
-          {confirmationText.length > 0 && <ConfirmProgress text={confirmationText} target="SUBMIT_ONE_PAID_TASK" />}
+          {confirmationText.length > 0 && <ConfirmProgress text={confirmationText} target={SIMULATION_CONFIRMATION} />}
         </div>
 
         <div className="relative">
@@ -468,11 +468,11 @@ export function StepPaid({
               paidSubmitEnabled && countdown === 0 ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-[0_0_16px_rgba(217,119,6,0.4)]' : 'bg-gray-700 text-muted-foreground cursor-not-allowed'
             }`} size="lg">
             {paidLoading || submitStage !== 'idle' ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <DollarSign className="w-5 h-5 mr-2" />}
-            {countdown > 0 ? `Wait ${countdown}s...` : submitStage === 'done' ? 'Simulation complete!' : 'Simulate Paid Task'}
+            {countdown > 0 ? `Wait ${countdown}s...` : submitStage === 'done' ? 'Simulation complete!' : 'Run Dry-Run Simulation'}
           </Button>
         </div>
 
-        {!paidSubmitEnabled && allGatesPassed && confirmationText !== 'SUBMIT_ONE_PAID_TASK' && (
+        {!paidSubmitEnabled && allGatesPassed && confirmationText !== SIMULATION_CONFIRMATION && (
           <p className="text-xs text-amber-400/70 text-center">
             Type the exact confirmation token to enable submission
           </p>

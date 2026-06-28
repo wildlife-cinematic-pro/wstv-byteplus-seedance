@@ -19,7 +19,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
  * prior WSTV reference notes only; no demo scripts are executed here.
  *
  * Safety: demo_standard.py can create REAL PAID generation tasks if
- * ARK_API_KEY is configured. It must NOT be executed while WSTV is in
+ * a server-side API key is configured. It must NOT be executed while WSTV is in
  * Safe Mode / Dry Run Mode.
  */
 export function OfficialQuickstartReference() {
@@ -29,7 +29,7 @@ export function OfficialQuickstartReference() {
 
   const quickstartChecklist = [
     { icon: '👤', text: 'BytePlus account required', detail: 'Active BytePlus account with ModelArk access' },
-    { icon: '🔑', text: 'ARK_API_KEY required later', detail: 'Server-side only — never in frontend or GitHub' },
+    { icon: '🔑', text: 'Server-side API key required later', detail: 'Server-side only — never in frontend or GitHub' },
     { icon: '⚡', text: 'Model activation required', detail: 'Activate Seedance 2.0 models in the console before calling' },
     { icon: '💳', text: 'Prepaid Seedance 2.0 resource package required', detail: 'Purchase a prepaid resource package before creating tasks' },
     { icon: '🔗', text: 'API-ready media URIs required', detail: 'Use public HTTPS URLs, asset:// IDs, or supported Base64 where allowed' },
@@ -43,7 +43,7 @@ export function OfficialQuickstartReference() {
   ];
 
   const phase6Checklist = [
-    'Store ARK_API_KEY server-side only in .env.local',
+    'Store the API key server-side only in .env.local',
     'Create server-side Next.js API route (e.g., /api/seedance/create-task)',
     'Never expose API key in frontend',
     'POST create task from backend only',
@@ -58,7 +58,7 @@ export function OfficialQuickstartReference() {
     'Calculate actual cost',
     'Store raw request/response JSON',
     'Add retry/error handling',
-    'Add clear final confirmation before any paid task',
+    'Add clear final confirmation before any future paid task',
   ];
 
   return (
@@ -83,7 +83,7 @@ export function OfficialQuickstartReference() {
             This quickstart package is official BytePlus ModelArk reference for future real API integration.
             It should not be executed while WSTV is in Safe Mode / Dry Run Mode.
             <code className="text-amber-400 bg-amber-500/10 px-1 py-0.5 rounded text-xs mx-1">demo_standard.py</code>
-            can create real paid generation tasks if <code className="text-amber-400 bg-amber-500/10 px-1 py-0.5 rounded text-xs">ARK_API_KEY</code> is configured.
+            can create real paid generation tasks if a server-side API key is configured.
           </p>
         </div>
 
@@ -183,7 +183,7 @@ export function OfficialQuickstartReference() {
             <div className="p-2 rounded-md bg-red-500/10 border border-red-500/30">
               <p className="text-xs text-red-400 flex items-start gap-1.5">
                 <KeyRound className="w-3 h-3 shrink-0 mt-0.5" />
-                <span><strong>API key warning:</strong> ARK_API_KEY must never be committed to GitHub, shown in frontend, pasted into browser code, or stored in public files.</span>
+                <span><strong>API key warning:</strong> The server-side API key must never be committed to GitHub, shown in frontend, pasted into browser code, or stored in public files.</span>
               </p>
             </div>
           </CollapsibleContent>
@@ -228,10 +228,10 @@ export function OfficialQuickstartReference() {
           </div>
           <div className="mt-2 pt-2 border-t border-border">
             <p className="text-xs text-muted-foreground">
-              <span className="text-gray-400">Headers (future):</span> Content-Type: application/json · Authorization: Bearer &lt;ARK_API_KEY&gt;
+              <span className="text-gray-400">Headers (future):</span> Content-Type: application/json · Authorization: Bearer &lt;server-side API key&gt;
             </p>
             <p className="text-xs text-red-400 mt-1">
-              ⚠ No ARK_API_KEY is stored, loaded, or used in PHASE5.1. The endpoint URLs above are documentation only.
+              ⚠ No server-side API key is stored, loaded, or used in PHASE5.1. The endpoint URLs above are documentation only.
             </p>
           </div>
         </div>
