@@ -312,8 +312,19 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
   }, [addToast]);
 
   const openFolder = useCallback(async () => {
-    try { await fetch('/api/open-folder', { method: 'POST' }); } catch (e) { console.error(e); }
-  }, []);
+    try {
+      const response = await fetch('/api/open-folder', { method: 'POST' });
+      const data = await response.json().catch(() => null) as { success?: boolean; folder?: string; error?: string } | null;
+      if (response.ok && data?.success) {
+        addToast({ type: 'success', title: 'Folder Opened', message: data.folder || 'Output folder opened' });
+      } else {
+        addToast({ type: 'error', title: 'Open Folder Failed', message: data?.error || 'Could not open output folder' });
+      }
+    } catch (e) {
+      console.error(e);
+      addToast({ type: 'error', title: 'Open Folder Failed', message: 'Could not open output folder' });
+    }
+  }, [addToast]);
 
   const onPaidSuccess = useCallback(async () => {
     setPaidLoading(false);
