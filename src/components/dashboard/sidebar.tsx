@@ -21,7 +21,7 @@ type FilterKey = 'all' | 'dry_run' | 'paid' | 'failed';
 const filters: { key: FilterKey; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'dry_run', label: 'Dry Run' },
-  { key: 'paid', label: 'Paid' },
+  { key: 'paid', label: 'Simulation' },
   { key: 'failed', label: 'Failed' },
 ];
 const filterSets: Record<FilterKey, string[]> = {

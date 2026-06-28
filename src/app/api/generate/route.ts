@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { normalizeSeedanceResolution, validateSeedanceMediaUri } from '@/lib/seedance-validation';
+import { validateSeedanceMediaUri } from '@/lib/seedance-validation';
+import {
+  estimateSeedancePlanningCost,
+  resolveOfficialSeedanceModelId,
+} from '@/lib/seedance-pricing';
 
 // PHASE5.1 simulation route only.
 // This route never calls BytePlus / ModelArk and must remain behind Safe Mode.
 
-// Cost estimation table (USD per second)
-const COST_TABLE: Record<string, Record<string, number>> = {
-  mini: { '480p': 0.02, '720p': 0.04 },
-  full: { '480p': 0.03, '720p': 0.06, '1080p': 0.10, '4k': 0.18 },
-};
-
 function getCharLimit(modelType: string) {
   return modelType === 'mini' ? 1500 : 2000;
 }
+
+const SIMULATION_CONFIRMATION = 'CONFIRM_SIMULATED_GENERATION';
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,9 +27,9 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Gate 1: Confirmation token
-    if (confirmation !== 'SUBMIT_ONE_PAID_TASK') {
+    if (confirmation !== SIMULATION_CONFIRMATION) {
       return NextResponse.json(
-        { success: false, error: 'Confirmation token does not match. Type SUBMIT_ONE_PAID_TASK exactly.' },
+        { success: false, error: `Confirmation token does not match. Type ${SIMULATION_CONFIRMATION} exactly.` },
         { status: 400 }
       );
     }
@@ -129,9 +129,16 @@ export async function POST(request: NextRequest) {
 
     // Gate 8: Budget check
     const budget = await db.budgetSetting.findFirst();
-    const normalizedResolution = normalizeSeedanceResolution(task.resolution);
-    const costPerSecond = COST_TABLE[task.modelType]?.[normalizedResolution] || 0;
-    const estimatedCost = costPerSecond * task.duration;
+    const officialModelId = resolveOfficialSeedanceModelId(task.modelId, task.modelType);
+    const pricingEstimate = estimateSeedancePlanningCost({
+      modelId: officialModelId,
+      resolution: task.resolution,
+      aspectRatio: task.aspectRatio,
+      outputDurationSec: task.duration,
+      inputMode: videoUrls.length > 0 ? 'with_video' : 'without_video',
+      inputVideoDurationSec: 0,
+    });
+    const estimatedCost = pricingEstimate.estimatedCostUsd;
 
     if (budget) {
       const remaining = budget.monthlyLimit - budget.spentThisMonth;
@@ -190,7 +197,7 @@ export async function POST(request: NextRequest) {
         resolution: task.resolution,
         duration: task.duration,
         costUsd: estimatedCost,
-        description: `Simulated paid generation (no BytePlus API call) - ${task.modelType} ${task.resolution} ${task.duration}s`,
+        description: `Simulated generation (no BytePlus API call) - ${officialModelId} ${task.resolution} ${task.duration}s; ${pricingEstimate.pricingMode}`,
       },
     });
 
@@ -222,11 +229,21 @@ export async function POST(request: NextRequest) {
       success: true,
       simulation: true,
       realApiConnected: false,
+      dryRunMode: true,
+      paidApiBlocked: true,
+      message: 'DRY RUN / PLANNING MODE — no paid BytePlus API calls were made.',
+      pricingMode: 'official_token_estimate_only',
+      pricingEstimate: {
+        ...pricingEstimate,
+        estimatedCostUsd: Math.round(pricingEstimate.estimatedCostUsd * 10000) / 10000,
+      },
+      actualBilling: 'Actual billing requires usage.completion_tokens returned by the real BytePlus API after generation.',
       warnings: promptLengthWarning ? [promptLengthWarning] : [],
       task: {
         id: updatedTask.id,
         status: updatedTask.status,
         costEstimate: estimatedCost,
+        estimatedTokens: pricingEstimate.estimatedTokens,
         taskId: updatedTask.taskId,
       },
     });

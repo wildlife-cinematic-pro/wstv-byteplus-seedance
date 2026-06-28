@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { Sparkles, Zap, ArrowLeftRight, Info, Clipboard, Lock } from 'lucide-react';
+import { useState, useMemo, useCallback } from 'react';
+import { Sparkles, Zap, ArrowLeftRight, Info, Clipboard, Lock, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -76,7 +76,7 @@ function ModelCompareDialog() {
     { label: 'Resolution', full: '480p–4k', mini: '480p–720p' },
     { label: 'Duration', full: '4–15s', mini: '4–15s' },
     { label: 'Speed', full: 'Standard', mini: 'Fast' },
-    { label: 'Cost/s', full: '$0.03–0.18', mini: '$0.02–0.04' },
+    { label: 'Pricing', full: 'official token estimate', mini: 'official token estimate' },
     { label: 'Max Inputs', full: '9 img / 3 aud / 3 vid', mini: '9 img / 3 aud / 3 vid' },
     { label: 'Audio Gen', full: 'Yes / Supported / generate_audio true', mini: 'Yes / Supported / generate_audio true' },
     { label: 'Quality', full: 'Highest', mini: 'Good' },
@@ -176,8 +176,19 @@ interface StepPromptProps {
  */
 export function StepPrompt({ prompt, setPrompt, modelType, setModelType }: StepPromptProps) {
   const [mode, setMode] = useState<'copy-paste' | 'ai-writer'>('copy-paste');
+  const [copied, setCopied] = useState(false);
   const charLimit = getRecommendedCharLimit(modelType);
   const quality = useMemo(() => analyzeQuality(prompt, modelType), [prompt, modelType]);
+  const copyPrompt = useCallback(async () => {
+    if (!prompt) return;
+    try {
+      await navigator.clipboard.writeText(prompt);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setCopied(false);
+    }
+  }, [prompt]);
 
   return (
     <StepShell
@@ -262,12 +273,25 @@ export function StepPrompt({ prompt, setPrompt, modelType, setModelType }: StepP
                   </Badge>
                 </div>
               </div>
-              <Textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Paste your finished prompt here (from ChatGPT / Claude / GLM)..."
-                className="min-h-48 bg-muted/30 border-emerald-500/20 focus:border-emerald-500/50 text-gray-100 placeholder:text-muted-foreground/60 resize-y font-mono text-sm"
-              />
+              <div className="relative">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={copyPrompt}
+                  disabled={!prompt}
+                  className="absolute right-2 top-2 z-10 h-7 border-emerald-500/30 bg-background/90 px-2 text-xs text-emerald-400 hover:bg-emerald-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {copied ? <Check className="w-3 h-3 mr-1" /> : <Copy className="w-3 h-3 mr-1" />}
+                  {copied ? 'Copied' : 'Copy'}
+                </Button>
+                <Textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="Paste your finished prompt here (from ChatGPT / Claude / GLM)..."
+                  className="h-64 min-h-0 max-h-64 overflow-y-auto resize-none bg-muted/30 border-emerald-500/20 focus:border-emerald-500/50 text-gray-100 placeholder:text-muted-foreground/60 font-mono text-sm pr-24"
+                />
+              </div>
               <CharProgressBar len={prompt.length} limit={charLimit} />
             </div>
 

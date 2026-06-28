@@ -9,7 +9,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { GateProgress, CostDisplay, StepShell, StepChip } from './shared';
 import type { DryRunResult, ModelType, Gates, ReferenceEntry } from './types';
 import { groupReferencesByType } from './types';
-import { normalizeSeedanceResolution } from '@/lib/seedance-validation';
 
 interface StepDryRunProps {
   dryRunResult: DryRunResult | null;
@@ -51,11 +50,6 @@ const LOG_CATEGORIES = [
   { header: 'Reference Validation', icon: '🖼️', color: 'border-l-amber-400', match: (l: string) => /[Rr]ef(erence)?|[Ii]mage|[Aa]udio|[Vv]ideo|[Uu][Rr][Ll]/.test(l) },
   { header: 'Cost & Budget', icon: '💰', color: 'border-l-emerald-400', match: (l: string) => /[Cc]ost|[Bb]udget|[Pp]rice|[Uu][Ss][Dd]|[Cc][Nn][Yy]/.test(l) },
 ];
-
-function costPerSec(model: ModelType, res: string) {
-  const table: Record<string, Record<string, number>> = { mini: { '480p': 0.02, '720p': 0.04 }, full: { '480p': 0.03, '720p': 0.06, '1080p': 0.10, '4k': 0.18 } };
-  return table[model]?.[normalizeSeedanceResolution(res)] || 0;
-}
 
 /* ── Sub-components ── */
 
@@ -105,60 +99,36 @@ function EnhancedSummaryGrid({ result, modelType }: { result: DryRunResult; mode
   );
 }
 
-function CostBreakdownSection({ result, modelType, resolution }: { result: DryRunResult; modelType: ModelType; resolution: string }) {
-  // The actual cost formula (from /api/dry-run) is:
-  //   estimatedCost = COST_TABLE[modelType][resolution] * duration
-  // There is NO "base + multiplier" computation server-side — the rate is
-  // a direct table lookup. The previous UI faked a breakdown with
-  // "Base (480p) + Resolution multiplier + Duration (= estimatedCost * 0.1)"
-  // which (a) didn't sum to the total and (b) the Duration row was
-  // meaningless. This rewrite shows the honest formula.
-  const ratePerSec = costPerSec(modelType, resolution); // USD per second at selected resolution
+function CostBreakdownSection({ result }: { result: DryRunResult }) {
   const durationSec = Math.max(result.duration, 1);
-  const computedTotal = ratePerSec * durationSec;
-  const baseRate480p = costPerSec(modelType, '480p');
-  const multiplier = baseRate480p > 0 ? ratePerSec / baseRate480p : 1;
-  const rateLabel = `${modelType === 'mini' ? 'Mini' : 'Full'} · ${resolution}`;
 
   return (
     <div className="p-3 rounded-lg bg-muted/40 space-y-2.5">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-gray-400">Cost Breakdown</span>
+        <span className="text-xs font-medium text-gray-400">Official Token Estimate</span>
         <span className="text-xs text-muted-foreground italic">Dry-run estimate only. No real charge.</span>
       </div>
 
-      {/* Honest formula display — these 3 rows DO sum to the total */}
       <div className="space-y-1.5 font-mono text-xs">
         <div className="flex items-center justify-between py-1 border-b border-gray-800/50">
-          <span className="text-gray-400">Rate <span className="text-muted-foreground">({rateLabel})</span></span>
-          <span className="text-emerald-400">${ratePerSec.toFixed(3)}/s</span>
+          <span className="text-gray-400">Estimated tokens</span>
+          <span className="text-emerald-400">{(result.estimatedTokens ?? 0).toLocaleString()}</span>
         </div>
         <div className="flex items-center justify-between py-1 border-b border-gray-800/50">
-          <span className="text-gray-400">Duration</span>
-          <span className="text-gray-300">× {durationSec}s</span>
+          <span className="text-gray-400">Rate</span>
+          <span className="text-gray-300">${(result.modelRateUsdPerMillionTokens ?? 0).toFixed(1)}/M tokens</span>
         </div>
         <div className="flex items-center justify-between py-1.5 border-t border-border">
           <span className="text-gray-300 font-semibold">Estimated cost</span>
-          <span className="text-emerald-400 font-bold text-sm">${computedTotal.toFixed(2)}</span>
+          <span className="text-emerald-400 font-bold text-sm">${result.estimatedCost.toFixed(4)}</span>
         </div>
       </div>
 
-      {/* Optional: show how the rate was derived (480p base × multiplier) — collapsible */}
-      <details className="text-xs text-muted-foreground">
-        <summary className="cursor-pointer hover:text-gray-400 select-none">
-          How is the ${ratePerSec.toFixed(3)}/s rate derived?
-        </summary>
-        <div className="mt-1.5 pl-3 space-y-0.5 font-mono">
-          <div>480p base rate: <span className="text-gray-400">${baseRate480p.toFixed(3)}/s</span></div>
-          <div>{resolution} multiplier: <span className="text-gray-400">× {multiplier.toFixed(2)}</span></div>
-          <div>Final rate: <span className="text-emerald-400">${ratePerSec.toFixed(3)}/s</span></div>
-          <div className="text-muted-foreground mt-1">Formula: cost = rate[resolution] × duration</div>
-        </div>
-      </details>
-
       <div className="flex items-center justify-between pt-1 border-t border-gray-800">
         <CostDisplay usd={result.estimatedCost} cny={result.estimatedCostCny} size="sm" showLabel />
-        <span className="text-xs text-muted-foreground">${(result.estimatedCost / durationSec).toFixed(3)}/s</span>
+        <span className="text-xs text-muted-foreground">
+          {result.pricingMode ?? 'official_token_estimate_only'} · actual billing requires usage.completion_tokens
+        </span>
       </div>
     </div>
   );
@@ -386,7 +356,14 @@ export function StepDryRun({
         ) : undefined
       }
       summary={
-        dryRunResult
+        loading
+          ? (
+            <StepChip tone="muted">
+              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+              Running Dry Run...
+            </StepChip>
+          )
+          : dryRunResult
           ? <StepChip tone={passed ? 'emerald' : 'red'}>{passed ? '✓ Passed' : '✗ Failed'}</StepChip>
           : <StepChip tone="muted">Not run</StepChip>
       }
@@ -417,7 +394,7 @@ export function StepDryRun({
             </div>
 
             <EnhancedSummaryGrid result={dryRunResult} modelType={modelType} />
-            <CostBreakdownSection result={dryRunResult} modelType={modelType} resolution={resolution} />
+            <CostBreakdownSection result={dryRunResult} />
             <ReferenceSummary result={dryRunResult} />
 
             {/* Errors */}

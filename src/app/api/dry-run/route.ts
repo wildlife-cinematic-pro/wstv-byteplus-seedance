@@ -15,20 +15,7 @@ import {
   AUTO_DURATION,
   type GenerationMode,
 } from '@/lib/seedance-validation';
-
-// Cost estimation table (USD per second) — legacy, kept for cost preview only
-const COST_TABLE: Record<string, Record<string, number>> = {
-  mini: {
-    '480p': 0.02,
-    '720p': 0.04,
-  },
-  full: {
-    '480p': 0.03,
-    '720p': 0.06,
-    '1080p': 0.10,
-    '4k': 0.18,
-  },
-};
+import { estimateSeedancePlanningCost } from '@/lib/seedance-pricing';
 
 // PHASE5.1: These are RECOMMENDED char ranges, not hard API limits.
 // A prompt exceeding these shows a warning but does NOT hard-block Dry Run.
@@ -261,13 +248,26 @@ export async function POST(request: NextRequest) {
 
     const totalReferenceDuration = 0; // In dry-run mode, we don't have actual durations
 
-    // 9. Estimate cost (PHASE4: handle -1 auto duration — cost unknown)
-    const costPerSecond = COST_TABLE[modelType]?.[normalizedResolution] || 0;
-    const estimatedCost = duration === AUTO_DURATION ? 0 : costPerSecond * duration;
+    // 9. Estimate cost from official online inference USD/M-token rates.
+    const inputMode = videoRefs.length > 0 ? 'with_video' : 'without_video';
+    const pricingEstimate = duration === AUTO_DURATION
+      ? null
+      : estimateSeedancePlanningCost({
+          modelId: seedanceModelId,
+          resolution: normalizedResolution,
+          aspectRatio,
+          outputDurationSec: duration,
+          inputMode,
+          inputVideoDurationSec: 0,
+        });
+    const estimatedCost = pricingEstimate?.estimatedCostUsd ?? 0;
     if (duration === AUTO_DURATION) {
       validationLog.push(`💰 Estimated cost: unknown (auto duration — model will choose)`);
     } else {
-      validationLog.push(`💰 Estimated cost: $${estimatedCost.toFixed(2)} USD`);
+      validationLog.push(`💰 Estimated tokens: ${pricingEstimate?.estimatedTokens.toLocaleString()} (${inputMode}, estimate only)`);
+      validationLog.push(`💰 Model rate: $${pricingEstimate?.usdPerMillionTokens.toFixed(1)}/M tokens`);
+      validationLog.push(`💰 Estimated cost: $${estimatedCost.toFixed(4)} USD — official token estimate only`);
+      validationLog.push(`ℹ️ Actual billing requires usage.completion_tokens from the real BytePlus API response.`);
     }
 
     // 10. Check max cost cap (skip if auto duration — cost unknown)
@@ -340,6 +340,11 @@ export async function POST(request: NextRequest) {
       totalReferenceDuration,
       estimatedCost,
       estimatedCostCny: estimatedCost * 7.25,
+      estimatedTokens: pricingEstimate?.estimatedTokens ?? 0,
+      modelRateUsdPerMillionTokens: pricingEstimate?.usdPerMillionTokens ?? 0,
+      pricingMode: 'official_token_estimate_only',
+      pricingEstimateOnly: true,
+      actualUsageRequiredForFinalBilling: true,
       validationLog,
       errors,
       timestamp: new Date().toISOString(),
