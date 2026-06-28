@@ -356,7 +356,14 @@ export function StepDryRun({
         ) : undefined
       }
       summary={
-        dryRunResult
+        loading
+          ? (
+            <StepChip tone="muted">
+              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+              Running Dry Run...
+            </StepChip>
+          )
+          : dryRunResult
           ? <StepChip tone={passed ? 'emerald' : 'red'}>{passed ? '✓ Passed' : '✗ Failed'}</StepChip>
           : <StepChip tone="muted">Not run</StepChip>
       }
