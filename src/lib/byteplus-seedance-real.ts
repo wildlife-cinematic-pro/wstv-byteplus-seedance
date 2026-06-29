@@ -18,6 +18,10 @@ export interface BytePlusTaskStatusResponse {
     video_url?: string;
     last_frame_url?: string;
   };
+  error?: {
+    code?: string;
+    message?: string;
+  };
   usage?: {
     total_tokens?: number;
     completion_tokens?: number;
@@ -26,10 +30,12 @@ export interface BytePlusTaskStatusResponse {
 
 export interface NormalizedBytePlusTaskStatus {
   providerTaskId: string;
-  status: 'submitted' | 'processing' | 'succeeded' | 'failed';
+  status: 'submitted' | 'queued' | 'running' | 'pending' | 'processing' | 'in_progress' | 'succeeded' | 'failed' | 'cancelled' | 'expired';
   rawStatus: string;
   videoUrl: string | null;
   lastFrameUrl: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
   completionTokens: number | null;
   totalTokens: number | null;
   raw: unknown;
@@ -94,27 +100,41 @@ export async function createBytePlusSeedanceTask(payload: Record<string, unknown
 }
 
 export async function getBytePlusSeedanceTaskStatus(providerTaskId: string): Promise<NormalizedBytePlusTaskStatus> {
-  assertRealBytePlusAllowed();
+  // Status retrieval does not create a paid task. It requires only the
+  // server-side API key and never exposes that key to the browser.
+  const key = requireArkApiKey();
   const response = await fetch(getArkEndpoints().getTask(providerTaskId), {
     method: 'GET',
     headers: {
-      Authorization: `Bearer ${requireArkApiKey()}`,
+      Authorization: `Bearer ${key}`,
     },
   });
 
   const raw = await response.json().catch(() => null) as BytePlusTaskStatusResponse | null;
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new Error(`BytePlus authentication failed with HTTP ${response.status}. Check the server-side API key and ModelArk permissions.`);
+    }
+    if (response.status === 404) {
+      throw new Error(`BytePlus task not found: ${providerTaskId}.`);
+    }
     throw new Error(`BytePlus task status failed with HTTP ${response.status}.`);
   }
 
   // Official docs in this repo reference `status`, `content.video_url`, and
   // `usage.completion_tokens`. Keep this adapter narrow until API Explorer
   // confirms any account-specific envelope shape.
-  const rawStatus = raw?.status ?? 'submitted';
-  const normalizedStatus =
+  const rawStatus = (raw?.status ?? 'submitted').toLowerCase();
+  const normalizedStatus: NormalizedBytePlusTaskStatus['status'] =
     rawStatus === 'succeeded' ? 'succeeded' :
-    rawStatus === 'failed' || rawStatus === 'expired' || rawStatus === 'cancelled' ? 'failed' :
-    rawStatus === 'running' || rawStatus === 'queued' ? 'processing' :
+    rawStatus === 'failed' ? 'failed' :
+    rawStatus === 'expired' ? 'expired' :
+    rawStatus === 'cancelled' ? 'cancelled' :
+    rawStatus === 'queued' ? 'queued' :
+    rawStatus === 'running' ? 'running' :
+    rawStatus === 'pending' ? 'pending' :
+    rawStatus === 'processing' ? 'processing' :
+    rawStatus === 'in_progress' ? 'in_progress' :
     'submitted';
 
   return {
@@ -123,6 +143,8 @@ export async function getBytePlusSeedanceTaskStatus(providerTaskId: string): Pro
     rawStatus,
     videoUrl: raw?.content?.video_url ?? null,
     lastFrameUrl: raw?.content?.last_frame_url ?? null,
+    errorCode: raw?.error?.code ?? null,
+    errorMessage: raw?.error?.message ?? null,
     completionTokens: typeof raw?.usage?.completion_tokens === 'number' ? raw.usage.completion_tokens : null,
     totalTokens: typeof raw?.usage?.total_tokens === 'number' ? raw.usage.total_tokens : null,
     raw,

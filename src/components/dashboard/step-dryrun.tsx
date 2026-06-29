@@ -188,7 +188,10 @@ function GatePreview({ result, safeMode }: { result: DryRunResult; safeMode: boo
   // A long prompt does NOT hard-block Dry Run.
   const promptOverRecommended = result.characterCount > (result.characterLimit || 2000);
   const gateItems = [
-    { label: 'Safe Mode Off', pass: !safeMode },
+    {
+      label: safeMode ? 'Safe Mode ON — paid submit blocked' : 'Real Paid Requirement: Safe Mode must be OFF',
+      pass: true,
+    },
     { label: 'Dry Run Passed', pass: result.passed },
     { label: 'Prompt Length Warning', pass: true, warning: promptOverRecommended },
     { label: 'Media URIs Valid', pass: result.errors.every(e => !e.toLowerCase().includes('uri') && !e.toLowerCase().includes('url')) },
@@ -212,6 +215,9 @@ function GatePreview({ result, safeMode }: { result: DryRunResult; safeMode: boo
           </div>
         ))}
       </div>
+      <p className="mt-2 text-[11px] text-muted-foreground">
+        Safe Mode ON is the correct Dry Run state. Safe Mode OFF is only required when intentionally enabling real paid BytePlus generation.
+      </p>
     </div>
   );
 }
