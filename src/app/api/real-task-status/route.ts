@@ -3,10 +3,9 @@ import { db } from '@/lib/db';
 import {
   downloadVideoToOutputFolder,
   getBytePlusSeedanceTaskStatus,
-  getRealApiBlockReason,
-  getRealApiEnvStatus,
   safeVideoFilename,
 } from '@/lib/byteplus-seedance-real';
+import { getArkApiKey } from '@/lib/seedance-config';
 import {
   estimateSeedanceCostUsd,
   getSeedanceUsdPerMillionTokens,
@@ -33,12 +32,10 @@ async function readIds(request: NextRequest) {
 
 async function handleStatus(request: NextRequest) {
   try {
-    const blockReason = getRealApiBlockReason();
-    if (blockReason) {
-      console.warn(`[real-task-status] blocked before BytePlus call: ${blockReason}`);
+    if (!getArkApiKey()) {
       return NextResponse.json(
-        { success: false, blocked: true, error: blockReason, env: getRealApiEnvStatus() },
-        { status: 403 }
+        { success: false, blocked: true, error: 'Server-side API key is missing.' },
+        { status: 401 }
       );
     }
 
@@ -93,6 +90,11 @@ async function handleStatus(request: NextRequest) {
         taskId: provider.providerTaskId,
         videoFileName,
         videoUrl,
+        providerResultVideoUrl: provider.videoUrl,
+        providerLastFrameUrl: provider.lastFrameUrl,
+        errorMessage: provider.errorMessage,
+        lastCheckedAt: new Date(),
+        pollCount: { increment: 1 },
         actualTokens: provider.completionTokens,
         costActual: actualCost,
         actualBillingStatus: provider.completionTokens != null
@@ -129,6 +131,11 @@ async function handleStatus(request: NextRequest) {
         providerTaskId: updatedTask.taskId,
         videoFileName: updatedTask.videoFileName,
         videoUrl: updatedTask.videoUrl,
+        resultVideoUrl: updatedTask.providerResultVideoUrl,
+        lastFrameUrl: updatedTask.providerLastFrameUrl,
+        lastCheckedAt: updatedTask.lastCheckedAt,
+        pollCount: updatedTask.pollCount,
+        errorMessage: updatedTask.errorMessage,
         actualTokens: updatedTask.actualTokens,
         costActual: updatedTask.costActual,
         actualBillingStatus: updatedTask.actualBillingStatus,

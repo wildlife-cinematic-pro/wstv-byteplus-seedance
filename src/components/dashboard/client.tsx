@@ -600,6 +600,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
                     dryRunPassed={Boolean(dryRunResult?.passed && !dryRunInvalidated)}
                     estimatedCost={estimateCost()}
                     estimatedTokens={estimateTokens()}
+                    maxCostUsd={maxCostUsd}
                   />
                   <StepPreview latestVideo={latestVideo} onRefreshVideo={refreshVideo} onOpenFolder={openFolder}
                     dryRunPassed={dryRunResult?.passed && !dryRunInvalidated}

@@ -107,9 +107,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (task.maxCostUsd == null || task.maxCostUsd <= 0) {
+    if (task.maxCostUsd == null || !Number.isFinite(task.maxCostUsd) || task.maxCostUsd <= 0) {
       return NextResponse.json(
-        { success: false, error: 'maxCostUsd is required before real paid generation.' },
+        { success: false, error: 'maxCostUsd is required for Real Paid Submit. It is a maximum cost cap for this one paid generation, not a setup fee.' },
         { status: 400 }
       );
     }
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
     }
     if (pricingEstimate.estimatedCostUsd > task.maxCostUsd) {
       return NextResponse.json(
-        { success: false, error: `Estimated cost ($${pricingEstimate.estimatedCostUsd.toFixed(2)}) exceeds max cost cap ($${task.maxCostUsd.toFixed(2)}).` },
+        { success: false, error: `Estimated cost ($${pricingEstimate.estimatedCostUsd.toFixed(2)}) exceeds maxCostUsd cap ($${task.maxCostUsd.toFixed(2)}). Increase the one-task cap before Real Paid Submit.` },
         { status: 400 }
       );
     }
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
         modelId: task.modelId,
         resolution: task.resolution,
         duration: task.duration,
-        status: { in: ['submitted', 'processing'] },
+        status: { in: ['submitted', 'queued', 'running', 'pending', 'processing', 'in_progress'] },
         id: { not: task.id },
       },
     });
@@ -204,6 +204,11 @@ export async function POST(request: NextRequest) {
         paidConfirmation: true,
         costEstimate: pricingEstimate.estimatedCostUsd,
         actualBillingStatus: 'pending_provider_usage',
+        lastCheckedAt: null,
+        pollCount: 0,
+        providerResultVideoUrl: null,
+        providerLastFrameUrl: null,
+        errorMessage: null,
       },
     });
 
@@ -215,6 +220,12 @@ export async function POST(request: NextRequest) {
         id: updatedTask.id,
         status: updatedTask.status,
         providerTaskId: provider.providerTaskId,
+        createdAt: updatedTask.createdAt,
+        model: updatedTask.modelId,
+        ratio: updatedTask.aspectRatio,
+        duration: updatedTask.duration,
+        resolution: updatedTask.resolution,
+        maxCostUsd: updatedTask.maxCostUsd,
         estimatedCostUsd: pricingEstimate.estimatedCostUsd,
         estimatedTokens: pricingEstimate.estimatedTokens,
       },

@@ -31,6 +31,11 @@ model VideoTask {
   taskId             String?
   videoUrl           String?
   videoFileName      String?
+  providerResultVideoUrl String?
+  providerLastFrameUrl String?
+  lastCheckedAt      DateTime?
+  pollCount          Int      @default(0)
+  errorMessage       String?
   costEstimate       Float?
   costActual         Float?
   actualTokens       Int?

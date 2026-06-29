@@ -390,8 +390,11 @@ export function StepOutput({
               <DollarSign className="w-3.5 h-3.5 inline mr-1" /> Max Cost Cap (USD)
             </Label>
             <Input type="number" value={maxCostUsd} onChange={e => setMaxCostUsd(e.target.value)}
-              placeholder="0.50" step="0.01" min="0"
+              placeholder="1.50" step="0.01" min="0"
               className="bg-muted/30 border-emerald-500/20 focus:border-emerald-500/50" />
+            <p className="text-xs text-muted-foreground mt-1">
+              maxCostUsd is a maximum cost cap for this one paid generation, not a setup fee. Dry Run does not require it.
+            </p>
           </div>
           <div>
             <Label className="text-sm text-gray-400 mb-2 block">
