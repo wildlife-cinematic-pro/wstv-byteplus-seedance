@@ -268,10 +268,10 @@ export default function CalendarLearning() {
     <StepShell
       icon={<Calendar className="w-5 h-5" />}
       title="Calendar & Learning Center"
-      cardClassName="bg-[oklch(0.18_0.03_155)]"
+      section="calendar"
       bodyClassName=""
     >
-        <div className="flex flex-wrap gap-1 mb-4 p-1 bg-[oklch(0.15_0.02_155)] border border-emerald-500/20 rounded-md">
+        <div className="flex flex-wrap gap-1 mb-4 p-1 bg-muted/50 border border-emerald-500/20 rounded-md">
           {[
             { id: 'calendar', label: 'Calendar', icon: <Calendar className="w-3 h-3" /> },
             { id: 'viral', label: 'Viral DB', icon: <BookOpen className="w-3 h-3" /> },
@@ -293,7 +293,7 @@ export default function CalendarLearning() {
 
         {activeTab === "calendar" && (
           <div className="space-y-4">
-            <div className="p-4 rounded-lg bg-[oklch(0.15_0.02_155)] border border-emerald-500/10">
+            <div className="p-4 rounded-lg bg-muted/50 border border-emerald-500/10">
               {/* Month navigation */}
               <div className="flex items-center justify-between mb-4">
                 <Button variant="ghost" size="sm" onClick={prevMonth} className="text-gray-400 hover:text-emerald-400">
@@ -332,8 +332,8 @@ export default function CalendarLearning() {
                       className={`aspect-square rounded-md border text-xs p-1 transition-all flex flex-col items-center justify-center gap-0.5 ${
                         isSelected ? 'border-emerald-500 bg-emerald-500/20' :
                         isToday ? 'border-emerald-400/50 bg-emerald-500/10' :
-                        entry ? 'border-emerald-500/20 bg-[oklch(0.13_0.02_155)] hover:border-emerald-500/40' :
-                        'border-gray-700/30 bg-[oklch(0.13_0.02_155)] hover:border-gray-600/50'
+                        entry ? 'border-emerald-500/20 bg-muted/30 hover:border-emerald-500/40' :
+                        'border-gray-700/30 bg-muted/30 hover:border-gray-600/50'
                       }`}
                     >
                       <span className={`${isToday ? 'text-emerald-400 font-bold' : entry ? 'text-gray-300' : 'text-gray-600'}`}>{day}</span>
@@ -368,7 +368,7 @@ export default function CalendarLearning() {
 
             {/* Add/Edit entry */}
             {selectedDay && (
-              <div className="p-4 rounded-lg bg-[oklch(0.15_0.02_155)] border border-emerald-500/20">
+              <div className="p-4 rounded-lg bg-muted/50 border border-emerald-500/20">
                 <h4 className="text-sm font-medium text-emerald-400 mb-3">
                   {entryMap[formatDate(calYear, calMonth, selectedDay)] ? 'Edit Entry' : 'Add Entry'} — {monthName} {selectedDay}
                 </h4>
@@ -379,7 +379,7 @@ export default function CalendarLearning() {
                       placeholder="Project title..."
                       value={newEntryTitle}
                       onChange={e => setNewEntryTitle(e.target.value)}
-                      className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1"
+                      className="h-8 bg-muted/30 border-emerald-500/20 text-xs mt-1"
                     />
                   </div>
                   <div className="w-full sm:w-48">
@@ -387,7 +387,7 @@ export default function CalendarLearning() {
                     <select
                       value={newEntryStatus}
                       onChange={(e) => setNewEntryStatus(e.target.value)}
-                      className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1 w-full rounded px-2"
+                      className="h-8 bg-muted/30 border-emerald-500/20 text-xs mt-1 w-full rounded px-2"
                     >
                       {STATUS_CONFIG.map(s => (
                         <option key={s.value} value={s.value}>
@@ -414,7 +414,7 @@ export default function CalendarLearning() {
             {VIRAL_CATEGORIES.map(cat => {
               const catEntries = (viralEntries ?? []).filter(e => e.category === cat);
               return (
-                <div key={cat} className="p-4 rounded-lg bg-[oklch(0.15_0.02_155)] border border-emerald-500/10">
+                <div key={cat} className="p-4 rounded-lg bg-muted/50 border border-emerald-500/10">
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="text-sm font-medium text-emerald-400">{cat}</h4>
                     <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px]">{catEntries.length}</Badge>
@@ -422,7 +422,7 @@ export default function CalendarLearning() {
                   {catEntries.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {catEntries.map(e => (
-                        <div key={e.id} className="p-2 rounded bg-[oklch(0.13_0.02_155)] border border-emerald-500/10">
+                        <div key={e.id} className="p-2 rounded bg-muted/30 border border-emerald-500/10">
                           <p className="text-xs text-gray-200 font-medium">{e.value}</p>
                           <div className="flex items-center gap-3 mt-1 text-[10px]">
                             {e.performanceScore && (
@@ -451,13 +451,13 @@ export default function CalendarLearning() {
             <Separator className="bg-emerald-500/10" />
 
             {/* Add Learning */}
-            <div className="p-4 rounded-lg bg-[oklch(0.15_0.02_155)] border border-emerald-500/10">
+            <div className="p-4 rounded-lg bg-muted/50 border border-emerald-500/10">
               <h4 className="text-sm font-medium text-emerald-400 mb-3">Add Learning</h4>
               <div className="flex flex-col sm:flex-row gap-3">
                 <select
                   value={newViralCategory}
                   onChange={(e) => setNewViralCategory(e.target.value)}
-                  className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs w-full sm:w-40 rounded px-2"
+                  className="h-8 bg-muted/30 border-emerald-500/20 text-xs w-full sm:w-40 rounded px-2"
                 >
                   {VIRAL_CATEGORIES.map(c => (
                     <option key={c} value={c}>{c}</option>
@@ -467,7 +467,7 @@ export default function CalendarLearning() {
                   placeholder="Learning value..."
                   value={newViralValue}
                   onChange={e => setNewViralValue(e.target.value)}
-                  className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs flex-1"
+                  className="h-8 bg-muted/30 border-emerald-500/20 text-xs flex-1"
                 />
                 <Button className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs" onClick={() => {
                   if (!newViralValue.trim()) return;
@@ -523,13 +523,13 @@ export default function CalendarLearning() {
             {/* Notes per provider */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {PROVIDERS.map(prov => (
-                <div key={prov} className="p-3 rounded-lg bg-[oklch(0.15_0.02_155)] border border-emerald-500/10">
+                <div key={prov} className="p-3 rounded-lg bg-muted/50 border border-emerald-500/10">
                   <Label className="text-xs text-gray-400">{prov} Notes</Label>
                   <Input
                     placeholder="Notes..."
                     value={getNotes(prov, "General")}
                     onChange={e => setProviderNotes(prov, "General", e.target.value)}
-                    className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1"
+                    className="h-8 bg-muted/30 border-emerald-500/20 text-xs mt-1"
                   />
                 </div>
               ))}
@@ -558,7 +558,7 @@ export default function CalendarLearning() {
               <button
                 key={item.label}
                 onClick={item.action}
-                className="w-full p-3 rounded-lg bg-[oklch(0.15_0.02_155)] border border-emerald-500/20 hover:border-emerald-500/50 transition-all text-left group"
+                className="w-full p-3 rounded-lg bg-muted/50 border border-emerald-500/20 hover:border-emerald-500/50 transition-all text-left group"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">

@@ -326,11 +326,11 @@ export default function ProductionWorkflow() {
     <StepShell
       icon={<Sparkles className="w-5 h-5" />}
       title="Production Workflow"
-      cardClassName="bg-[oklch(0.18_0.03_155)]"
+      section="post"
       bodyClassName=""
     >
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-[oklch(0.15_0.02_155)] border border-emerald-500/20 mb-4">
+          <TabsList className="bg-muted/50 border border-emerald-500/20 mb-4">
             <TabsTrigger value="presets" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-gray-400 text-xs gap-1">
               <Sparkles className="w-3 h-3" />Presets
             </TabsTrigger>
@@ -351,7 +351,7 @@ export default function ProductionWorkflow() {
               {presets.map(p => (
                 <div
                   key={p.id}
-                  className="p-3 rounded-lg bg-[oklch(0.15_0.02_155)] border border-emerald-500/20 hover:border-emerald-500/50 transition-all group"
+                  className="p-3 rounded-lg bg-muted/50 border border-emerald-500/20 hover:border-emerald-500/50 transition-all group"
                 >
                   {/* Clickable header area — applies preset to Generate prompt */}
                   <button
@@ -420,7 +420,7 @@ export default function ProductionWorkflow() {
             {showPresetModal && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setShowPresetModal(false)}>
                 <div
-                  className="bg-[oklch(0.18_0.03_155)] border border-emerald-500/30 rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto space-y-4"
+                  className="bg-card border border-emerald-500/30 rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto space-y-4"
                   onClick={e => e.stopPropagation()}
                 >
                   <div className="flex items-center justify-between">
@@ -442,7 +442,7 @@ export default function ProductionWorkflow() {
                         value={newPreset.name}
                         onChange={e => setNewPreset({ ...newPreset, name: e.target.value })}
                         placeholder="e.g., Mountain Lion Rescue"
-                        className="bg-[oklch(0.10_0.02_155)] border-emerald-500/30 text-gray-100 placeholder:text-gray-500 focus:border-emerald-400 text-sm"
+                        className="bg-background border-emerald-500/30 text-foreground placeholder:text-muted-foreground focus:border-emerald-400 text-sm"
                         style={{ color: '#e5e7eb' }}
                       />
                     </div>
@@ -452,7 +452,7 @@ export default function ProductionWorkflow() {
                         value={newPreset.category}
                         onChange={e => setNewPreset({ ...newPreset, category: e.target.value })}
                         placeholder="wildlife, rescue, emotional..."
-                        className="bg-[oklch(0.10_0.02_155)] border-emerald-500/30 text-gray-100 placeholder:text-gray-500 focus:border-emerald-400 text-sm"
+                        className="bg-background border-emerald-500/30 text-foreground placeholder:text-muted-foreground focus:border-emerald-400 text-sm"
                         style={{ color: '#e5e7eb' }}
                       />
                     </div>
@@ -462,7 +462,7 @@ export default function ProductionWorkflow() {
                         value={newPreset.animalType}
                         onChange={e => setNewPreset({ ...newPreset, animalType: e.target.value })}
                         placeholder="e.g., Lion, Eagle, Bear"
-                        className="bg-[oklch(0.10_0.02_155)] border-emerald-500/30 text-gray-100 placeholder:text-gray-500 focus:border-emerald-400 text-sm"
+                        className="bg-background border-emerald-500/30 text-foreground placeholder:text-muted-foreground focus:border-emerald-400 text-sm"
                         style={{ color: '#e5e7eb' }}
                       />
                     </div>
@@ -472,7 +472,7 @@ export default function ProductionWorkflow() {
                         value={newPreset.biome}
                         onChange={e => setNewPreset({ ...newPreset, biome: e.target.value })}
                         placeholder="e.g., Savanna, Forest, Ocean"
-                        className="bg-[oklch(0.10_0.02_155)] border-emerald-500/30 text-gray-100 placeholder:text-gray-500 focus:border-emerald-400 text-sm"
+                        className="bg-background border-emerald-500/30 text-foreground placeholder:text-muted-foreground focus:border-emerald-400 text-sm"
                         style={{ color: '#e5e7eb' }}
                       />
                     </div>
@@ -482,7 +482,7 @@ export default function ProductionWorkflow() {
                         value={newPreset.dangerType}
                         onChange={e => setNewPreset({ ...newPreset, dangerType: e.target.value })}
                         placeholder="e.g., Predator, Storm, Drowning"
-                        className="bg-[oklch(0.10_0.02_155)] border-emerald-500/30 text-gray-100 placeholder:text-gray-500 focus:border-emerald-400 text-sm"
+                        className="bg-background border-emerald-500/30 text-foreground placeholder:text-muted-foreground focus:border-emerald-400 text-sm"
                         style={{ color: '#e5e7eb' }}
                       />
                     </div>
@@ -492,7 +492,7 @@ export default function ProductionWorkflow() {
                         value={newPreset.emotionalBeat}
                         onChange={e => setNewPreset({ ...newPreset, emotionalBeat: e.target.value })}
                         placeholder="e.g., Protective, Curious, Suspense"
-                        className="bg-[oklch(0.10_0.02_155)] border-emerald-500/30 text-gray-100 placeholder:text-gray-500 focus:border-emerald-400 text-sm"
+                        className="bg-background border-emerald-500/30 text-foreground placeholder:text-muted-foreground focus:border-emerald-400 text-sm"
                         style={{ color: '#e5e7eb' }}
                       />
                     </div>
@@ -502,7 +502,7 @@ export default function ProductionWorkflow() {
                         value={newPreset.structureNotes}
                         onChange={e => setNewPreset({ ...newPreset, structureNotes: e.target.value })}
                         placeholder="e.g., 0-3s hook with instant danger, 3-8s chase, 8-13s development, 13-15s resolve"
-                        className="bg-[oklch(0.10_0.02_155)] border-emerald-500/30 text-gray-100 placeholder:text-gray-500 focus:border-emerald-400 text-sm min-h-16"
+                        className="bg-background border-emerald-500/30 text-foreground placeholder:text-muted-foreground focus:border-emerald-400 text-sm min-h-16"
                         style={{ color: '#e5e7eb' }}
                       />
                     </div>
@@ -512,7 +512,7 @@ export default function ProductionWorkflow() {
                         value={newPreset.promptTemplate}
                         onChange={e => setNewPreset({ ...newPreset, promptTemplate: e.target.value })}
                         placeholder="Paste a finished prompt here, or type a placeholder. Clicking the preset card will send this to the Generate tab prompt box."
-                        className="bg-[oklch(0.10_0.02_155)] border-emerald-500/30 text-gray-100 placeholder:text-gray-500 focus:border-emerald-400 text-sm min-h-24 font-mono"
+                        className="bg-background border-emerald-500/30 text-foreground placeholder:text-muted-foreground focus:border-emerald-400 text-sm min-h-24 font-mono"
                         style={{ color: '#e5e7eb' }}
                       />
                     </div>
@@ -544,7 +544,7 @@ export default function ProductionWorkflow() {
                 <div className="text-center py-8 text-gray-500 text-sm">No versions yet. Save your first version below.</div>
               )}
               {promptVersions.map(v => (
-                <div key={v.id} className="p-3 rounded-lg bg-[oklch(0.15_0.02_155)] border border-emerald-500/10">
+                <div key={v.id} className="p-3 rounded-lg bg-muted/50 border border-emerald-500/10">
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
                       {getVersionBadge(v)}
@@ -574,7 +574,7 @@ export default function ProductionWorkflow() {
           <TabsContent value="qa">
             <div className="space-y-6">
               {/* Animal Realism QA */}
-              <div className="p-4 rounded-lg bg-[oklch(0.15_0.02_155)] border border-emerald-500/10">
+              <div className="p-4 rounded-lg bg-muted/50 border border-emerald-500/10">
                 <h4 className="text-sm font-medium text-emerald-400 mb-3 flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4" /> Animal Realism QA
                 </h4>
@@ -592,7 +592,7 @@ export default function ProductionWorkflow() {
               </div>
 
               {/* Viral Hook Score */}
-              <div className="p-4 rounded-lg bg-[oklch(0.15_0.02_155)] border border-emerald-500/10">
+              <div className="p-4 rounded-lg bg-muted/50 border border-emerald-500/10">
                 <h4 className="text-sm font-medium text-emerald-400 mb-3">Viral Hook Score: {viralScore}/10</h4>
                 <Slider
                   value={[viralScore]}
@@ -611,7 +611,7 @@ export default function ProductionWorkflow() {
               </div>
 
               {/* Mobile Readability Score */}
-              <div className="p-4 rounded-lg bg-[oklch(0.15_0.02_155)] border border-emerald-500/10">
+              <div className="p-4 rounded-lg bg-muted/50 border border-emerald-500/10">
                 <h4 className="text-sm font-medium text-emerald-400 mb-3">Mobile Readability Score: {mobileScore}/10</h4>
                 <Slider
                   value={[mobileScore]}
@@ -630,7 +630,7 @@ export default function ProductionWorkflow() {
               </div>
 
               {/* Risk Level */}
-              <div className="p-4 rounded-lg bg-[oklch(0.15_0.02_155)] border border-emerald-500/10">
+              <div className="p-4 rounded-lg bg-muted/50 border border-emerald-500/10">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-sm font-medium text-emerald-400">Risk Level</h4>
                   <Badge className={`${calcRiskLevel === 'Low' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : calcRiskLevel === 'Medium' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'} text-xs`}>
@@ -648,7 +648,7 @@ export default function ProductionWorkflow() {
               </div>
 
               {/* Output Rating */}
-              <div className="p-4 rounded-lg bg-[oklch(0.15_0.02_155)] border border-emerald-500/10">
+              <div className="p-4 rounded-lg bg-muted/50 border border-emerald-500/10">
                 <h4 className="text-sm font-medium text-emerald-400 mb-3">Output Rating</h4>
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                   {OUTPUT_RATING_LIST.map(r => (
@@ -685,7 +685,7 @@ export default function ProductionWorkflow() {
           <TabsContent value="retry">
             <div className="space-y-6">
               {/* Failed Generation Reasons */}
-              <div className="p-4 rounded-lg bg-[oklch(0.15_0.02_155)] border border-emerald-500/10">
+              <div className="p-4 rounded-lg bg-muted/50 border border-emerald-500/10">
                 <h4 className="text-sm font-medium text-emerald-400 mb-3">Failed Generation Reasons</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {FAILURE_LIST.map(f => (
@@ -701,7 +701,7 @@ export default function ProductionWorkflow() {
               </div>
 
               {/* Suggested Retry Fixes */}
-              <div className="p-4 rounded-lg bg-[oklch(0.15_0.02_155)] border border-emerald-500/10">
+              <div className="p-4 rounded-lg bg-muted/50 border border-emerald-500/10">
                 <h4 className="text-sm font-medium text-emerald-400 mb-3">Suggested Retry Fixes</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {RETRY_FIX_LIST.map(f => (

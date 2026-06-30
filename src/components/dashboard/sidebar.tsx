@@ -82,7 +82,7 @@ export function Sidebar({ open, taskHistory, budgetInfo }: SidebarProps) {
   return (
     <div className="w-80 shrink-0 space-y-4 transition-all duration-200">
       {/* Quick Stats */}
-      <Card className="bg-[oklch(0.18_0.03_155)] border-emerald-500/20">
+      <Card className="bg-card border-emerald-500/20">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-emerald-400" /> Quick Stats
@@ -90,19 +90,19 @@ export function Sidebar({ open, taskHistory, budgetInfo }: SidebarProps) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-2">
-            <div className="p-2 rounded bg-black/20 border border-emerald-500/5 text-center">
+            <div className="p-2 rounded bg-muted/40 border border-emerald-500/5 text-center">
               <p className="text-lg font-bold text-emerald-400">{thisMonth.length}</p>
               <p className="text-[10px] text-gray-500">Tasks</p>
             </div>
-            <div className="p-2 rounded bg-black/20 border border-emerald-500/5 text-center">
+            <div className="p-2 rounded bg-muted/40 border border-emerald-500/5 text-center">
               <p className="text-lg font-bold text-emerald-400">{thisMonth.length ? Math.round((succeeded / thisMonth.length) * 100) : 0}%</p>
               <p className="text-[10px] text-gray-500">Success</p>
             </div>
-            <div className="p-2 rounded bg-black/20 border border-emerald-500/5 text-center">
+            <div className="p-2 rounded bg-muted/40 border border-emerald-500/5 text-center">
               <p className="text-lg font-bold text-emerald-400">${totalSpent.toFixed(2)}</p>
               <p className="text-[10px] text-gray-500">Spent</p>
             </div>
-            <div className="p-2 rounded bg-black/20 border border-emerald-500/5 text-center">
+            <div className="p-2 rounded bg-muted/40 border border-emerald-500/5 text-center">
               <p className="text-lg font-bold text-emerald-400 capitalize">{topModel}</p>
               <p className="text-[10px] text-gray-500">Top Model</p>
             </div>
@@ -111,7 +111,7 @@ export function Sidebar({ open, taskHistory, budgetInfo }: SidebarProps) {
       </Card>
 
       {/* Task History */}
-      <Card className="bg-[oklch(0.18_0.03_155)] border-emerald-500/20">
+      <Card className="bg-card border-emerald-500/20">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm flex items-center gap-2">
@@ -137,7 +137,7 @@ export function Sidebar({ open, taskHistory, budgetInfo }: SidebarProps) {
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500" />
             <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search prompts..."
-              className="h-7 text-xs pl-7 bg-[oklch(0.15_0.02_155)] border-emerald-500/20 focus:border-emerald-500/50" />
+              className="h-7 text-xs pl-7 bg-muted/50 border-emerald-500/20 focus:border-emerald-500/50" />
           </div>
           <p className="text-[10px] text-gray-600">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</p>
           {/* Task List */}
@@ -147,7 +147,7 @@ export function Sidebar({ open, taskHistory, budgetInfo }: SidebarProps) {
             ) : (
               <div className="space-y-2">
                 {filtered.map(task => (
-                  <div key={task.id} className="p-2 rounded bg-black/20 border border-emerald-500/5">
+                  <div key={task.id} className="p-2 rounded bg-muted/40 border border-emerald-500/5">
                     <div className="flex items-center justify-between mb-1">
                       <StatusBadge status={task.status} />
                       <span className="text-[10px] text-gray-600">{new Date(task.createdAt).toLocaleDateString()}</span>
@@ -171,7 +171,7 @@ export function Sidebar({ open, taskHistory, budgetInfo }: SidebarProps) {
       </Card>
 
       {/* Cost Summary */}
-      <Card className="bg-[oklch(0.18_0.03_155)] border-emerald-500/20">
+      <Card className="bg-card border-emerald-500/20">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-emerald-400" /> Cost Summary

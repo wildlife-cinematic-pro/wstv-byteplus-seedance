@@ -42,7 +42,7 @@ function EmptyState({ onRefreshVideo, onOpenFolder, dryRunPassed, hasPaidTask }:
     <div className="text-center py-8">
       <div className="relative w-20 h-20 mx-auto mb-4">
         <div className="absolute inset-0 rounded-full bg-gradient-to-br from-emerald-500/20 via-teal-500/10 to-transparent animate-pulse" />
-        <div className="absolute inset-2 rounded-full bg-[oklch(0.15_0.02_155)] border border-emerald-500/20 flex items-center justify-center">
+        <div className="absolute inset-2 rounded-full bg-muted/50 border border-emerald-500/20 flex items-center justify-center">
           <Play className="w-8 h-8 text-emerald-400/60" />
         </div>
       </div>
@@ -143,7 +143,7 @@ function formatTime(s: number) {
 function VideoTimeline({ currentTime, duration }: { currentTime: number; duration: number }) {
   const pct = duration > 0 ? (currentTime / duration) * 100 : 0;
   return (
-    <div className="relative h-6 bg-[oklch(0.15_0.02_155)] rounded border border-emerald-500/10 overflow-hidden">
+    <div className="relative h-6 bg-muted/50 rounded border border-emerald-500/10 overflow-hidden">
       <div className="absolute left-0 top-0 bottom-0 bg-emerald-500/20 rounded transition-all duration-200" style={{ width: `${pct}%` }} />
       <div className="absolute top-0 bottom-0 bg-emerald-400 w-0.5 shadow-[0_0_6px_rgba(52,211,153,0.6)] transition-all duration-200" style={{ left: `${pct}%` }} />
       <div className="absolute inset-0 flex items-center justify-between px-2 text-[10px] text-gray-500">
@@ -248,7 +248,7 @@ export function StepPreview({
       active
       completed={!!latestVideo}
       defaultOpen={false}
-      cardClassName="bg-[oklch(0.18_0.03_155)]"
+      section="generate"
       summary={
         latestVideo
           ? <StepChip>✓ Ready</StepChip>

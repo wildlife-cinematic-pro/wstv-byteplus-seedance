@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Leaf, Shield, ShieldCheck, ShieldOff, DollarSign, History, Cpu, Monitor, Keyboard, LayoutDashboard, Calculator, Film, FolderOpen, Calendar, GraduationCap, Info } from 'lucide-react';
+import { Leaf, Shield, ShieldCheck, ShieldOff, DollarSign, History, Cpu, Monitor, Keyboard, LayoutDashboard, Calculator, Film, FolderOpen, Calendar, GraduationCap, Info, Sun, Moon, Settings as SettingsIcon } from 'lucide-react';
 import { StepShell, StepAccordion } from '@/components/dashboard/shared';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -94,6 +94,36 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
   const [budgetInfo, setBudgetInfo] = useState<BudgetInfo>(initialData.budget);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  // ─── Theme (White/Black) — UI-only, localStorage, SSR-safe ───
+  // Server renders light (no .dark class). First client render also renders
+  // light (matches SSR → no hydration mismatch). The effect then applies the
+  // stored/system preference by toggling `.dark` on <html>.
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+    try {
+      const stored = localStorage.getItem('wstv-theme');
+      const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+      const next: 'light' | 'dark' = stored === 'dark' || (!stored && !!prefersDark) ? 'dark' : 'light';
+      setTheme(next);
+      document.documentElement.classList.toggle('dark', next === 'dark');
+    } catch {
+      // localStorage unavailable — leave light
+    }
+  }, []);
+  const toggleTheme = useCallback(() => {
+    setTheme(prev => {
+      const next = prev === 'dark' ? 'light' : 'dark';
+      try {
+        document.documentElement.classList.toggle('dark', next === 'dark');
+        localStorage.setItem('wstv-theme', next);
+      } catch {}
+      return next;
+    });
+  }, []);
 
   // Toast helpers — stable references
   const addToastRef = useRef<(t: Omit<ToastMessage, 'id'>) => void>(() => {});
@@ -413,6 +443,16 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
               <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(!sidebarOpen)} className="text-muted-foreground hover:text-emerald-400">
                 <History className="w-4 h-4" />
               </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleTheme}
+                aria-label="Toggle light/dark theme"
+                title={mounted ? (theme === 'dark' ? 'Switch to light' : 'Switch to dark') : 'Toggle theme'}
+                className="text-muted-foreground hover:text-foreground rounded-lg border border-border/60 hover:border-border"
+              >
+                {mounted && theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </Button>
               <div className="flex items-center gap-2 bg-card rounded-lg px-3 py-2 border border-emerald-500/20">
                 {safeMode ? <ShieldCheck className="w-5 h-5 text-emerald-400" /> : <ShieldOff className="w-5 h-5 text-amber-400" />}
                 <Label className="text-sm font-medium cursor-pointer select-none" onClick={toggleSafeMode}>Safe</Label>
@@ -443,23 +483,24 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <div className="flex items-center gap-4 overflow-x-auto">
             <TabsList className="bg-card border border-emerald-500/20 flex-wrap">
-              <TabsTrigger value="generation" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-muted-foreground gap-1.5 text-xs sm:text-sm">
+              <TabsTrigger value="generation" className="accent-generate tab-accent text-muted-foreground gap-1.5 text-xs sm:text-sm">
                 <Film className="w-4 h-4" />
                 <span className="hidden sm:inline">Generate</span>
               </TabsTrigger>
-              <TabsTrigger value="budget" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-muted-foreground gap-1.5 text-xs sm:text-sm">
+              <TabsTrigger value="budget" className="accent-cost tab-accent text-muted-foreground gap-1.5 text-xs sm:text-sm">
                 <LayoutDashboard className="w-4 h-4" />
                 <span className="hidden sm:inline">Cost</span>
               </TabsTrigger>
-              <TabsTrigger value="postproduction" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-muted-foreground gap-1.5 text-xs sm:text-sm">
+              <TabsTrigger value="postproduction" className="accent-post tab-accent text-muted-foreground gap-1.5 text-xs sm:text-sm">
                 <FolderOpen className="w-4 h-4" />
                 <span className="hidden sm:inline">Post-Prod</span>
               </TabsTrigger>
-              <TabsTrigger value="calendar" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-muted-foreground gap-1.5 text-xs sm:text-sm">
+              <TabsTrigger value="calendar" className="accent-calendar tab-accent text-muted-foreground gap-1.5 text-xs sm:text-sm">
                 <Calendar className="w-4 h-4" />
                 <span className="hidden sm:inline">Calendar</span>
               </TabsTrigger>
-              <TabsTrigger value="settings" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-muted-foreground gap-1.5 text-xs sm:text-sm">
+              <span className="hidden sm:block w-px h-5 bg-border/70 mx-1 self-center" aria-hidden />
+              <TabsTrigger value="settings" className="accent-settings tab-accent text-muted-foreground gap-1.5 text-xs sm:text-sm">
                 <Calculator className="w-4 h-4" />
                 <span className="hidden sm:inline">Settings</span>
               </TabsTrigger>
@@ -467,7 +508,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
           </div>
 
           {/* Generation Tab */}
-          <TabsContent value="generation" className="space-y-0">
+          <TabsContent value="generation" className="space-y-0 accent-generate">
             <div className="flex gap-6">
               <div className="flex-1 space-y-6 min-w-0">
                 {/* Status Bar */}
@@ -594,9 +635,9 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
           </TabsContent>
 
           {/* Cost & Budget Tab */}
-          <TabsContent value="budget">
+          <TabsContent value="budget" className="accent-cost">
             <div className="space-y-3">
-              <StepShell icon={<LayoutDashboard className="w-5 h-5" />} title="Cost Dashboard" bodyClassName="">
+              <StepShell icon={<LayoutDashboard className="w-5 h-5" />} title="Cost Dashboard" bodyClassName="" section="cost">
                 <CostDashboard />
               </StepShell>
               <ResourcePackBillingPanel
@@ -609,12 +650,12 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
           </TabsContent>
 
           {/* Post-Production Tab */}
-          <TabsContent value="postproduction">
+          <TabsContent value="postproduction" className="accent-post">
             <PostProduction />
           </TabsContent>
 
           {/* Calendar & Learning Tab */}
-          <TabsContent value="calendar">
+          <TabsContent value="calendar" className="accent-calendar">
             <div className="space-y-3">
               <div className="text-xs text-muted-foreground bg-muted/30 border border-emerald-500/30 rounded-md px-3 py-2 flex items-center gap-2">
                 <Info className="w-3 h-3 shrink-0 text-emerald-500/70" />
@@ -625,9 +666,9 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
           </TabsContent>
 
           {/* Settings Tab */}
-          <TabsContent value="settings">
+          <TabsContent value="settings" className="accent-settings">
             <div className="space-y-3">
-              <StepShell icon={<Calculator className="w-5 h-5" />} title="Budget & Cost Settings">
+              <StepShell icon={<Calculator className="w-5 h-5" />} title="Budget & Cost Settings" section="settings">
                 <CostSettings initialBudget={budgetInfo} />
               </StepShell>
               <OfficialQuickstartReference />
@@ -651,6 +692,13 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
                 <Shield className={`w-3.5 h-3.5 ${safeMode ? 'text-emerald-500' : 'text-amber-500'}`} />
                 <span>{safeMode ? 'DRY RUN' : 'SIM'}</span>
               </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab('settings')}
+                className="inline-flex items-center gap-1 rounded-md border border-border/60 px-2 py-1 hover:bg-muted hover:text-foreground transition-colors"
+              >
+                <SettingsIcon className="w-3.5 h-3.5" /> Settings
+              </button>
               <span>v5.0.0</span>
             </div>
           </div>

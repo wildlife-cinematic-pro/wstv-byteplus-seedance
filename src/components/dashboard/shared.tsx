@@ -8,6 +8,13 @@ import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
+/** Major dashboard workflow areas — each maps to a distinct accent hue
+ *  defined in globals.css (.accent-<section>). Drives section identity. */
+export type SectionKey = 'generate' | 'cost' | 'post' | 'calendar' | 'settings';
+function accentClass(section?: SectionKey) {
+  return section ? `accent-${section}` : '';
+}
+
 /** Numbered step circle with glow effect when completed */
 export function StepNumber({ num, active, completed }: { num: number; active: boolean; completed: boolean }) {
   return (
@@ -171,7 +178,7 @@ export function StepAccordion({ order, defaultOpenValue = null, children }: {
 export function StepShell({
   num, icon, title, value, active = false, completed = false,
   summary, headerBadge, defaultOpen = true,
-  cardClassName, bodyClassName = 'space-y-4', children,
+  section, cardClassName, bodyClassName = 'space-y-4', children,
 }: {
   num?: number;
   icon?: React.ReactNode;
@@ -182,6 +189,7 @@ export function StepShell({
   summary?: React.ReactNode;
   headerBadge?: React.ReactNode;
   defaultOpen?: boolean;
+  section?: SectionKey;
   cardClassName?: string;
   bodyClassName?: string;
   children: React.ReactNode;
@@ -200,10 +208,13 @@ export function StepShell({
   const prevValue = idx > 0 ? ctx!.order[idx - 1] : null;
   const nextValue = idx >= 0 && idx < ctx!.order.length - 1 ? ctx!.order[idx + 1] : null;
 
+  const ac = accentClass(section);
   return (
     <div className={cn(
-      'rounded-xl border bg-card overflow-hidden transition-colors duration-300',
-      completed ? 'border-emerald-500/40' : 'border-emerald-500/20',
+      'step-shell rounded-xl border bg-card overflow-hidden transition-all duration-300 shadow-sm hover:shadow-md',
+      ac && 'step-shell-accent',
+      ac ? (completed ? 'step-shell-completed' : 'border-emerald-500/20') : (completed ? 'border-emerald-500/40' : 'border-emerald-500/20'),
+      ac,
       cardClassName,
     )}>
       <Collapsible open={open} onOpenChange={setOpen}>
@@ -213,7 +224,7 @@ export function StepShell({
             className="w-full flex items-center gap-3 px-4 sm:px-5 py-3 text-left group hover:bg-emerald-500/[0.04] data-[state=open]:bg-emerald-500/[0.02] transition-colors"
           >
             {icon
-              ? <span className="flex items-center justify-center w-9 h-9 rounded-full bg-emerald-500/10 text-emerald-400 shrink-0">{icon}</span>
+              ? <span className={cn('flex items-center justify-center w-9 h-9 rounded-full shrink-0', ac ? 'step-chip-accent border' : 'bg-emerald-500/10 text-emerald-400')}>{icon}</span>
               : <StepNumber num={num ?? 0} active={active || open} completed={completed} />}
             <span className="text-base sm:text-lg font-semibold text-foreground flex-1 min-w-0 truncate">{title}</span>
             <div className="flex items-center gap-2 shrink-0">

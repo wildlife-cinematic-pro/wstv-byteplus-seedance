@@ -120,7 +120,68 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Subtle cinematic app background — on-brand, faint, fixed. */
+    background-image:
+      radial-gradient(48rem 48rem at 100% -12%, color-mix(in oklch, var(--primary) 9%, transparent), transparent 60%),
+      radial-gradient(42rem 42rem at -12% 0%, color-mix(in oklch, var(--primary) 6%, transparent), transparent 55%);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
   }
+  .dark body {
+    background-image:
+      radial-gradient(52rem 52rem at 100% -12%, color-mix(in oklch, var(--primary) 14%, transparent), transparent 60%),
+      radial-gradient(46rem 46rem at -12% 0%, color-mix(in oklch, var(--primary) 10%, transparent), transparent 55%);
+  }
+}
+
+/* ─── Section accent system ───
+   Each major dashboard area gets one tasteful, distinct hue.
+   Sets --sa (accent) + --sa-strong on the element it is applied to.
+   Semantic success/warn/danger colors elsewhere are intentionally untouched. */
+.accent-generate { --sa: oklch(0.55 0.15 155); --sa-strong: oklch(0.48 0.16 155); }
+.accent-cost     { --sa: oklch(0.58 0.16 285); --sa-strong: oklch(0.52 0.17 285); }
+.accent-post     { --sa: oklch(0.70 0.15 60);  --sa-strong: oklch(0.62 0.17 55); }
+.accent-calendar { --sa: oklch(0.62 0.13 240); --sa-strong: oklch(0.55 0.15 240); }
+.accent-settings { --sa: oklch(0.62 0.08 195); --sa-strong: oklch(0.55 0.10 195); }
+
+/* StepShell accent treatment: left strip + tinted chip + completed border. */
+.step-shell { position: relative; }
+.step-shell-accent::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 16px;
+  bottom: 16px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--sa);
+  box-shadow: 0 0 12px color-mix(in oklch, var(--sa) 55%, transparent);
+  pointer-events: none;
+}
+.step-chip-accent {
+  background: color-mix(in oklch, var(--sa) 14%, transparent) !important;
+  color: var(--sa) !important;
+  border-color: color-mix(in oklch, var(--sa) 35%, transparent) !important;
+}
+.step-shell-completed {
+  border-color: color-mix(in oklch, var(--sa) 50%, transparent) !important;
+}
+
+/* Active-tab accent fill (used on TabsTrigger via data-[state=active]). */
+.tab-accent[data-state="active"] {
+  background-color: var(--sa-strong) !important;
+  color: white !important;
+}
+
+/* Light-mode readability guard — the dashboard has legacy near-white grays
+   (gray-100/200/300) designed for dark surfaces. In light mode they become
+   invisible on white cards. Remap ONLY those three (in light mode) to the
+   muted-foreground token so text stays readable. Mid-tones (gray-400+) and
+   all semantic colors are intentionally left untouched. */
+:root:not(.dark) .text-gray-100,
+:root:not(.dark) .text-gray-200,
+:root:not(.dark) .text-gray-300 {
+  color: var(--muted-foreground);
 }
 
 /* Custom scrollbar */

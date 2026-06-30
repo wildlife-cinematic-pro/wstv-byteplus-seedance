@@ -205,11 +205,11 @@ export default function PostProduction() {
     <StepShell
       icon={<Film className="w-5 h-5" />}
       title="Post-Production Tracker"
-      cardClassName="bg-[oklch(0.18_0.03_155)]"
+      section="post"
       bodyClassName=""
     >
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-[oklch(0.15_0.02_155)] border border-emerald-500/20 mb-4 flex-wrap h-auto gap-1 p-1">
+          <TabsList className="bg-muted/50 border border-emerald-500/20 mb-4 flex-wrap h-auto gap-1 p-1">
             <TabsTrigger value="capcut" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-gray-400 text-xs gap-1">
               <ClipboardCheck className="w-3 h-3" />CapCut
             </TabsTrigger>
@@ -233,7 +233,7 @@ export default function PostProduction() {
           {/* ─── CapCut Editing Tracker ─── */}
           <TabsContent value="capcut">
             <div className="space-y-4">
-              <div className="p-4 rounded-lg bg-[oklch(0.15_0.02_155)] border border-emerald-500/10">
+              <div className="p-4 rounded-lg bg-muted/50 border border-emerald-500/10">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-sm font-medium text-emerald-400">CapCut Editing Checklist</h4>
                   <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs">{capcutCompleted}/{CAPCUT_STEPS.length}</Badge>
@@ -260,7 +260,7 @@ export default function PostProduction() {
           {/* ─── Cover Frame Planner ─── */}
           <TabsContent value="cover">
             <div className="space-y-4">
-              <div className="p-4 rounded-lg bg-[oklch(0.15_0.02_155)] border border-emerald-500/10">
+              <div className="p-4 rounded-lg bg-muted/50 border border-emerald-500/10">
                 <h4 className="text-sm font-medium text-emerald-400 mb-3">Cover Frame Planner</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                   <div>
@@ -269,7 +269,7 @@ export default function PostProduction() {
                       placeholder="e.g., 2.4s"
                       value={coverTimestamp}
                       onChange={e => setCoverTimestamp(e.target.value)}
-                      className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1"
+                      className="h-8 bg-muted/30 border-emerald-500/20 text-xs mt-1"
                     />
                   </div>
                   <div>
@@ -278,7 +278,7 @@ export default function PostProduction() {
                       placeholder="e.g., Fear, Joy, Tension"
                       value={coverEmotion}
                       onChange={e => setCoverEmotion(e.target.value)}
-                      className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1"
+                      className="h-8 bg-muted/30 border-emerald-500/20 text-xs mt-1"
                     />
                   </div>
                 </div>
@@ -301,7 +301,7 @@ export default function PostProduction() {
                     placeholder="Cover frame notes..."
                     value={coverNotes}
                     onChange={e => setCoverNotes(e.target.value)}
-                    className="bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1 min-h-[60px]"
+                    className="bg-muted/30 border-emerald-500/20 text-xs mt-1 min-h-[60px]"
                   />
                 </div>
               </div>
@@ -314,7 +314,7 @@ export default function PostProduction() {
           {/* ─── Caption & Hashtag QA ─── */}
           <TabsContent value="caption">
             <div className="space-y-4">
-              <div className="p-4 rounded-lg bg-[oklch(0.15_0.02_155)] border border-emerald-500/10">
+              <div className="p-4 rounded-lg bg-muted/50 border border-emerald-500/10">
                 <h4 className="text-sm font-medium text-emerald-400 mb-3">Caption & Hashtag QA</h4>
 
                 <div className="mb-4">
@@ -323,7 +323,7 @@ export default function PostProduction() {
                     placeholder="Write your caption here..."
                     value={captionText}
                     onChange={e => setCaptionText(e.target.value)}
-                    className="bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1 min-h-[80px]"
+                    className="bg-muted/30 border-emerald-500/20 text-xs mt-1 min-h-[80px]"
                   />
                 </div>
 
@@ -353,7 +353,7 @@ export default function PostProduction() {
                     placeholder="#wildlife #rescue #animals ..."
                     value={hashtags}
                     onChange={e => setHashtags(e.target.value)}
-                    className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1"
+                    className="h-8 bg-muted/30 border-emerald-500/20 text-xs mt-1"
                   />
                 </div>
 
@@ -374,7 +374,7 @@ export default function PostProduction() {
                 </div>
 
                 {/* Preview card */}
-                <div className="p-3 rounded-lg bg-[oklch(0.13_0.02_155)] border border-emerald-500/10">
+                <div className="p-3 rounded-lg bg-muted/30 border border-emerald-500/10">
                   <p className="text-xs text-gray-400 mb-1">Preview</p>
                   <p className="text-sm text-gray-200">{captionText || 'Your caption will appear here...'}</p>
                   <p className="text-xs text-emerald-400/70 mt-1">{hashtags || '#hashtags'}</p>
@@ -389,28 +389,28 @@ export default function PostProduction() {
           {/* ─── Browser Generation Tracker ─── */}
           <TabsContent value="browser">
             <div className="space-y-4">
-              <div className="p-4 rounded-lg bg-[oklch(0.15_0.02_155)] border border-emerald-500/10">
+              <div className="p-4 rounded-lg bg-muted/50 border border-emerald-500/10">
                 <h4 className="text-sm font-medium text-emerald-400 mb-3">Manual Browser Generation Tracker</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs text-gray-400">Browser Model Used</Label>
-                    <Input placeholder="e.g., Seedance 2.0" value={browserModel} onChange={e => setBrowserModel(e.target.value)} className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1" />
+                    <Input placeholder="e.g., Seedance 2.0" value={browserModel} onChange={e => setBrowserModel(e.target.value)} className="h-8 bg-muted/30 border-emerald-500/20 text-xs mt-1" />
                   </div>
                   <div>
                     <Label className="text-xs text-gray-400">Prompt Used</Label>
-                    <Input placeholder="Prompt..." value={browserPrompt} onChange={e => setBrowserPrompt(e.target.value)} className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1" />
+                    <Input placeholder="Prompt..." value={browserPrompt} onChange={e => setBrowserPrompt(e.target.value)} className="h-8 bg-muted/30 border-emerald-500/20 text-xs mt-1" />
                   </div>
                   <div>
                     <Label className="text-xs text-gray-400">Ref Images</Label>
-                    <Input placeholder="Number or URLs" value={browserRefImages} onChange={e => setBrowserRefImages(e.target.value)} className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1" />
+                    <Input placeholder="Number or URLs" value={browserRefImages} onChange={e => setBrowserRefImages(e.target.value)} className="h-8 bg-muted/30 border-emerald-500/20 text-xs mt-1" />
                   </div>
                   <div>
                     <Label className="text-xs text-gray-400">Estimated Cost</Label>
-                    <Input placeholder="$0.00" value={browserEstCost} onChange={e => setBrowserEstCost(e.target.value)} className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1" />
+                    <Input placeholder="$0.00" value={browserEstCost} onChange={e => setBrowserEstCost(e.target.value)} className="h-8 bg-muted/30 border-emerald-500/20 text-xs mt-1" />
                   </div>
                   <div>
                     <Label className="text-xs text-gray-400">Actual Cost</Label>
-                    <Input placeholder="$0.00" value={browserActualCost} onChange={e => setBrowserActualCost(e.target.value)} className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1" />
+                    <Input placeholder="$0.00" value={browserActualCost} onChange={e => setBrowserActualCost(e.target.value)} className="h-8 bg-muted/30 border-emerald-500/20 text-xs mt-1" />
                   </div>
                   <div>
                     <Label className="text-xs text-gray-400">Output Rating</Label>
@@ -425,15 +425,15 @@ export default function PostProduction() {
                   </div>
                   <div>
                     <Label className="text-xs text-gray-400">Video File Name</Label>
-                    <Input placeholder="filename.mp4" value={browserVideoFile} onChange={e => setBrowserVideoFile(e.target.value)} className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1" />
+                    <Input placeholder="filename.mp4" value={browserVideoFile} onChange={e => setBrowserVideoFile(e.target.value)} className="h-8 bg-muted/30 border-emerald-500/20 text-xs mt-1" />
                   </div>
                   <div>
                     <Label className="text-xs text-gray-400">CapCut Edit Status</Label>
-                    <Input placeholder="e.g., In progress, Done" value={browserCapcutStatus} onChange={e => setBrowserCapcutStatus(e.target.value)} className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1" />
+                    <Input placeholder="e.g., In progress, Done" value={browserCapcutStatus} onChange={e => setBrowserCapcutStatus(e.target.value)} className="h-8 bg-muted/30 border-emerald-500/20 text-xs mt-1" />
                   </div>
                   <div className="sm:col-span-2">
                     <Label className="text-xs text-gray-400">Posted URL</Label>
-                    <Input placeholder="https://facebook.com/..." value={browserPostedUrl} onChange={e => setBrowserPostedUrl(e.target.value)} className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1" />
+                    <Input placeholder="https://facebook.com/..." value={browserPostedUrl} onChange={e => setBrowserPostedUrl(e.target.value)} className="h-8 bg-muted/30 border-emerald-500/20 text-xs mt-1" />
                   </div>
                 </div>
               </div>
@@ -446,33 +446,33 @@ export default function PostProduction() {
           {/* ─── Cost Per Posted Video ─── */}
           <TabsContent value="cost">
             <div className="space-y-4">
-              <div className="p-4 rounded-lg bg-[oklch(0.15_0.02_155)] border border-emerald-500/10">
+              <div className="p-4 rounded-lg bg-muted/50 border border-emerald-500/10">
                 <h4 className="text-sm font-medium text-emerald-400 mb-3">Cost Per Posted Video</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
                   <div>
                     <Label className="text-xs text-gray-400">Planned Cost</Label>
-                    <Input placeholder="$0.00" value={plannedCost} onChange={e => setPlannedCost(e.target.value)} className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1" />
+                    <Input placeholder="$0.00" value={plannedCost} onChange={e => setPlannedCost(e.target.value)} className="h-8 bg-muted/30 border-emerald-500/20 text-xs mt-1" />
                   </div>
                   <div>
                     <Label className="text-xs text-gray-400">Generation Cost</Label>
-                    <Input placeholder="$0.00" value={generationCost} onChange={e => setGenerationCost(e.target.value)} className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1" />
+                    <Input placeholder="$0.00" value={generationCost} onChange={e => setGenerationCost(e.target.value)} className="h-8 bg-muted/30 border-emerald-500/20 text-xs mt-1" />
                   </div>
                   <div>
                     <Label className="text-xs text-gray-400">Failed Generation Cost</Label>
-                    <Input placeholder="$0.00" value={failedGenCost} onChange={e => setFailedGenCost(e.target.value)} className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1" />
+                    <Input placeholder="$0.00" value={failedGenCost} onChange={e => setFailedGenCost(e.target.value)} className="h-8 bg-muted/30 border-emerald-500/20 text-xs mt-1" />
                   </div>
                   <div>
                     <Label className="text-xs text-gray-400">Retry Cost</Label>
-                    <Input placeholder="$0.00" value={retryCost} onChange={e => setRetryCost(e.target.value)} className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1" />
+                    <Input placeholder="$0.00" value={retryCost} onChange={e => setRetryCost(e.target.value)} className="h-8 bg-muted/30 border-emerald-500/20 text-xs mt-1" />
                   </div>
                   <div>
                     <Label className="text-xs text-gray-400">Final Usable Video Cost</Label>
-                    <Input placeholder="$0.00" value={finalVideoCost} onChange={e => setFinalVideoCost(e.target.value)} className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1" />
+                    <Input placeholder="$0.00" value={finalVideoCost} onChange={e => setFinalVideoCost(e.target.value)} className="h-8 bg-muted/30 border-emerald-500/20 text-xs mt-1" />
                   </div>
                 </div>
 
                 {/* Cost breakdown */}
-                <div className="p-3 rounded-lg bg-[oklch(0.13_0.02_155)] border border-emerald-500/10">
+                <div className="p-3 rounded-lg bg-muted/30 border border-emerald-500/10">
                   <h5 className="text-xs text-gray-400 mb-2">Cost Breakdown</h5>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
                     <div className="flex justify-between"><span className="text-gray-500">Planned:</span><span className="text-gray-300">${totalCost.planned.toFixed(2)}</span></div>
@@ -498,51 +498,51 @@ export default function PostProduction() {
           {/* ─── Performance Tracker ─── */}
           <TabsContent value="performance">
             <div className="space-y-4">
-              <div className="p-4 rounded-lg bg-[oklch(0.15_0.02_155)] border border-emerald-500/10">
+              <div className="p-4 rounded-lg bg-muted/50 border border-emerald-500/10">
                 <h4 className="text-sm font-medium text-emerald-400 mb-3">Performance Tracker</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
                   <div>
                     <Label className="text-xs text-gray-400">Views</Label>
-                    <Input placeholder="0" value={views} onChange={e => setViews(e.target.value)} className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1" />
+                    <Input placeholder="0" value={views} onChange={e => setViews(e.target.value)} className="h-8 bg-muted/30 border-emerald-500/20 text-xs mt-1" />
                   </div>
                   <div>
                     <Label className="text-xs text-gray-400">3-Sec Retention %</Label>
-                    <Input placeholder="0%" value={retention3s} onChange={e => setRetention3s(e.target.value)} className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1" />
+                    <Input placeholder="0%" value={retention3s} onChange={e => setRetention3s(e.target.value)} className="h-8 bg-muted/30 border-emerald-500/20 text-xs mt-1" />
                   </div>
                   <div>
                     <Label className="text-xs text-gray-400">Avg Watch Time (sec)</Label>
-                    <Input placeholder="0" value={avgWatchTime} onChange={e => setAvgWatchTime(e.target.value)} className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1" />
+                    <Input placeholder="0" value={avgWatchTime} onChange={e => setAvgWatchTime(e.target.value)} className="h-8 bg-muted/30 border-emerald-500/20 text-xs mt-1" />
                   </div>
                   <div>
                     <Label className="text-xs text-gray-400">Shares</Label>
-                    <Input placeholder="0" value={shares} onChange={e => setShares(e.target.value)} className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1" />
+                    <Input placeholder="0" value={shares} onChange={e => setShares(e.target.value)} className="h-8 bg-muted/30 border-emerald-500/20 text-xs mt-1" />
                   </div>
                   <div>
                     <Label className="text-xs text-gray-400">Comments</Label>
-                    <Input placeholder="0" value={comments} onChange={e => setComments(e.target.value)} className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1" />
+                    <Input placeholder="0" value={comments} onChange={e => setComments(e.target.value)} className="h-8 bg-muted/30 border-emerald-500/20 text-xs mt-1" />
                   </div>
                   <div>
                     <Label className="text-xs text-gray-400">Saves</Label>
-                    <Input placeholder="0" value={saves} onChange={e => setSaves(e.target.value)} className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1" />
+                    <Input placeholder="0" value={saves} onChange={e => setSaves(e.target.value)} className="h-8 bg-muted/30 border-emerald-500/20 text-xs mt-1" />
                   </div>
                   <div>
                     <Label className="text-xs text-gray-400">Negative Comments</Label>
-                    <Input placeholder="0" value={negativeComments} onChange={e => setNegativeComments(e.target.value)} className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1" />
+                    <Input placeholder="0" value={negativeComments} onChange={e => setNegativeComments(e.target.value)} className="h-8 bg-muted/30 border-emerald-500/20 text-xs mt-1" />
                   </div>
                   <div className="sm:col-span-2">
                     <Label className="text-xs text-gray-400">Best Comment</Label>
-                    <Input placeholder="Best comment..." value={bestComment} onChange={e => setBestComment(e.target.value)} className="h-8 bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1" />
+                    <Input placeholder="Best comment..." value={bestComment} onChange={e => setBestComment(e.target.value)} className="h-8 bg-muted/30 border-emerald-500/20 text-xs mt-1" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                   <div>
                     <Label className="text-xs text-emerald-400 flex items-center gap-1"><TrendingUp className="w-3 h-3" /> Reason It Worked</Label>
-                    <Textarea placeholder="What made this video successful..." value={reasonWorked} onChange={e => setReasonWorked(e.target.value)} className="bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1 min-h-[60px]" />
+                    <Textarea placeholder="What made this video successful..." value={reasonWorked} onChange={e => setReasonWorked(e.target.value)} className="bg-muted/30 border-emerald-500/20 text-xs mt-1 min-h-[60px]" />
                   </div>
                   <div>
                     <Label className="text-xs text-red-400 flex items-center gap-1"><TrendingDown className="w-3 h-3" /> Reason It Failed</Label>
-                    <Textarea placeholder="What went wrong..." value={reasonFailed} onChange={e => setReasonFailed(e.target.value)} className="bg-[oklch(0.13_0.02_155)] border-emerald-500/20 text-xs mt-1 min-h-[60px]" />
+                    <Textarea placeholder="What went wrong..." value={reasonFailed} onChange={e => setReasonFailed(e.target.value)} className="bg-muted/30 border-emerald-500/20 text-xs mt-1 min-h-[60px]" />
                   </div>
                 </div>
               </div>

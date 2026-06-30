@@ -244,8 +244,8 @@ export function CostSettings({ initialBudget }: CostSettingsProps = {}) {
 
   const monthlyBudgetJpy = (monthlyLimit * exchangeRateUsdJpy).toFixed(2);
 
-  const inputClassName = "bg-[oklch(0.10_0.02_155)] border-emerald-500/30 text-gray-100 placeholder:text-gray-500 focus:border-emerald-400 focus:ring-emerald-400/30";
-  const selectClassName = "bg-[oklch(0.10_0.02_155)] border border-emerald-500/30 text-gray-100 rounded-md px-3 py-2 focus:border-emerald-400 focus:outline-none";
+  const inputClassName = "bg-background border-emerald-500/30 text-foreground placeholder:text-muted-foreground focus:border-emerald-400 focus:ring-emerald-400/30";
+  const selectClassName = "bg-background border border-emerald-500/30 text-foreground rounded-md px-3 py-2 focus:border-emerald-400 focus:outline-none";
 
   return (
     <div className="space-y-6">
@@ -271,7 +271,7 @@ export function CostSettings({ initialBudget }: CostSettingsProps = {}) {
       </Card>
 
       {/* A. Monthly Budget Settings */}
-      <Card className="bg-[oklch(0.18_0.03_155)] border-emerald-500/20">
+      <Card className="bg-card border-emerald-500/20">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <Wallet className="w-5 h-5 text-emerald-400" />
@@ -304,7 +304,7 @@ export function CostSettings({ initialBudget }: CostSettingsProps = {}) {
           </div>
           <div className="space-y-2">
             <Label className="text-gray-400 text-xs">Monthly Budget (JPY)</Label>
-            <div className="bg-[oklch(0.09_0.015_155)] border border-emerald-500/20 text-gray-200 rounded-md p-2.5 text-sm font-mono">
+            <div className="bg-muted/60 border border-emerald-500/20 text-foreground rounded-md p-2.5 text-sm font-mono">
               ¥{monthlyBudgetJpy}
             </div>
           </div>
@@ -318,7 +318,7 @@ export function CostSettings({ initialBudget }: CostSettingsProps = {}) {
       </Card>
 
       {/* B. Seedance Plan Settings */}
-      <Card className="bg-[oklch(0.18_0.03_155)] border-emerald-500/20">
+      <Card className="bg-card border-emerald-500/20">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <CreditCard className="w-5 h-5 text-emerald-400" />
@@ -440,7 +440,7 @@ export function CostSettings({ initialBudget }: CostSettingsProps = {}) {
       </Card>
 
       {/* C. Manual Actual Cost Entry */}
-      <Card className="bg-[oklch(0.18_0.03_155)] border-emerald-500/20">
+      <Card className="bg-card border-emerald-500/20">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-emerald-400" />
@@ -510,7 +510,7 @@ export function CostSettings({ initialBudget }: CostSettingsProps = {}) {
             <div className="mt-4 space-y-2">
               <Label className="text-gray-400 text-xs">Manual Cost History</Label>
               {(manualEntries ?? []).map(entry => (
-                <div key={entry.id} className="flex items-center justify-between bg-[oklch(0.13_0.02_155)] border border-emerald-500/10 p-3 rounded-md">
+                <div key={entry.id} className="flex items-center justify-between bg-muted/30 border border-emerald-500/10 p-3 rounded-md">
                   <div className="text-xs text-gray-300">
                     <span className="text-emerald-400 font-medium">${entry.actualCostUsd.toFixed(2)}</span> / {entry.actualTokensUsed.toLocaleString()} tokens
                     <span className="text-gray-500 ml-2">({entry.generationDate})</span>

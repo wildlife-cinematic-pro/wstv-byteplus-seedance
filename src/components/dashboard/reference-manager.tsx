@@ -167,14 +167,14 @@ export default function ReferenceManager({ references, setReferences }: Referenc
   const renderRefRow = (type: 'image' | 'video' | 'audio', entry: ReferenceEntry, index: number) => {
     const roles = REFERENCE_ROLES[type];
     return (
-      <div key={entry.id} className="flex flex-col sm:flex-row gap-2 p-3 rounded-lg bg-[oklch(0.13_0.02_155)] border border-emerald-500/10">
+      <div key={entry.id} className="flex flex-col sm:flex-row gap-2 p-3 rounded-lg bg-muted/30 border border-emerald-500/10">
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-emerald-400">{ROLE_ICONS[entry.role] || <Link className="w-4 h-4" />}</span>
           <Select value={entry.role} onValueChange={v => updateRef(type, index, 'role', v)}>
-            <SelectTrigger className="w-[160px] h-8 bg-[oklch(0.15_0.02_155)] border-emerald-500/20 text-xs">
+            <SelectTrigger className="w-[160px] h-8 bg-muted/50 border-emerald-500/20 text-xs">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-[oklch(0.18_0.03_155)] border-emerald-500/20">
+            <SelectContent className="bg-card border-emerald-500/20">
               {roles.map(r => (
                 <SelectItem key={r.value} value={r.value} className="text-xs">{r.label}</SelectItem>
               ))}
@@ -185,13 +185,13 @@ export default function ReferenceManager({ references, setReferences }: Referenc
           placeholder="https://..."
           value={entry.url}
           onChange={e => updateRef(type, index, 'url', e.target.value)}
-          className="h-8 bg-[oklch(0.15_0.02_155)] border-emerald-500/20 text-xs flex-1"
+          className="h-8 bg-muted/50 border-emerald-500/20 text-xs flex-1"
         />
         <Input
           placeholder="Notes..."
           value={entry.notes}
           onChange={e => updateRef(type, index, 'notes', e.target.value)}
-          className="h-8 bg-[oklch(0.15_0.02_155)] border-emerald-500/20 text-xs w-full sm:w-32"
+          className="h-8 bg-muted/50 border-emerald-500/20 text-xs w-full sm:w-32"
         />
         <Button
           variant="ghost"
@@ -206,7 +206,7 @@ export default function ReferenceManager({ references, setReferences }: Referenc
   };
 
   return (
-    <Card className="bg-[oklch(0.18_0.03_155)] border-emerald-500/20">
+    <Card className="bg-card border-emerald-500/20">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-emerald-400 flex items-center gap-2">
@@ -227,17 +227,17 @@ export default function ReferenceManager({ references, setReferences }: Referenc
         {!expanded && (
           <div className="space-y-4">
             <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[oklch(0.15_0.02_155)] border border-emerald-500/10">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 border border-emerald-500/10">
                 <ImageIcon className="w-4 h-4 text-emerald-400" />
                 <span className="text-sm text-gray-300">{activeImageCount} image ref{activeImageCount !== 1 ? 's' : ''}</span>
                 <span className="text-xs text-gray-600">({imageRefs.length}/9 slots)</span>
               </div>
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[oklch(0.15_0.02_155)] border border-emerald-500/10">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 border border-emerald-500/10">
                 <Video className="w-4 h-4 text-blue-400" />
                 <span className="text-sm text-gray-300">{activeVideoCount} video ref{activeVideoCount !== 1 ? 's' : ''}</span>
                 <span className="text-xs text-gray-600">({videoRefs.length}/3 slots)</span>
               </div>
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[oklch(0.15_0.02_155)] border border-emerald-500/10">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 border border-emerald-500/10">
                 <Music className="w-4 h-4 text-purple-400" />
                 <span className="text-sm text-gray-300">{activeAudioCount} audio ref{activeAudioCount !== 1 ? 's' : ''}</span>
                 <span className="text-xs text-gray-600">({audioRefs.length}/3 slots)</span>
