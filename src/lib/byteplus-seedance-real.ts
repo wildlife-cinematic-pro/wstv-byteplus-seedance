@@ -8,10 +8,12 @@ import { getArkEndpoints, requireArkApiKey } from './seedance-config';
 export const REAL_BYTEPLUS_CONFIRMATION = 'CONFIRM_REAL_PAID_BYTEPLUS_GENERATION';
 
 export interface BytePlusCreateTaskResponse {
+  id?: string;
   task_id?: string;
 }
 
 export interface BytePlusTaskStatusResponse {
+  id?: string;
   task_id?: string;
   status?: string;
   content?: {
@@ -91,7 +93,7 @@ export async function createBytePlusSeedanceTask(payload: Record<string, unknown
   // Official docs in this repo describe create-task as returning `task_id`.
   // TODO: If BytePlus Console/API Explorer shows an envelope wrapper for this
   // account, unwrap it here while keeping this route server-side only.
-  const providerTaskId = raw?.task_id;
+  const providerTaskId = raw?.task_id ?? raw?.id;
   if (!providerTaskId) {
     throw new Error('BytePlus create task response did not include task_id.');
   }
@@ -138,7 +140,7 @@ export async function getBytePlusSeedanceTaskStatus(providerTaskId: string): Pro
     'submitted';
 
   return {
-    providerTaskId: raw?.task_id ?? providerTaskId,
+    providerTaskId: raw?.task_id ?? raw?.id ?? providerTaskId,
     status: normalizedStatus,
     rawStatus,
     videoUrl: raw?.content?.video_url ?? null,
