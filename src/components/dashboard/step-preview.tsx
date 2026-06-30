@@ -160,6 +160,8 @@ export function StepPreview({
   dryRunPassed, hasPaidTask, modelType, resolution, duration, estimatedCost,
 }: StepPreviewProps) {
   const [copied, setCopied] = useState(false);
+  const [finderLoading, setFinderLoading] = useState(false);
+  const [finderMsg, setFinderMsg] = useState<{ text: string; tone: 'success' | 'error' } | null>(null);
 
   const copyFilename = useCallback(() => {
     if (latestVideo?.videoFileName) {
@@ -170,8 +172,73 @@ export function StepPreview({
   }, [latestVideo]);
 
   const handleDownload = useCallback(() => {
-    if (latestVideo?.videoUrl) window.open(latestVideo.videoUrl, '_blank');
+    if (!latestVideo?.videoUrl) return;
+    const fileName = latestVideo.videoFileName || 'video.mp4';
+
+    // Build a download URL that forces a real file save:
+    // - same-origin /api/video?name=... → append &download=1 (server sets
+    //   Content-Disposition: attachment with the real .mp4 name)
+    // - remote / signed URL → stream through /api/video-proxy with download=1
+    let downloadUrl: string;
+    try {
+      const u = new URL(latestVideo.videoUrl, window.location.origin);
+      if (u.origin === window.location.origin) {
+        u.searchParams.set('download', '1');
+        downloadUrl = u.toString();
+      } else {
+        const proxy = new URL('/api/video-proxy', window.location.origin);
+        proxy.searchParams.set('url', latestVideo.videoUrl);
+        proxy.searchParams.set('download', '1');
+        proxy.searchParams.set('filename', fileName);
+        downloadUrl = proxy.toString();
+      }
+    } catch {
+      downloadUrl = latestVideo.videoUrl;
+    }
+
+    // Trigger a real browser download via a temporary anchor.
+    try {
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = fileName;
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch {
+      // Fallback: open the URL in a new tab.
+      window.open(downloadUrl, '_blank', 'noopener');
+    }
   }, [latestVideo]);
+
+  const handleOpenFinder = useCallback(async () => {
+    if (finderLoading) return;
+    setFinderLoading(true);
+    setFinderMsg(null);
+    try {
+      const res = await fetch('/api/open-video-folder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: latestVideo?.videoFileName || null }),
+      });
+      const data = await res.json().catch(() => null) as
+        | { success?: boolean; copied?: boolean; folder?: string; error?: string }
+        | null;
+      if (res.ok && data?.success) {
+        setFinderMsg({
+          text: data.copied ? 'Saved to collection — folder opened' : 'Collection folder opened',
+          tone: 'success',
+        });
+      } else {
+        setFinderMsg({ text: 'Could not open folder. Check local folder path.', tone: 'error' });
+      }
+    } catch {
+      setFinderMsg({ text: 'Could not open folder. Check local folder path.', tone: 'error' });
+    } finally {
+      setFinderLoading(false);
+      setTimeout(() => setFinderMsg(null), 4000);
+    }
+  }, [finderLoading, latestVideo]);
 
   return (
     <StepShell
@@ -235,13 +302,20 @@ export function StepPreview({
                 </Button>
               </div>
               <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={onOpenFolder} className="flex-1 text-gray-400 hover:text-emerald-400">
-                  <FolderOpen className="w-3.5 h-3.5 mr-1" /> Open in Finder
+                <Button variant="ghost" size="sm" onClick={handleOpenFinder} disabled={finderLoading}
+                  className="flex-1 text-gray-400 hover:text-emerald-400">
+                  <FolderOpen className="w-3.5 h-3.5 mr-1" /> {finderLoading ? 'Opening…' : 'Open in Finder'}
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => { if (latestVideo.videoUrl) navigator.clipboard.writeText(latestVideo.videoUrl); }} className="flex-1 text-gray-400 hover:text-emerald-400">
                   <ExternalLink className="w-3.5 h-3.5 mr-1" /> Copy URL
                 </Button>
               </div>
+              {finderMsg && (
+                <div className={`flex items-center gap-1.5 text-xs px-1 ${finderMsg.tone === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {finderMsg.tone === 'success' ? <Check className="w-3 h-3 shrink-0" /> : <FolderOpen className="w-3 h-3 shrink-0" />}
+                  <span>{finderMsg.text}</span>
+                </div>
+              )}
             </div>
           </div>
         ) : (

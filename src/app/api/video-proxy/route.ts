@@ -28,6 +28,22 @@ function inferContentType(url: string, fallback: string | null): string {
   return fallback || 'application/octet-stream';
 }
 
+// Returns a safe basename for the Content-Disposition filename, or null if the
+// candidate is not a plausible filename. Used for the download flag.
+function safeFilename(candidate: string | null, fallbackUrl: string): string | null {
+  let base = candidate && candidate.trim() ? candidate : '';
+  if (!base) {
+    try {
+      base = new URL(fallbackUrl).pathname.split('/').pop() || '';
+    } catch {
+      return null;
+    }
+  }
+  const cleaned = (base.split('/').pop() || '').replace(/["\\]/g, '').trim();
+  if (!cleaned || cleaned === '.' || cleaned === '..' || cleaned.includes('..')) return null;
+  return cleaned;
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const target = searchParams.get('url');
@@ -79,6 +95,21 @@ export async function GET(request: NextRequest) {
       'Accept-Ranges': 'bytes',
       'Cache-Control': 'no-store',
     });
+
+    // When download=1, force the browser to save the file instead of playing
+    // it. The filename comes from the optional `filename` param (validated) or
+    // is inferred from the upstream URL.
+    const download = new URL(request.url).searchParams.get('download') === '1';
+    if (download) {
+      const name = safeFilename(
+        new URL(request.url).searchParams.get('filename'),
+        targetUrl.toString()
+      );
+      responseHeaders.set(
+        'Content-Disposition',
+        `attachment; filename="${name || 'video.mp4'}"`
+      );
+    }
 
     const contentLength = upstream.headers.get('content-length');
     if (contentLength) responseHeaders.set('Content-Length', contentLength);

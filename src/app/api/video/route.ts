@@ -69,6 +69,13 @@ async function handleVideoRequest(request: NextRequest, includeBody: boolean) {
       return NextResponse.json({ error: 'Unsupported video extension' }, { status: 400 });
     }
 
+    // When download=1 is present, tell the browser to save the file instead of
+    // playing it inline. The filename is derived from the validated basename.
+    const download = searchParams.get('download') === '1';
+    const contentDisposition = download
+      ? `attachment; filename="${safeName.replace(/["\\]/g, '')}"`
+      : null;
+
     const settings = await db.dashboardSettings.findFirst();
     const folder = settings?.outputFolder || DEFAULT_OUTPUT_FOLDER;
     const resolvedFolder = path.resolve(/* turbopackIgnore: true */ folder);
@@ -156,21 +163,25 @@ async function handleVideoRequest(request: NextRequest, includeBody: boolean) {
       end = Math.min(end, fileSize - 1);
       const contentLength = end - start + 1;
 
-      return streamResponse(resolvedFile, start, end, new Headers({
+      const rangeHeaders = new Headers({
         'Content-Range': `bytes ${start}-${end}/${fileSize}`,
         'Accept-Ranges': 'bytes',
         'Content-Length': String(contentLength),
         'Content-Type': contentType,
         'Cache-Control': 'no-store',
-      }), includeBody, 206);
+      });
+      if (contentDisposition) rangeHeaders.set('Content-Disposition', contentDisposition);
+      return streamResponse(resolvedFile, start, end, rangeHeaders, includeBody, 206);
     }
 
-    return streamResponse(resolvedFile, 0, fileSize - 1, new Headers({
+    const fullHeaders = new Headers({
       'Content-Length': String(fileSize),
       'Content-Type': contentType,
       'Accept-Ranges': 'bytes',
       'Cache-Control': 'no-store',
-    }), includeBody);
+    });
+    if (contentDisposition) fullHeaders.set('Content-Disposition', contentDisposition);
+    return streamResponse(resolvedFile, 0, fileSize - 1, fullHeaders, includeBody);
   } catch (error) {
     console.error('Video stream error:', error);
     return NextResponse.json(
