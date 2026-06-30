@@ -8,6 +8,7 @@ import {
 import { getArkApiKey } from '@/lib/seedance-config';
 import {
   estimateSeedanceCostUsd,
+  getPlanningDimensions,
   getSeedanceUsdPerMillionTokens,
   resolveOfficialSeedanceModelId,
 } from '@/lib/seedance-pricing';
@@ -119,6 +120,35 @@ async function handleStatus(request: NextRequest) {
           duration: updatedTask.duration,
           costUsd: actualCost,
           description: `Actual BytePlus usage from completion_tokens=${provider.completionTokens}`,
+        },
+      });
+
+      // Auto-save one UsageRecord so this real generation appears in the Cost
+      // tab Usage History. Guarded by the same `previousActualCost == null`
+      // condition as the CostLedger write above, so repeated status polls do
+      // not create duplicate rows. Uses only values already in scope.
+      const officialModelId = resolveOfficialSeedanceModelId(updatedTask.modelId, updatedTask.modelType);
+      const { width, height } = getPlanningDimensions(updatedTask.resolution, updatedTask.aspectRatio);
+      await db.usageRecord.create({
+        data: {
+          projectTitle: updatedTask.prompt.slice(0, 60),
+          modelId: officialModelId,
+          modelName: officialModelId.includes('mini') ? 'Seedance 2.0 Mini' : 'Seedance 2.0',
+          mode: 'text-to-video',
+          width,
+          height,
+          fps: settings?.defaultFps ?? 24,
+          durationSeconds: updatedTask.duration,
+          videoCount: 1,
+          pricingMode: 'token-based',
+          ratePerKTokens: (rate ?? 0) / 1000,
+          estimatedTokens: provider.completionTokens ?? 0,
+          estimatedCostUsd: actualCost,
+          actualTokens: provider.completionTokens ?? 0,
+          actualCostUsd: actualCost,
+          status: 'generated-manually',
+          notes: `Auto-saved from real generation (provider task ${provider.providerTaskId})`,
+          generatedAt: new Date(),
         },
       });
     }
