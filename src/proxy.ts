@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 const REALM = 'WSTV Dashboard';
 
 function authEnabled(): boolean {
-  const value = (process.env.WSTV_AUTH_ENABLED ?? '').trim().toLowerCase();
+  const value = (process.env.ASTV_AUTH_ENABLED ?? process.env.WSTV_AUTH_ENABLED ?? '').trim().toLowerCase();
 
   // Local dev: auth is off unless explicitly enabled.
   if (process.env.NODE_ENV !== 'production') {
@@ -57,8 +57,8 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const expectedUser = process.env.WSTV_AUTH_USER;
-  const expectedPassword = process.env.WSTV_AUTH_PASSWORD;
+  const expectedUser = process.env.ASTV_AUTH_USER ?? process.env.WSTV_AUTH_USER;
+  const expectedPassword = process.env.ASTV_AUTH_PASSWORD ?? process.env.WSTV_AUTH_PASSWORD;
 
   if (!expectedUser || !expectedPassword) {
     return authNotConfigured();
