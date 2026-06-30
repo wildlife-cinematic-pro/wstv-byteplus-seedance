@@ -110,6 +110,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
   useEffect(() => {
     try {
       const stored = localStorage.getItem('wstv_paid_unlocked');
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (stored === 'true') setPaidUnlocked(true);
     } catch {
       // localStorage unavailable — leave locked
@@ -159,6 +160,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
   // shows the latest DB value even if the user opened Settings in another tab.
   useEffect(() => {
     if (activeTab === 'settings') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       refreshBudgetInfo();
     }
   }, [activeTab, refreshBudgetInfo]);

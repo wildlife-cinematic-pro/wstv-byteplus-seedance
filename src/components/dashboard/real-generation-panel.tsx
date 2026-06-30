@@ -215,6 +215,7 @@ export function RealGenerationPanel({
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setActiveTask(JSON.parse(stored) as ActiveSeedanceTask);
       } catch {
         localStorage.removeItem(STORAGE_KEY);
@@ -233,6 +234,7 @@ export function RealGenerationPanel({
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     refreshStatus().catch(() => setStatus(null));
   }, [refreshStatus]);
 
@@ -317,6 +319,7 @@ export function RealGenerationPanel({
 
   useEffect(() => {
     if (activeTask && isFinalStatus(activeTask.status) && autoMonitor) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAutoMonitor(false);
       setMessage('Auto monitor stopped because the task reached a final status.');
     }

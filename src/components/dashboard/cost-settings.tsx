@@ -80,6 +80,7 @@ export function CostSettings({ initialBudget }: CostSettingsProps = {}) {
       const canonicalBudget = localStorage.getItem('wstv_monthly_limit');
       const stored = canonicalBudget ?? legacyBudget;
       if (stored && initialBudget == null) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setMonthlyLimit(Number(stored) || 50);
       }
 

@@ -240,6 +240,7 @@ export function StepDryRun({
 
   useEffect(() => {
     if (loading) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setProgressStep(0);
       let step = 0;
       const advance = () => {
