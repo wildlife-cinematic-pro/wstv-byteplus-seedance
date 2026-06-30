@@ -279,47 +279,26 @@ export function StepOutput({
           <ResolutionCards seedanceModelId={seedanceModelId} resolution={resolution} setResolution={setResolution} />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Aspect Ratio */}
-          <div>
-            <Label className="text-sm text-gray-400 mb-2 block">Aspect Ratio</Label>
-            <Select value={aspectRatio} onValueChange={setAspectRatio}>
-              <SelectTrigger className="bg-muted/30 border-emerald-500/20">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="16:9">16:9 (Landscape)</SelectItem>
-                <SelectItem value="4:3">4:3</SelectItem>
-                <SelectItem value="1:1">1:1 (Square)</SelectItem>
-                <SelectItem value="3:4">3:4</SelectItem>
-                <SelectItem value="9:16">9:16 (Vertical, WSTV default)</SelectItem>
-                <SelectItem value="21:9">21:9</SelectItem>
-                <SelectItem value="adaptive">adaptive</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground mt-1">
-              Official ratios: {VALID_RATIOS.join(', ')}. WSTV defaults to 9:16.
-            </p>
-          </div>
-          {/* FPS — kept for cost/frame display only, NOT sent to Seedance API */}
-          <div>
-            <Label className="text-sm text-gray-400 mb-2 block">
-              Frame Rate <span className="text-xs text-muted-foreground">(display only — not in Seedance payload)</span>
-            </Label>
-            <Select value={String(fps)} onValueChange={v => setFps(Number(v))}>
-              <SelectTrigger className="bg-muted/30 border-emerald-500/20">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {[24, 30, 60].map(f => (
-                  <SelectItem key={f} value={String(f)}>{f} fps</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="text-xs text-muted-foreground mt-1">
-              {duration !== -1 ? `${duration * fps} total frames @${fps}fps` : 'auto duration — frame count unknown'}
-            </div>
-          </div>
+        {/* Aspect Ratio */}
+        <div>
+          <Label className="text-sm text-gray-400 mb-2 block">Aspect Ratio</Label>
+          <Select value={aspectRatio} onValueChange={setAspectRatio}>
+            <SelectTrigger className="bg-muted/30 border-emerald-500/20">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="16:9">16:9 (Landscape)</SelectItem>
+              <SelectItem value="4:3">4:3</SelectItem>
+              <SelectItem value="1:1">1:1 (Square)</SelectItem>
+              <SelectItem value="3:4">3:4</SelectItem>
+              <SelectItem value="9:16">9:16 (Vertical, WSTV default)</SelectItem>
+              <SelectItem value="21:9">21:9</SelectItem>
+              <SelectItem value="adaptive">adaptive</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-1">
+            Official ratios: {VALID_RATIOS.join(', ')}. WSTV defaults to 9:16.
+          </p>
         </div>
 
         {/* ─── PHASE4: Duration — any integer 4–15 or -1 for auto ─── */}

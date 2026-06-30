@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import { Sparkles, Zap, ArrowLeftRight, Info, Clipboard, Lock, Copy, Check } from 'lucide-react';
+import { Sparkles, Zap, ArrowLeftRight, Info, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -115,34 +115,6 @@ function ModelCompareDialog() {
   );
 }
 
-/* ─── Mode B: Future AI Prompt Writer (disabled placeholder) ─── */
-function FutureAiWriterPanel() {
-  return (
-    <div className="p-4 rounded-md bg-muted/30 border border-dashed border-border space-y-3">
-      <div className="flex items-center gap-2 text-gray-400">
-        <Lock className="w-4 h-4" />
-        <span className="text-sm font-medium">AI Prompt Writer — Future Feature</span>
-        <Badge variant="outline" className="text-xs border-border text-muted-foreground ml-auto">DISABLED</Badge>
-      </div>
-      <p className="text-xs text-muted-foreground leading-relaxed">
-        Future AI Prompt Writer — disabled. Later this can connect to ChatGPT / Claude / GLM API.
-        No network call is made. No API key is configured. No real integration exists yet.
-      </p>
-      <Button
-        variant="outline"
-        size="sm"
-        disabled
-        className="border-border text-muted-foreground cursor-not-allowed opacity-60"
-      >
-        <Sparkles className="w-3.5 h-3.5 mr-1.5" /> Generate Prompt with AI
-      </Button>
-      <p className="text-xs text-muted-foreground">
-        Safe Mode is ON · Dry Run only · No external API calls
-      </p>
-    </div>
-  );
-}
-
 /* ─── Main Component ─── */
 interface StepPromptProps {
   prompt: string;
@@ -152,30 +124,14 @@ interface StepPromptProps {
 }
 
 /**
- * StepPrompt — clean two-mode prompt editor for the Generate tab.
+ * StepPrompt — prompt editor for the Generate tab.
  *
- * Mode A (default): Copy-Paste Prompt
- *   - Large textarea
+ *   - Large textarea (paste your finished prompt)
  *   - Character count + progress bar
  *   - Local quality analyzer (pure regex, no API)
  *   - Model selector (Full / Mini)
- *
- * Mode B: AI Prompt Writer (disabled placeholder)
- *   - No network call
- *   - No API key
- *   - No real integration
- *   - Visible only as a future-feature hint
- *
- * Removed in this cleanup (was clutter for copy-paste workflow):
- *   - Prompt Structure Guide (static text)
- *   - Template Quick-Insert cards (hardcoded prompts)
- *   - DB Templates panel (loaded from promptTemplate table)
- *   - Quick-fill dropdowns (Animal, Biome, Action, Camera, Lighting)
- *   - Booster buttons (Cinematic, Audio, Time Codes, Optimize Mini)
- *   - Recent Prompts section
  */
 export function StepPrompt({ prompt, setPrompt, modelType, setModelType }: StepPromptProps) {
-  const [mode, setMode] = useState<'copy-paste' | 'ai-writer'>('copy-paste');
   const [copied, setCopied] = useState(false);
   const charLimit = getRecommendedCharLimit(modelType);
   const quality = useMemo(() => analyzeQuality(prompt, modelType), [prompt, modelType]);
@@ -224,106 +180,73 @@ export function StepPrompt({ prompt, setPrompt, modelType, setModelType }: StepP
           </div>
         </div>
 
-        {/* Mode toggle — Copy-Paste (A) vs AI Writer (B, disabled) */}
-        <div className="flex gap-1 p-1 bg-muted/30 border border-emerald-500/30 rounded-md w-fit">
-          <button
-            type="button"
-            onClick={() => setMode('copy-paste')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs transition-colors ${
-              mode === 'copy-paste' ? 'bg-emerald-600 text-white' : 'text-gray-400 hover:text-emerald-400'
-            }`}
-          >
-            <Clipboard className="w-3 h-3" />
-            Copy-Paste Prompt
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode('ai-writer')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs transition-colors ${
-              mode === 'ai-writer' ? 'bg-emerald-600 text-white' : 'text-gray-400 hover:text-emerald-400'
-            }`}
-          >
-            <Sparkles className="w-3 h-3" />
-            AI Prompt Writer
-          </button>
+        {/* Prompt editor */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <Label className="text-sm text-gray-400">Prompt</Label>
+            {/* PHASE5.1: Word count + character count warning system.
+                Over-limit is amber (warning), NOT red (hard block).
+                3500 characters does NOT hard-block Dry Run.
+                These are RECOMMENDED ranges, not official hard API limits. */}
+            <div className="flex items-center gap-3 text-xs">
+              <span className="text-muted-foreground">
+                <span className="text-gray-400">{prompt.trim() ? prompt.trim().split(/\s+/).filter(Boolean).length : 0}</span> words
+              </span>
+              <span className={`${prompt.length > charLimit ? 'text-amber-400' : prompt.length > charLimit * 0.8 ? 'text-amber-400' : 'text-muted-foreground'}`}>
+                <span className={prompt.length > charLimit ? 'text-amber-400' : 'text-gray-400'}>{prompt.length}</span> / {charLimit} chars
+                {prompt.length > charLimit && (
+                  <span className="text-amber-500 ml-1 text-xs">Long prompt warning — not blocked in Dry Run</span>
+                )}
+              </span>
+              <Badge variant="outline" className={`text-xs ${modelType === 'mini' ? 'text-amber-400 border-amber-500/30' : 'text-emerald-400 border-emerald-500/30'}`}>
+                {modelType === 'mini' ? 'Mini' : 'Full'}
+              </Badge>
+            </div>
+          </div>
+          <div className="relative">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={copyPrompt}
+              disabled={!prompt}
+              className="absolute right-2 top-2 z-10 h-7 border-emerald-500/30 bg-background/90 px-2 text-xs text-emerald-400 hover:bg-emerald-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {copied ? <Check className="w-3 h-3 mr-1" /> : <Copy className="w-3 h-3 mr-1" />}
+              {copied ? 'Copied' : 'Copy'}
+            </Button>
+            <Textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Paste your finished prompt here (from ChatGPT / Claude / GLM)..."
+              className="h-64 min-h-0 max-h-64 overflow-y-auto resize-none bg-muted/30 border-emerald-500/20 focus:border-emerald-500/50 text-gray-100 placeholder:text-muted-foreground/60 font-mono text-sm pr-24"
+            />
+          </div>
+          <CharProgressBar len={prompt.length} limit={charLimit} />
         </div>
 
-        {/* ─── Mode A: Copy-Paste Prompt (default) ─── */}
-        {mode === 'copy-paste' && (
-          <>
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label className="text-sm text-gray-400">Prompt</Label>
-                {/* PHASE5.1: Word count + character count warning system.
-                    Over-limit is amber (warning), NOT red (hard block).
-                    3500 characters does NOT hard-block Dry Run.
-                    These are RECOMMENDED ranges, not official hard API limits. */}
-                <div className="flex items-center gap-3 text-xs">
-                  <span className="text-muted-foreground">
-                    <span className="text-gray-400">{prompt.trim() ? prompt.trim().split(/\s+/).filter(Boolean).length : 0}</span> words
-                  </span>
-                  <span className={`${prompt.length > charLimit ? 'text-amber-400' : prompt.length > charLimit * 0.8 ? 'text-amber-400' : 'text-muted-foreground'}`}>
-                    <span className={prompt.length > charLimit ? 'text-amber-400' : 'text-gray-400'}>{prompt.length}</span> / {charLimit} chars
-                    {prompt.length > charLimit && (
-                      <span className="text-amber-500 ml-1 text-xs">Long prompt warning — not blocked in Dry Run</span>
-                    )}
-                  </span>
-                  <Badge variant="outline" className={`text-xs ${modelType === 'mini' ? 'text-amber-400 border-amber-500/30' : 'text-emerald-400 border-emerald-500/30'}`}>
-                    {modelType === 'mini' ? 'Mini' : 'Full'}
-                  </Badge>
-                </div>
-              </div>
-              <div className="relative">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={copyPrompt}
-                  disabled={!prompt}
-                  className="absolute right-2 top-2 z-10 h-7 border-emerald-500/30 bg-background/90 px-2 text-xs text-emerald-400 hover:bg-emerald-500/10 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {copied ? <Check className="w-3 h-3 mr-1" /> : <Copy className="w-3 h-3 mr-1" />}
-                  {copied ? 'Copied' : 'Copy'}
-                </Button>
-                <Textarea
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Paste your finished prompt here (from ChatGPT / Claude / GLM)..."
-                  className="h-64 min-h-0 max-h-64 overflow-y-auto resize-none bg-muted/30 border-emerald-500/20 focus:border-emerald-500/50 text-gray-100 placeholder:text-muted-foreground/60 font-mono text-sm pr-24"
-                />
-              </div>
-              <CharProgressBar len={prompt.length} limit={charLimit} />
+        {/* Local quality analyzer — pure regex, no API call */}
+        {prompt.length > 10 && (
+          <div className="p-3 rounded-md bg-muted/30 border border-emerald-500/30 space-y-2 transition-all">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-gray-400">Prompt Quality</span>
+              <span className={`text-sm font-bold ${quality.overall >= 70 ? 'text-emerald-400' : quality.overall >= 40 ? 'text-amber-400' : 'text-red-400'}`}>{quality.overall}%</span>
             </div>
-
-            {/* Local quality analyzer — pure regex, no API call */}
-            {prompt.length > 10 && (
-              <div className="p-3 rounded-md bg-muted/30 border border-emerald-500/30 space-y-2 transition-all">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-gray-400">Prompt Quality</span>
-                  <span className={`text-sm font-bold ${quality.overall >= 70 ? 'text-emerald-400' : quality.overall >= 40 ? 'text-amber-400' : 'text-red-400'}`}>{quality.overall}%</span>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  <QualityMeter label="Structure" score={quality.structure} size="sm" />
-                  <QualityMeter label="Specificity" score={quality.specificity} size="sm" />
-                  <QualityMeter label="Sensory" score={quality.sensory} size="sm" />
-                  <QualityMeter label="Length" score={quality.length} size="sm" />
-                </div>
-                {quality.suggestions.length > 0 && (
-                  <ul className="space-y-1 pt-1">
-                    {quality.suggestions.map((s, i) => <li key={i} className="text-xs text-muted-foreground flex gap-1.5"><span className="text-amber-400">•</span>{s}</li>)}
-                  </ul>
-                )}
-                <p className="text-xs text-muted-foreground flex items-center gap-1 pt-1">
-                  <Info className="w-3 h-3" /> Local analysis only — no API call. Paste your finished prompt as-is.
-                </p>
-              </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <QualityMeter label="Structure" score={quality.structure} size="sm" />
+              <QualityMeter label="Specificity" score={quality.specificity} size="sm" />
+              <QualityMeter label="Sensory" score={quality.sensory} size="sm" />
+              <QualityMeter label="Length" score={quality.length} size="sm" />
+            </div>
+            {quality.suggestions.length > 0 && (
+              <ul className="space-y-1 pt-1">
+                {quality.suggestions.map((s, i) => <li key={i} className="text-xs text-muted-foreground flex gap-1.5"><span className="text-amber-400">•</span>{s}</li>)}
+              </ul>
             )}
-          </>
-        )}
-
-        {/* ─── Mode B: AI Prompt Writer (disabled placeholder) ─── */}
-        {mode === 'ai-writer' && (
-          <FutureAiWriterPanel />
+            <p className="text-xs text-muted-foreground flex items-center gap-1 pt-1">
+              <Info className="w-3 h-3" /> Local analysis only — no API call. Paste your finished prompt as-is.
+            </p>
+          </div>
         )}
     </StepShell>
   );

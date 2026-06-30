@@ -571,13 +571,15 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
                     onUnlockSubmit={handleUnlockSubmit}
                     onLock={handleLockPaidZone}
                   />
-                  <RealGenerationPanel
-                    currentTaskId={currentTaskId}
-                    dryRunPassed={Boolean(dryRunResult?.passed && !dryRunInvalidated)}
-                    estimatedCost={estimateCost()}
-                    estimatedTokens={estimateTokens()}
-                    maxCostUsd={maxCostUsd}
-                  />
+                  {paidUnlocked && (
+                    <RealGenerationPanel
+                      currentTaskId={currentTaskId}
+                      dryRunPassed={Boolean(dryRunResult?.passed && !dryRunInvalidated)}
+                      estimatedCost={estimateCost()}
+                      estimatedTokens={estimateTokens()}
+                      maxCostUsd={maxCostUsd}
+                    />
+                  )}
                   <StepPreview latestVideo={latestVideo} onRefreshVideo={refreshVideo} onOpenFolder={openFolder}
                     dryRunPassed={dryRunResult?.passed && !dryRunInvalidated}
                     hasPaidTask={taskHistory.some(t => t.status === 'submitted' || t.status === 'processing')}
