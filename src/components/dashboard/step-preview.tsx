@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   Video, RefreshCw, FolderOpen, FileVideo, Download, Film,
-  Play, Pause, Volume2, VolumeX, Maximize, Copy, Check, ExternalLink, Clock,
+  Play, Copy, Check, ExternalLink, Clock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Slider } from '@/components/ui/slider';
 import { StatusBadge, CostDisplay, StepShell, StepChip } from './shared';
 import type { LatestVideo, ModelType } from './types';
 
@@ -72,87 +71,64 @@ function EmptyState({ onRefreshVideo, onOpenFolder, dryRunPassed, hasPaidTask }:
 }
 
 function VideoPlayer({ videoUrl }: { videoUrl: string }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [playing, setPlaying] = useState(false);
-  const [muted, setMuted] = useState(false);
-  const [speed, setSpeed] = useState(1);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [videoDuration, setVideoDuration] = useState(0);
-  const [showControls, setShowControls] = useState(true);
-  const speeds = [0.5, 1, 1.5, 2];
+  const [error, setError] = useState(false);
+  const [usingProxy, setUsingProxy] = useState(false);
 
-  const togglePlay = useCallback(() => {
-    const v = videoRef.current;
-    if (!v) return;
-    if (v.paused) { v.play(); setPlaying(true); } else { v.pause(); setPlaying(false); }
-  }, []);
+  // A URL is "remote" when it points to a different origin than the app
+  // (e.g. a BytePlus / CDN signed URL). Same-origin /api/video URLs are
+  // served directly with range support and never need the proxy.
+  const isRemote = useMemo(() => {
+    try {
+      const u = new URL(videoUrl, window.location.origin);
+      return u.origin !== window.location.origin;
+    } catch {
+      return false;
+    }
+  }, [videoUrl]);
 
-  const toggleMute = useCallback(() => {
-    const v = videoRef.current;
-    if (!v) return;
-    v.muted = !v.muted;
-    setMuted(v.muted);
-  }, []);
+  // Try the direct URL first; if a remote URL fails to load (CORS, expired
+  // signature, auth), retry once through the server-side proxy.
+  const src = usingProxy && isRemote
+    ? `/api/video-proxy?url=${encodeURIComponent(videoUrl)}`
+    : videoUrl;
 
-  const changeSpeed = useCallback((s: number) => {
-    const v = videoRef.current;
-    if (!v) return;
-    v.playbackRate = s;
-    setSpeed(s);
-  }, []);
+  const handleError = useCallback(() => {
+    if (!usingProxy && isRemote) {
+      // First failure on a remote URL — retry through the proxy.
+      setUsingProxy(true);
+      setError(false);
+      return;
+    }
+    setError(true);
+  }, [usingProxy, isRemote]);
 
-  const goFullscreen = useCallback(() => {
-    videoRef.current?.requestFullscreen?.();
-  }, []);
-
-  const seekTo = useCallback((val: number[]) => {
-    const v = videoRef.current;
-    if (!v || !videoDuration) return;
-    v.currentTime = (val[0] / 100) * videoDuration;
-  }, [videoDuration]);
-
-  useEffect(() => {
-    const v = videoRef.current;
-    if (!v) return;
-    const onTime = () => setCurrentTime(v.currentTime);
-    const onDur = () => setVideoDuration(v.duration);
-    const onEnd = () => setPlaying(false);
-    v.addEventListener('timeupdate', onTime);
-    v.addEventListener('loadedmetadata', onDur);
-    v.addEventListener('ended', onEnd);
-    return () => { v.removeEventListener('timeupdate', onTime); v.removeEventListener('loadedmetadata', onDur); v.removeEventListener('ended', onEnd); };
-  }, []);
-
-  const pct = videoDuration > 0 ? (currentTime / videoDuration) * 100 : 0;
-
-  return (
-    <div className="relative aspect-[9/16] max-w-xs mx-auto bg-black rounded-lg border border-emerald-500/20 overflow-hidden group"
-      onMouseEnter={() => setShowControls(true)} onMouseLeave={() => setShowControls(false)}>
-      <video ref={videoRef} src={videoUrl} preload="metadata" className="w-full h-full object-contain" onClick={togglePlay} />
-      <div className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}>
-        <Slider value={[pct]} onValueChange={seekTo} max={100} step={0.1} className="mb-1.5 [&_[role=slider]]:h-3 [&_[role=slider]]:w-3 [&_[role=slider]]:bg-emerald-400" />
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-white hover:bg-white/10" onClick={togglePlay}>
-              {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-            </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-white hover:bg-white/10" onClick={toggleMute}>
-              {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-            </Button>
-            <span className="text-[10px] text-gray-300 w-16 text-center">{formatTime(currentTime)} / {formatTime(videoDuration)}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="flex bg-white/10 rounded overflow-hidden">
-              {speeds.map(s => (
-                <button key={s} onClick={() => changeSpeed(s)} className={`px-1.5 py-0.5 text-[10px] ${speed === s ? 'bg-emerald-500/30 text-emerald-400' : 'text-gray-400 hover:text-white'}`}>{s}x</button>
-              ))}
-            </div>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-white hover:bg-white/10" onClick={goFullscreen}>
-              <Maximize className="w-3.5 h-3.5" />
-            </Button>
-          </div>
+  if (error) {
+    return (
+      <div className="aspect-[9/16] max-h-[70vh] max-w-xs mx-auto bg-black rounded-lg border border-red-500/20 flex items-center justify-center">
+        <div className="text-center p-6">
+          <Film className="w-10 h-10 text-red-400/70 mx-auto mb-3" />
+          <p className="text-sm text-red-400 font-medium">Preview failed</p>
+          <p className="text-xs text-gray-500 mt-1 mb-4">The video could not be loaded in the player.</p>
+          <a href={videoUrl} target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 underline underline-offset-2">
+            <ExternalLink className="w-3.5 h-3.5" /> Open video link instead
+          </a>
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="aspect-[9/16] max-h-[70vh] max-w-xs mx-auto bg-black rounded-lg border border-emerald-500/20 overflow-hidden">
+      <video
+        key={src}
+        src={src}
+        controls
+        playsInline
+        preload="metadata"
+        onError={handleError}
+        className="w-full h-full object-contain"
+      />
     </div>
   );
 }
@@ -214,12 +190,13 @@ export function StepPreview({
     >
         {latestVideo ? (
           <div className="space-y-3">
-            {latestVideo.videoUrl ? <VideoPlayer videoUrl={latestVideo.videoUrl} /> : (
-              <div className="aspect-[9/16] max-w-xs mx-auto bg-black rounded-lg border border-emerald-500/20 flex items-center justify-center">
+            {latestVideo.videoUrl ? <VideoPlayer key={latestVideo.videoUrl} videoUrl={latestVideo.videoUrl} /> : (
+              <div className="aspect-[9/16] max-h-[70vh] max-w-xs mx-auto bg-black rounded-lg border border-amber-500/20 flex items-center justify-center">
                 <div className="text-center p-6">
-                  <Film className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
-                  <p className="text-sm text-emerald-400 font-medium">Video Generated</p>
-                  <p className="text-xs text-gray-500 mt-1">{latestVideo.videoFileName}</p>
+                  <Film className="w-10 h-10 text-amber-400/70 mx-auto mb-3" />
+                  <p className="text-sm text-amber-400 font-medium">No preview URL available</p>
+                  <p className="text-xs text-gray-500 mt-1">Video generated but no playable URL was stored.</p>
+                  <p className="text-xs text-gray-600 mt-2 break-all">{latestVideo.videoFileName}</p>
                 </div>
               </div>
             )}
