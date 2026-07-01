@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Leaf, Shield, ShieldCheck, ShieldOff, DollarSign, History, Cpu, Monitor, Keyboard, LayoutDashboard, Calculator, Film, FolderOpen, Calendar, GraduationCap, Info, Sun, Moon, Settings as SettingsIcon } from 'lucide-react';
+import { Leaf, Shield, ShieldCheck, ShieldOff, DollarSign, History, Cpu, Monitor, Keyboard, LayoutDashboard, Calculator, Film, FolderOpen, Calendar, GraduationCap, Info, Sun, Moon, Settings as SettingsIcon, Workflow } from 'lucide-react';
 import { StepShell, StepAccordion } from '@/components/dashboard/shared';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +27,7 @@ import CostDashboard from '@/components/dashboard/cost-dashboard';
 import { CostSettings } from '@/components/dashboard/cost-settings';
 import PostProduction from '@/components/dashboard/post-production';
 import CalendarLearning from '@/components/dashboard/calendar-learning';
+import WorkflowStudio from '@/components/workflow/studio-client';
 import type { DryRunResult, TaskHistory, BudgetInfo, LatestVideo, Gates, ModelType, ToastMessage, ReferenceEntry } from '@/components/dashboard/types';
 import { groupReferencesByType, remapReferenceRolesForMode } from '@/components/dashboard/types';
 import { isValidSeedanceMediaUri, normalizeSeedanceResolution } from '@/lib/seedance-validation';
@@ -499,6 +500,10 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
                 <Calendar className="w-4 h-4" />
                 <span className="hidden sm:inline">Calendar</span>
               </TabsTrigger>
+              <TabsTrigger value="workflow" className="accent-generate tab-accent text-muted-foreground gap-1.5 text-xs sm:text-sm">
+                <Workflow className="w-4 h-4" />
+                <span className="hidden sm:inline">Workflow</span>
+              </TabsTrigger>
               <span className="hidden sm:block w-px h-5 bg-border/70 mx-1 self-center" aria-hidden />
               <TabsTrigger value="settings" className="accent-settings tab-accent text-muted-foreground gap-1.5 text-xs sm:text-sm">
                 <Calculator className="w-4 h-4" />
@@ -663,6 +668,11 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
               </div>
               <CalendarLearning />
             </div>
+          </TabsContent>
+
+          {/* Workflow Studio Tab — frontend-only mock (no /api, no keys) */}
+          <TabsContent value="workflow" className="accent-generate">
+            <WorkflowStudio />
           </TabsContent>
 
           {/* Settings Tab */}
