@@ -30,6 +30,22 @@ npx prisma db push
 npm run dev
 ```
 
+### Database rollout
+
+This repository uses `prisma db push` for schema changes, not Prisma Migrate
+— there is no `prisma/migrations` directory and none should be added. After
+pulling any branch that changes `prisma/schema.prisma` (including the
+`ImageTask` model added for the Seedream image dry-run feature), re-run:
+
+```bash
+npx prisma generate
+npx prisma db push
+```
+
+`db push` is non-destructive for additive changes like a new model; it will
+not run against a schema it can't reconcile, so review its output before
+confirming on a database with existing data.
+
 Open:
 
 ```text
