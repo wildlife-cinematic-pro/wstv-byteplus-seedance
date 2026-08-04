@@ -15,9 +15,9 @@ import { Label } from '@/components/ui/label';
 import { WSTV_PRESETS, calculateTokens, calculateCostUsd } from '@/lib/pricing';
 import type {
   BudgetSnapshotData, PricingModelData, SubscriptionPlanData,
-  SubscriptionPurchaseData, UsageRecordData, ExchangeRateData,
-  DashboardSettingsData
+  SubscriptionPurchaseData, UsageRecordData, ExchangeRateData
 } from '@/components/dashboard/types';
+import { readPublicDashboardSettings, type PublicDashboardSettings } from '@/components/dashboard/settings-response';
 
 // ─── Native replacement: Simple Progress Bar ───
 function SimpleProgress({ value, className }: { value: number; className?: string }) {
@@ -127,7 +127,7 @@ function CostDashboard() {
   const [purchases, setPurchases] = useState<SubscriptionPurchaseData[]>([]);
   const [usageRecords, setUsageRecords] = useState<UsageRecordData[]>([]);
   const [exchangeRates, setExchangeRates] = useState<ExchangeRateData[]>([]);
-  const [settings, setSettings] = useState<DashboardSettingsData | null>(null);
+  const [settings, setSettings] = useState<PublicDashboardSettings | null>(null);
   const [loading, setLoading] = useState(true);
 
   // ─── Calculator state ───
@@ -207,7 +207,7 @@ function CostDashboard() {
         safeFetch('/api/subscriptions/purchases'),
         safeFetch('/api/usage-records'),
         safeFetch('/api/exchange-rates'),
-        safeFetch('/api/dashboard-settings'),
+        safeFetch('/api/settings'),
       ]);
       if (budgetData) setBudget(budgetData);
       if (pricingData) setPricingModels(pricingData);
@@ -215,7 +215,8 @@ function CostDashboard() {
       if (purchasesData) setPurchases(purchasesData);
       if (usageData) setUsageRecords(usageData);
       if (ratesData) setExchangeRates(ratesData);
-      if (settingsData) setSettings(settingsData);
+      const publicSettings = readPublicDashboardSettings(settingsData);
+      if (publicSettings) setSettings(publicSettings);
     } catch (err) {
       console.error('[CostDashboard] fetch error', err);
     } finally {

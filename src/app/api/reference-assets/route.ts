@@ -1,220 +1,154 @@
-import { db } from '@/lib/db';
-import { Prisma, type ReferenceAsset } from '@prisma/client';
-import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { z } from 'zod';
+import { db, } from '@/lib/db';
+import { privateJson, requireAuthenticatedUser, requireProtectedMutation } from '@/lib/auth/guards';
 
-interface ReferenceAssetPayload {
-  dbId?: string;
-  id?: string;
-  assetType?: string;
-  role?: string;
-  url?: string;
-  label?: string | null;
-  notes?: string | null;
-  isActive?: boolean;
-  sortOrder?: number;
-  projectId?: string | null;
+const projectIdSchema = z.string().trim().min(1).max(120).nullable().optional();
+const assetSchema = z.object({
+  dbId: z.string().trim().min(1).max(120).optional(),
+  assetType: z.enum(['image', 'video', 'audio']),
+  role: z.string().trim().min(1).max(120),
+  url: z.string().trim().min(1).max(4_096),
+  label: z.string().trim().max(240).nullable().optional(),
+  notes: z.string().trim().max(4_000).nullable().optional(),
+  isActive: z.boolean().optional(),
+  sortOrder: z.number().int().min(0).max(10_000).optional(),
+}).strict();
+const bulkSchema = z.object({
+  projectId: projectIdSchema,
+  assets: z.array(assetSchema).max(15),
+}).strict();
+const updateSchema = z.object({
+  projectId: projectIdSchema,
+  id: z.string().trim().min(1).max(120),
+  assetType: z.enum(['image', 'video', 'audio']).optional(),
+  role: z.string().trim().min(1).max(120).optional(),
+  url: z.string().trim().min(1).max(4_096).optional(),
+  label: z.string().trim().max(240).nullable().optional(),
+  notes: z.string().trim().max(4_000).nullable().optional(),
+  isActive: z.boolean().optional(),
+  sortOrder: z.number().int().min(0).max(10_000).optional(),
+}).strict();
+const deleteSchema = z.object({
+  projectId: projectIdSchema,
+  ids: z.array(z.string().trim().min(1).max(120)).min(1).max(15),
+}).strict();
+
+function scopedProjectId(value: string | null | undefined): string | null {
+  return value ?? null;
 }
 
-// GET /api/reference-assets — List reference assets (optional: ?projectId=xxx, ?assetType=image)
-export async function GET(request: Request) {
+function validateAssetCounts(assets: Array<z.infer<typeof assetSchema>>): string | null {
+  const count = (type: string) => assets.filter(asset => asset.assetType === type).length;
+  if (count('image') > 9) return 'Too many image references';
+  if (count('video') > 3) return 'Too many video references';
+  if (count('audio') > 3) return 'Too many audio references';
+  return null;
+}
+
+export async function GET(request: NextRequest) {
+  const guard = await requireAuthenticatedUser(request);
+  if ('response' in guard) return guard.response;
+  const projectId = scopedProjectId(new URL(request.url).searchParams.get('projectId'));
+  const assetType = new URL(request.url).searchParams.get('assetType');
+  if (assetType && !['image', 'video', 'audio'].includes(assetType)) {
+    return privateJson({ error: 'Invalid asset type' }, { status: 400 });
+  }
+
   try {
-    const { searchParams } = new URL(request.url);
-    const projectId = searchParams.get('projectId');
-    const assetType = searchParams.get('assetType');
-
-    const where: Prisma.ReferenceAssetWhereInput = {};
-    if (projectId) where.projectId = projectId;
-    if (assetType) where.assetType = assetType;
-
-    const referenceAssets = await db.referenceAsset.findMany({
-      where,
+    const assets = await db.referenceAsset.findMany({
+      where: { projectId, ...(assetType ? { assetType } : {}) },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
     });
-
-    return NextResponse.json({ assets: referenceAssets });
-  } catch (error) {
-    console.error('[REFERENCE_ASSETS_LIST]', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch reference assets' },
-      { status: 500 }
-    );
+    return privateJson({ assets });
+  } catch {
+    console.error('Reference assets list failed');
+    return privateJson({ error: 'Failed to fetch reference assets' }, { status: 500 });
   }
 }
 
-// POST /api/reference-assets — Bulk save/update/delete references
-// Accepts: { assets: [{ id?, assetType, role, url, label?, notes?, isActive?, sortOrder? }] }
-// - If asset has a dbId (real DB id), update it
-// - If asset has no dbId, create it
-// - Existing DB assets not in the payload will be deleted
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const guard = await requireProtectedMutation(request);
+  if ('response' in guard) return guard.response;
+  const parsed = bulkSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return privateJson({ error: 'Invalid reference assets input' }, { status: 400 });
+  const countError = validateAssetCounts(parsed.data.assets);
+  if (countError) return privateJson({ error: countError }, { status: 400 });
+  const projectId = scopedProjectId(parsed.data.projectId);
+
   try {
-    const body = await request.json();
-    const { assets } = body as { assets?: ReferenceAssetPayload[] };
+    const assets = await db.$transaction(async transaction => {
+      const existing = await transaction.referenceAsset.findMany({ where: { projectId }, select: { id: true } });
+      const existingIds = new Set(existing.map(asset => asset.id));
+      const submittedIds = new Set(parsed.data.assets.flatMap(asset => asset.dbId && existingIds.has(asset.dbId) ? [asset.dbId] : []));
 
-    if (!Array.isArray(assets)) {
-      return NextResponse.json(
-        { error: 'assets array is required' },
-        { status: 400 }
-      );
-    }
+      await transaction.referenceAsset.deleteMany({
+        where: { projectId, id: { notIn: [...submittedIds] } },
+      });
 
-    // Validate limits
-    const imageCount = assets.filter((a) => a.assetType === 'image' && a.url?.trim()).length;
-    const videoCount = assets.filter((a) => a.assetType === 'video' && a.url?.trim()).length;
-    const audioCount = assets.filter((a) => a.assetType === 'audio' && a.url?.trim()).length;
-
-    if (imageCount > 9) return NextResponse.json({ error: `Too many image references (${imageCount}/9 max)` }, { status: 400 });
-    if (videoCount > 3) return NextResponse.json({ error: `Too many video references (${videoCount}/3 max)` }, { status: 400 });
-    if (audioCount > 3) return NextResponse.json({ error: `Too many audio references (${audioCount}/3 max)` }, { status: 400 });
-
-    // Get all existing DB assets for comparison
-    const existingAssets = await db.referenceAsset.findMany();
-    const existingIds = new Set(existingAssets.map(a => a.id));
-
-    // Determine which assets to create, update, or delete
-    const assetDbIds = new Set<string>();
-    const toCreate: Prisma.ReferenceAssetCreateInput[] = [];
-    const toUpdate: Array<{ id: string; data: Prisma.ReferenceAssetUpdateInput }> = [];
-
-    for (const asset of assets) {
-      const { dbId, assetType, role, url, label, notes, isActive, sortOrder, projectId } = asset;
-
-      // Validate required fields
-      if (!assetType) continue;
-
-      if (dbId && existingIds.has(dbId)) {
-        // Update existing
-        assetDbIds.add(dbId);
-        toUpdate.push({
-          id: dbId,
-          data: {
-            assetType,
-            role: role || '',
-            url: url || '',
-            label: label || null,
-            notes: notes || null,
-            isActive: isActive !== undefined ? isActive : true,
-            sortOrder: sortOrder || 0,
-            projectId: projectId || null,
-          },
-        });
-      } else {
-        // Create new
-        toCreate.push({
-          assetType,
-          role: role || '',
-          url: url || '',
-          label: label || null,
-          notes: notes || null,
-          isActive: isActive !== undefined ? isActive : true,
-          sortOrder: sortOrder || 0,
-          projectId: projectId || null,
-        });
+      for (const asset of parsed.data.assets) {
+        const data = {
+          assetType: asset.assetType,
+          role: asset.role,
+          url: asset.url,
+          label: asset.label ?? null,
+          notes: asset.notes ?? null,
+          isActive: asset.isActive ?? true,
+          sortOrder: asset.sortOrder ?? 0,
+          projectId,
+        };
+        if (asset.dbId && existingIds.has(asset.dbId)) {
+          await transaction.referenceAsset.update({ where: { id: asset.dbId }, data });
+        } else {
+          await transaction.referenceAsset.create({ data });
+        }
       }
-    }
 
-    // Delete assets not in the payload
-    const toDelete = existingAssets.filter(a => !assetDbIds.has(a.id));
-    for (const asset of toDelete) {
-      await db.referenceAsset.delete({ where: { id: asset.id } });
-    }
-
-    // Update existing
-    for (const { id, data } of toUpdate) {
-      await db.referenceAsset.update({ where: { id }, data });
-    }
-
-    // Create new
-    const created: ReferenceAsset[] = [];
-    for (const data of toCreate) {
-      const asset = await db.referenceAsset.create({ data });
-      created.push(asset);
-    }
-
-    // Return all current assets
-    const allAssets = await db.referenceAsset.findMany({
-      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+      return transaction.referenceAsset.findMany({
+        where: { projectId },
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+      });
     });
-
-    return NextResponse.json({
-      assets: allAssets,
-      summary: {
-        created: created.length,
-        updated: toUpdate.length,
-        deleted: toDelete.length,
-        total: allAssets.length,
-      },
-    });
-  } catch (error) {
-    console.error('[REFERENCE_ASSETS_BULK_SAVE]', error);
-    return NextResponse.json(
-      { error: 'Failed to save reference assets' },
-      { status: 500 }
-    );
+    return privateJson({ assets });
+  } catch {
+    console.error('Reference assets bulk save failed');
+    return privateJson({ error: 'Failed to save reference assets' }, { status: 500 });
   }
 }
 
-// PUT /api/reference-assets — Single asset update (convenience endpoint)
-export async function PUT(request: Request) {
+export async function PUT(request: NextRequest) {
+  const guard = await requireProtectedMutation(request);
+  if ('response' in guard) return guard.response;
+  const parsed = updateSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return privateJson({ error: 'Invalid reference asset update' }, { status: 400 });
+  const { id, projectId: rawProjectId, ...data } = parsed.data;
+  const projectId = scopedProjectId(rawProjectId);
+
   try {
-    const body = await request.json();
-    const { id, assetType, role, url, label, notes, isActive, sortOrder, projectId } = body;
-
-    if (!id) {
-      return NextResponse.json({ error: 'id is required for update' }, { status: 400 });
-    }
-
-    const existing = await db.referenceAsset.findUnique({ where: { id } });
-    if (!existing) {
-      return NextResponse.json({ error: 'Reference asset not found' }, { status: 404 });
-    }
-
-    const updated = await db.referenceAsset.update({
-      where: { id },
-      data: {
-        ...(assetType !== undefined && { assetType }),
-        ...(role !== undefined && { role }),
-        ...(url !== undefined && { url }),
-        ...(label !== undefined && { label }),
-        ...(notes !== undefined && { notes }),
-        ...(isActive !== undefined && { isActive }),
-        ...(sortOrder !== undefined && { sortOrder }),
-        ...(projectId !== undefined && { projectId }),
-      },
-    });
-
-    return NextResponse.json(updated);
-  } catch (error) {
-    console.error('[REFERENCE_ASSETS_UPDATE]', error);
-    return NextResponse.json({ error: 'Failed to update reference asset' }, { status: 500 });
+    const existing = await db.referenceAsset.findFirst({ where: { id, projectId } });
+    if (!existing) return privateJson({ error: 'Reference asset not found' }, { status: 404 });
+    const updated = await db.referenceAsset.update({ where: { id }, data });
+    return privateJson({ asset: updated });
+  } catch {
+    console.error('Reference asset update failed');
+    return privateJson({ error: 'Failed to update reference asset' }, { status: 500 });
   }
 }
 
-// DELETE /api/reference-assets — Bulk delete (accepts { ids: [...] } or { assetType: 'image' } to delete all of type)
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
+  const guard = await requireProtectedMutation(request);
+  if ('response' in guard) return guard.response;
+  const parsed = deleteSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return privateJson({ error: 'Invalid reference asset deletion' }, { status: 400 });
+  const projectId = scopedProjectId(parsed.data.projectId);
+
   try {
-    const body = await request.json();
-    const { ids, assetType } = body;
-
-    if (ids && Array.isArray(ids)) {
-      // Delete specific assets by ID
-      const result = await db.referenceAsset.deleteMany({
-        where: { id: { in: ids } },
-      });
-      return NextResponse.json({ deleted: result.count });
-    }
-
-    if (assetType) {
-      // Delete all assets of a type
-      const result = await db.referenceAsset.deleteMany({
-        where: { assetType },
-      });
-      return NextResponse.json({ deleted: result.count, assetType });
-    }
-
-    return NextResponse.json({ error: 'Provide ids array or assetType to delete' }, { status: 400 });
-  } catch (error) {
-    console.error('[REFERENCE_ASSETS_DELETE]', error);
-    return NextResponse.json({ error: 'Failed to delete reference assets' }, { status: 500 });
+    const result = await db.referenceAsset.deleteMany({
+      where: { projectId, id: { in: parsed.data.ids } },
+    });
+    return privateJson({ deleted: result.count });
+  } catch {
+    console.error('Reference asset deletion failed');
+    return privateJson({ error: 'Failed to delete reference assets' }, { status: 500 });
   }
 }

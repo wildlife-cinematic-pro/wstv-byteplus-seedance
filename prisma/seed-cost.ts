@@ -338,7 +338,7 @@ async function main() {
     await prisma.dashboardSettings.create({
       data: {
         safeMode: true,
-        outputFolder: '/Users/acharyabimal/Movies/WSTV/SeedanceVideos',
+        outputFolder: 'outputs',
         defaultFps: 24,
         defaultModel: 'seedance-2.0',
         defaultResolution: '720p',

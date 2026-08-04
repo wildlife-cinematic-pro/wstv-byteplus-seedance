@@ -86,13 +86,12 @@ export async function POST(req: Request) {
       },
       { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
     );
-  } catch (error) {
-    console.error('Cost summary POST error:', error);
+  } catch {
+    console.error('Cost summary POST failed');
     return NextResponse.json(
       {
         success: false,
         error: 'Failed to save budget setting',
-        detail: error instanceof Error ? error.message : String(error),
       },
       { status: 500, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
     );

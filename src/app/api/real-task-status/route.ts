@@ -1,195 +1,82 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { z } from 'zod';
 import { db } from '@/lib/db';
-import {
-  downloadVideoToOutputFolder,
-  getBytePlusSeedanceTaskStatus,
-  safeVideoFilename,
-} from '@/lib/byteplus-seedance-real';
-import { getArkApiKey } from '@/lib/seedance-config';
-import {
-  estimateSeedanceCostUsd,
-  getPlanningDimensions,
-  getSeedanceUsdPerMillionTokens,
-  resolveOfficialSeedanceModelId,
-} from '@/lib/seedance-pricing';
+import { privateJson, requireProtectedMutation } from '@/lib/auth/guards';
+import { downloadVideoToOutputFolder, getBytePlusSeedanceTaskStatus, safeVideoFilename } from '@/lib/byteplus-seedance-real';
+import { estimateSeedanceCostUsd, getSeedanceUsdPerMillionTokens, resolveOfficialSeedanceModelId } from '@/lib/seedance-pricing';
+import { getOutputRoot } from '@/lib/security/local-request';
 
 export const runtime = 'nodejs';
+const statusSchema = z.object({ taskId: z.string().trim().min(1).max(120) }).strict();
 
-const DEFAULT_OUTPUT_FOLDER = '/Users/acharyabimal/Movies/WSTV/SeedanceVideos';
+export async function POST(request: NextRequest) {
+  const guard = await requireProtectedMutation(request);
+  if ('response' in guard) return guard.response;
+  const parsed = statusSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return privateJson({ success: false, error: 'Invalid task status request' }, { status: 400 });
 
-async function readIds(request: NextRequest) {
-  const url = new URL(request.url);
-  let localTaskId = url.searchParams.get('taskId');
-  let providerTaskId = url.searchParams.get('providerTaskId');
-
-  if (request.method !== 'GET') {
-    const body = await request.json().catch(() => null) as { taskId?: string; providerTaskId?: string } | null;
-    localTaskId = body?.taskId ?? localTaskId;
-    providerTaskId = body?.providerTaskId ?? providerTaskId;
-  }
-
-  return { localTaskId, providerTaskId };
-}
-
-async function handleStatus(request: NextRequest) {
   try {
-    if (!getArkApiKey()) {
-      return NextResponse.json(
-        { success: false, blocked: true, error: 'Server-side API key is missing.' },
-        { status: 401 }
-      );
-    }
+    const task = await db.videoTask.findUnique({ where: { id: parsed.data.taskId } });
+    if (!task || !task.taskId) return privateJson({ success: false, error: 'Local task not found' }, { status: 404 });
 
-    const { localTaskId, providerTaskId: requestedProviderTaskId } = await readIds(request);
-    let task = localTaskId
-      ? await db.videoTask.findUnique({ where: { id: localTaskId } })
-      : null;
-
-    if (!task && requestedProviderTaskId) {
-      task = await db.videoTask.findFirst({ where: { taskId: requestedProviderTaskId } });
-    }
-    if (!task) {
-      return NextResponse.json({ success: false, error: 'Local task not found' }, { status: 404 });
-    }
-
-    const providerTaskId = task.taskId || requestedProviderTaskId;
-    if (!providerTaskId) {
-      return NextResponse.json({ success: false, error: 'BytePlus task id is missing for this local task.' }, { status: 400 });
-    }
-
-    const provider = await getBytePlusSeedanceTaskStatus(providerTaskId);
-    const settings = await db.dashboardSettings.findFirst();
-    const outputFolder = settings?.outputFolder || DEFAULT_OUTPUT_FOLDER;
+    const provider = await getBytePlusSeedanceTaskStatus(task.taskId);
     const inputMode = [task.videoUrl1, task.videoUrl2, task.videoUrl3].some(Boolean) ? 'with_video' : 'without_video';
     const rate = getSeedanceUsdPerMillionTokens({
-      modelId: resolveOfficialSeedanceModelId(task.modelId, task.modelType),
-      resolution: task.resolution,
-      inputMode,
+      modelId: resolveOfficialSeedanceModelId(task.modelId, task.modelType), resolution: task.resolution, inputMode,
     });
-    const actualCost = provider.completionTokens != null && rate != null
-      ? estimateSeedanceCostUsd(provider.completionTokens, rate)
-      : null;
+    const actualCost = provider.completionTokens != null && rate != null ? estimateSeedanceCostUsd(provider.completionTokens, rate) : null;
 
     let videoFileName = task.videoFileName;
     let videoUrl = task.videoUrl;
     if (provider.status === 'succeeded' && provider.videoUrl && !videoFileName) {
-      const filename = safeVideoFilename(task.outputFilename, `seedance-real-${task.id}`);
       const saved = await downloadVideoToOutputFolder({
         videoUrl: provider.videoUrl,
-        outputFolder,
-        filename,
+        outputFolder: getOutputRoot(),
+        filename: safeVideoFilename(task.outputFilename, `seedance-${task.id}`),
       });
       videoFileName = saved.filename;
       videoUrl = `/api/video?name=${encodeURIComponent(saved.filename)}`;
     }
 
-    const previousActualCost = task.costActual;
-    const updatedTask = await db.videoTask.update({
-      where: { id: task.id },
-      data: {
-        status: provider.status,
-        taskId: provider.providerTaskId,
-        videoFileName,
-        videoUrl,
-        providerResultVideoUrl: provider.videoUrl,
-        providerLastFrameUrl: provider.lastFrameUrl,
-        errorMessage: provider.errorMessage,
-        lastCheckedAt: new Date(),
-        pollCount: { increment: 1 },
-        actualTokens: provider.completionTokens,
-        costActual: actualCost,
-        actualBillingStatus: provider.completionTokens != null
-          ? 'actual_from_provider_completion_tokens'
-          : 'unknown_provider_usage_missing',
-      },
-    });
-
-    if (actualCost != null && previousActualCost == null) {
-      const budget = await db.budgetSetting.findFirst();
-      if (budget) {
-        await db.budgetSetting.update({
-          where: { id: budget.id },
-          data: { spentThisMonth: budget.spentThisMonth + actualCost },
+    const updated = await db.$transaction(async transaction => {
+      const next = await transaction.videoTask.update({
+        where: { id: task.id },
+        data: {
+          status: provider.status,
+          videoFileName,
+          videoUrl,
+          providerResultVideoUrl: provider.videoUrl,
+          providerLastFrameUrl: provider.lastFrameUrl,
+          errorMessage: provider.status === 'failed' ? 'Provider reported task failure' : null,
+          lastCheckedAt: new Date(), pollCount: { increment: 1 }, actualTokens: provider.completionTokens,
+          costActual: actualCost,
+          actualBillingStatus: provider.completionTokens != null ? 'actual_from_provider_completion_tokens' : 'unknown_provider_usage_missing',
+        },
+      });
+      if (actualCost != null && task.costActual == null) {
+        const budget = await transaction.budgetSetting.findFirst();
+        if (budget) await transaction.budgetSetting.update({ where: { id: budget.id }, data: { spentThisMonth: budget.spentThisMonth + actualCost } });
+        await transaction.costLedger.create({
+          data: {
+            taskId: next.id, modelType: next.modelType, resolution: next.resolution, duration: next.duration,
+            costUsd: actualCost, description: 'Actual provider usage recorded',
+          },
         });
       }
-      await db.costLedger.create({
-        data: {
-          taskId: updatedTask.id,
-          modelType: updatedTask.modelType,
-          resolution: updatedTask.resolution,
-          duration: updatedTask.duration,
-          costUsd: actualCost,
-          description: `Actual BytePlus usage from completion_tokens=${provider.completionTokens}`,
-        },
-      });
+      return next;
+    });
 
-      // Auto-save one UsageRecord so this real generation appears in the Cost
-      // tab Usage History. Guarded by the same `previousActualCost == null`
-      // condition as the CostLedger write above, so repeated status polls do
-      // not create duplicate rows. Uses only values already in scope.
-      const officialModelId = resolveOfficialSeedanceModelId(updatedTask.modelId, updatedTask.modelType);
-      const { width, height } = getPlanningDimensions(updatedTask.resolution, updatedTask.aspectRatio);
-      await db.usageRecord.create({
-        data: {
-          projectTitle: updatedTask.prompt.slice(0, 60),
-          modelId: officialModelId,
-          modelName: officialModelId.includes('mini') ? 'Seedance 2.0 Mini' : 'Seedance 2.0',
-          mode: 'text-to-video',
-          width,
-          height,
-          fps: settings?.defaultFps ?? 24,
-          durationSeconds: updatedTask.duration,
-          videoCount: 1,
-          pricingMode: 'token-based',
-          ratePerKTokens: (rate ?? 0) / 1000,
-          estimatedTokens: provider.completionTokens ?? 0,
-          estimatedCostUsd: actualCost,
-          actualTokens: provider.completionTokens ?? 0,
-          actualCostUsd: actualCost,
-          status: 'generated-manually',
-          notes: `Auto-saved from real generation (provider task ${provider.providerTaskId})`,
-          generatedAt: new Date(),
-        },
-      });
-    }
-
-    return NextResponse.json({
+    return privateJson({
       success: true,
       task: {
-        id: updatedTask.id,
-        status: updatedTask.status,
-        providerTaskId: updatedTask.taskId,
-        videoFileName: updatedTask.videoFileName,
-        videoUrl: updatedTask.videoUrl,
-        resultVideoUrl: updatedTask.providerResultVideoUrl,
-        lastFrameUrl: updatedTask.providerLastFrameUrl,
-        lastCheckedAt: updatedTask.lastCheckedAt,
-        pollCount: updatedTask.pollCount,
-        errorMessage: updatedTask.errorMessage,
-        actualTokens: updatedTask.actualTokens,
-        costActual: updatedTask.costActual,
-        actualBillingStatus: updatedTask.actualBillingStatus,
-      },
-      provider: {
-        status: provider.rawStatus,
-        hasVideoUrl: Boolean(provider.videoUrl),
-        completionTokens: provider.completionTokens,
-        totalTokens: provider.totalTokens,
+        id: updated.id, status: updated.status, videoFileName: updated.videoFileName,
+        localVideoUrl: updated.videoFileName ? `/api/video?name=${encodeURIComponent(updated.videoFileName)}` : null,
+        lastCheckedAt: updated.lastCheckedAt, pollCount: updated.pollCount, costActual: updated.costActual,
+        actualTokens: updated.actualTokens, actualBillingStatus: updated.actualBillingStatus,
       },
     });
-  } catch (error) {
-    console.error('[real-task-status] error:', error);
-    return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Real task status check failed.' },
-      { status: 500 }
-    );
+  } catch {
+    console.error('Real task status check failed');
+    return privateJson({ success: false, error: 'Status check failed' }, { status: 502 });
   }
-}
-
-export async function GET(request: NextRequest) {
-  return handleStatus(request);
-}
-
-export async function POST(request: NextRequest) {
-  return handleStatus(request);
 }

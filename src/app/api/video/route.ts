@@ -3,11 +3,11 @@ import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import path from 'node:path';
 import { Readable } from 'node:stream';
-import { db } from '@/lib/db';
+import { privateJson, requireAuthenticatedUser } from '@/lib/auth/guards';
+import { getOutputRoot } from '@/lib/security/local-request';
 
 export const runtime = 'nodejs';
 
-const DEFAULT_OUTPUT_FOLDER = '/Users/acharyabimal/Movies/WSTV/SeedanceVideos';
 const ALLOWED_VIDEO_TYPES: Record<string, string> = {
   '.mp4': 'video/mp4',
   '.mov': 'video/quicktime',
@@ -35,10 +35,14 @@ function streamResponse(
 }
 
 export async function GET(request: NextRequest) {
+  const guard = await requireAuthenticatedUser(request);
+  if ('response' in guard) return guard.response;
   return handleVideoRequest(request, true);
 }
 
 export async function HEAD(request: NextRequest) {
+  const guard = await requireAuthenticatedUser(request);
+  if ('response' in guard) return guard.response;
   return handleVideoRequest(request, false);
 }
 
@@ -48,7 +52,7 @@ async function handleVideoRequest(request: NextRequest, includeBody: boolean) {
     const name = searchParams.get('name');
 
     if (!name || name.trim() === '') {
-      return NextResponse.json({ error: 'Filename is required' }, { status: 400 });
+      return privateJson({ error: 'Filename is required' }, { status: 400 });
     }
 
     const safeName = path.basename(name);
@@ -60,13 +64,13 @@ async function handleVideoRequest(request: NextRequest, includeBody: boolean) {
       name.includes('/') ||
       name.includes('\\')
     ) {
-      return NextResponse.json({ error: 'Invalid filename' }, { status: 400 });
+      return privateJson({ error: 'Invalid filename' }, { status: 400 });
     }
 
     const extension = path.extname(safeName).toLowerCase();
     const contentType = ALLOWED_VIDEO_TYPES[extension];
     if (!contentType) {
-      return NextResponse.json({ error: 'Unsupported video extension' }, { status: 400 });
+      return privateJson({ error: 'Unsupported video extension' }, { status: 400 });
     }
 
     // When download=1 is present, tell the browser to save the file instead of
@@ -76,13 +80,11 @@ async function handleVideoRequest(request: NextRequest, includeBody: boolean) {
       ? `attachment; filename="${safeName.replace(/["\\]/g, '')}"`
       : null;
 
-    const settings = await db.dashboardSettings.findFirst();
-    const folder = settings?.outputFolder || DEFAULT_OUTPUT_FOLDER;
-    const resolvedFolder = path.resolve(/* turbopackIgnore: true */ folder);
+    const resolvedFolder = getOutputRoot();
     const resolvedFile = path.resolve(/* turbopackIgnore: true */ resolvedFolder, safeName);
 
     if (!resolvedFile.startsWith(resolvedFolder + path.sep)) {
-      return NextResponse.json({ error: 'Invalid filename' }, { status: 400 });
+      return privateJson({ error: 'Invalid filename' }, { status: 400 });
     }
 
     let fileStats;
@@ -90,19 +92,13 @@ async function handleVideoRequest(request: NextRequest, includeBody: boolean) {
       fileStats = await stat(resolvedFile);
     } catch (error) {
       if (isNotFoundError(error)) {
-        return NextResponse.json(
-          { error: 'Video file not found', filename: safeName, folder: resolvedFolder },
-          { status: 404 }
-        );
+        return privateJson({ error: 'Video file not found' }, { status: 404 });
       }
       throw error;
     }
 
     if (!fileStats.isFile()) {
-      return NextResponse.json(
-        { error: 'Video file not found', filename: safeName, folder: resolvedFolder },
-        { status: 404 }
-      );
+      return privateJson({ error: 'Video file not found' }, { status: 404 });
     }
 
     // Streams local saved files only. This route does not generate video,
@@ -183,10 +179,7 @@ async function handleVideoRequest(request: NextRequest, includeBody: boolean) {
     if (contentDisposition) fullHeaders.set('Content-Disposition', contentDisposition);
     return streamResponse(resolvedFile, 0, fileSize - 1, fullHeaders, includeBody);
   } catch (error) {
-    console.error('Video stream error:', error);
-    return NextResponse.json(
-      { error: 'Failed to stream video' },
-      { status: 500 }
-    );
+    console.error('Video stream failed');
+    return privateJson({ error: 'Failed to stream video' }, { status: 500 });
   }
 }

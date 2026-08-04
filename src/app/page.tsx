@@ -37,11 +37,10 @@ async function getInitialData() {
 
     return {
       safeMode: settings?.safeMode ?? true,
-      outputFolder: settings?.outputFolder ?? '/Users/acharyabimal/Movies/WSTV/SeedanceVideos',
       taskHistory: tasks.map(t => ({
         id: t.id,
         status: t.status,
-        prompt: t.prompt?.substring(0, 80) + (t.prompt && t.prompt.length > 80 ? '...' : ''),
+        prompt: 'Private task',
         costEstimate: t.costEstimate,
         createdAt: t.createdAt.toISOString(),
         modelType: t.modelType,
@@ -57,7 +56,7 @@ async function getInitialData() {
       } : { monthlyLimit: 50, spentThisMonth: 0, currency: 'USD', alertThreshold: 0.8 },
       latestVideo: latestVideo ? {
         videoFileName: latestVideo.videoFileName ?? '',
-        videoUrl: latestVideo.videoUrl || `/api/video?name=${encodeURIComponent(latestVideo.videoFileName || '')}`,
+        videoUrl: latestVideo.videoFileName ? `/api/video?name=${encodeURIComponent(latestVideo.videoFileName)}` : '',
         createdAt: latestVideo.createdAt.toISOString(),
         taskStatus: latestVideo.status,
       } : null,
@@ -66,7 +65,6 @@ async function getInitialData() {
     console.error('Failed to fetch initial data:', err);
     return {
       safeMode: true,
-      outputFolder: '/Users/acharyabimal/Movies/WSTV/SeedanceVideos',
       taskHistory: [],
       budget: { monthlyLimit: 50, spentThisMonth: 0, currency: 'USD', alertThreshold: 0.8 },
       latestVideo: null,

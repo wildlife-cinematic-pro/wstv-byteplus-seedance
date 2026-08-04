@@ -72,47 +72,15 @@ function EmptyState({ onRefreshVideo, onOpenFolder, dryRunPassed, hasPaidTask }:
 
 function VideoPlayer({ videoUrl }: { videoUrl: string }) {
   const [error, setError] = useState(false);
-  const [usingProxy, setUsingProxy] = useState(false);
+  const isLocalVideo = videoUrl.startsWith('/api/video?');
 
-  // A URL is "remote" when it points to a different origin than the app
-  // (e.g. a BytePlus / CDN signed URL). Same-origin /api/video URLs are
-  // served directly with range support and never need the proxy.
-  const isRemote = useMemo(() => {
-    try {
-      const u = new URL(videoUrl, window.location.origin);
-      return u.origin !== window.location.origin;
-    } catch {
-      return false;
-    }
-  }, [videoUrl]);
-
-  // Try the direct URL first; if a remote URL fails to load (CORS, expired
-  // signature, auth), retry once through the server-side proxy.
-  const src = usingProxy && isRemote
-    ? `/api/video-proxy?url=${encodeURIComponent(videoUrl)}`
-    : videoUrl;
-
-  const handleError = useCallback(() => {
-    if (!usingProxy && isRemote) {
-      // First failure on a remote URL — retry through the proxy.
-      setUsingProxy(true);
-      setError(false);
-      return;
-    }
-    setError(true);
-  }, [usingProxy, isRemote]);
-
-  if (error) {
+  if (error || !isLocalVideo) {
     return (
       <div className="aspect-[9/16] max-h-[70vh] max-w-xs mx-auto bg-black rounded-lg border border-red-500/20 flex items-center justify-center">
         <div className="text-center p-6">
           <Film className="w-10 h-10 text-red-400/70 mx-auto mb-3" />
-          <p className="text-sm text-red-400 font-medium">Preview failed</p>
-          <p className="text-xs text-gray-500 mt-1 mb-4">The video could not be loaded in the player.</p>
-          <a href={videoUrl} target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 underline underline-offset-2">
-            <ExternalLink className="w-3.5 h-3.5" /> Open video link instead
-          </a>
+          <p className="text-sm text-red-400 font-medium">Local preview unavailable</p>
+          <p className="text-xs text-gray-500 mt-1">Only locally saved videos are previewed.</p>
         </div>
       </div>
     );
@@ -121,12 +89,12 @@ function VideoPlayer({ videoUrl }: { videoUrl: string }) {
   return (
     <div className="aspect-[9/16] max-h-[70vh] max-w-xs mx-auto bg-black rounded-lg border border-emerald-500/20 overflow-hidden">
       <video
-        key={src}
-        src={src}
+        key={videoUrl}
+        src={videoUrl}
         controls
         playsInline
         preload="metadata"
-        onError={handleError}
+        onError={() => setError(true)}
         className="w-full h-full object-contain"
       />
     </div>
@@ -172,43 +140,21 @@ export function StepPreview({
   }, [latestVideo]);
 
   const handleDownload = useCallback(() => {
-    if (!latestVideo?.videoUrl) return;
+    if (!latestVideo?.videoUrl?.startsWith('/api/video?')) return;
     const fileName = latestVideo.videoFileName || 'video.mp4';
-
-    // Build a download URL that forces a real file save:
-    // - same-origin /api/video?name=... → append &download=1 (server sets
-    //   Content-Disposition: attachment with the real .mp4 name)
-    // - remote / signed URL → stream through /api/video-proxy with download=1
-    let downloadUrl: string;
-    try {
-      const u = new URL(latestVideo.videoUrl, window.location.origin);
-      if (u.origin === window.location.origin) {
-        u.searchParams.set('download', '1');
-        downloadUrl = u.toString();
-      } else {
-        const proxy = new URL('/api/video-proxy', window.location.origin);
-        proxy.searchParams.set('url', latestVideo.videoUrl);
-        proxy.searchParams.set('download', '1');
-        proxy.searchParams.set('filename', fileName);
-        downloadUrl = proxy.toString();
-      }
-    } catch {
-      downloadUrl = latestVideo.videoUrl;
-    }
+    const downloadUrl = new URL(latestVideo.videoUrl, window.location.origin);
+    downloadUrl.searchParams.set('download', '1');
 
     // Trigger a real browser download via a temporary anchor.
     try {
       const a = document.createElement('a');
-      a.href = downloadUrl;
+      a.href = downloadUrl.toString();
       a.download = fileName;
       a.rel = 'noopener';
       document.body.appendChild(a);
       a.click();
       a.remove();
-    } catch {
-      // Fallback: open the URL in a new tab.
-      window.open(downloadUrl, '_blank', 'noopener');
-    }
+    } catch { /* The user can retry the local download. */ }
   }, [latestVideo]);
 
   const handleOpenFinder = useCallback(async () => {

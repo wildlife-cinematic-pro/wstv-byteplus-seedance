@@ -1,107 +1,56 @@
-import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { execFile } from 'node:child_process';
-import { mkdir, stat, copyFile } from 'node:fs/promises';
-import { promisify } from 'node:util';
+import { copyFile, mkdir, stat } from 'node:fs/promises';
 import path from 'node:path';
-import { db } from '@/lib/db';
+import { promisify } from 'node:util';
+import { z } from 'zod';
+import { privateJson, requireProtectedMutation } from '@/lib/auth/guards';
+import { getCollectionRoot, getOutputRoot, isLoopbackRequest } from '@/lib/security/local-request';
 
 export const runtime = 'nodejs';
-
-// Hardcoded final-video collection folder. This route NEVER accepts a folder
-// path from the client, so it cannot be abused to open / copy to arbitrary
-// locations. It performs no generation and never calls BytePlus / ModelArk.
-const COLLECTION_FOLDER = '/Users/acharyabimal/seedance api final video collection';
-const DEFAULT_OUTPUT_FOLDER = '/Users/acharyabimal/Movies/WSTV/SeedanceVideos';
 const execFileAsync = promisify(execFile);
+const allowedExtensions = new Set(['.mp4', '.webm', '.mov', '.m4v', '.ogv']);
+const bodySchema = z.object({ filename: z.string().trim().min(1).max(240).nullable().optional() }).strict();
 
-const ALLOWED_VIDEO_EXTS = new Set(['.mp4', '.webm', '.mov', '.m4v', '.ogv']);
-
-// Reduce a client-supplied filename to a bare basename with an allowed video
-// extension. Returns null if it looks unsafe (traversal / weird input).
-function safeVideoBasename(name: string): string | null {
-  const base = path.basename(name || '');
-  if (!base || base === '.' || base === '..') return null;
-  if (base.includes('..') || base.includes('/') || base.includes('\\')) return null;
-  if (!ALLOWED_VIDEO_EXTS.has(path.extname(base).toLowerCase())) return null;
+function safeVideoBasename(value: string): string | null {
+  const base = path.basename(value);
+  if (!base || base !== value || base.includes('..') || !allowedExtensions.has(path.extname(base).toLowerCase())) return null;
   return base;
 }
 
-export async function POST(request: Request) {
+async function openDirectory(directory: string) {
+  if (process.platform === 'darwin') return execFileAsync('open', [directory]);
+  if (process.platform === 'win32') return execFileAsync('explorer', [directory]);
+  return execFileAsync('xdg-open', [directory]);
+}
+
+export async function POST(request: NextRequest) {
+  const guard = await requireProtectedMutation(request);
+  if ('response' in guard) return guard.response;
+  if (!isLoopbackRequest(request)) return privateJson({ error: 'Local request required' }, { status: 403 });
+  const parsed = bodySchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return privateJson({ error: 'Invalid request' }, { status: 400 });
+
   try {
-    // Ensure the collection folder exists (create if missing).
-    await mkdir(COLLECTION_FOLDER, { recursive: true });
-
+    const collection = getCollectionRoot();
+    await mkdir(collection, { recursive: true });
     let copied = false;
-    let copyNote: string | undefined;
-
-    // Optionally copy a completed video from the local output folder into the
-    // collection folder. Best-effort: a missing source never fails the request.
-    let filename: string | undefined;
-    try {
-      const body = await request.json();
-      filename = typeof body?.filename === 'string' ? body.filename : undefined;
-    } catch {
-      // No body / invalid JSON — that's fine, just open the folder.
-    }
-
+    const filename = parsed.data.filename ? safeVideoBasename(parsed.data.filename) : null;
     if (filename) {
-      const safe = safeVideoBasename(filename);
-      if (safe) {
-        try {
-          const settings = await db.dashboardSettings.findFirst();
-          const outputFolder = path.resolve(settings?.outputFolder || DEFAULT_OUTPUT_FOLDER);
-          const src = path.resolve(outputFolder, safe);
-          const dest = path.resolve(COLLECTION_FOLDER, safe);
-          // Defence-in-depth: confirm both paths stay inside their intended folders.
-          if (
-            src.startsWith(outputFolder + path.sep) &&
-            dest.startsWith(COLLECTION_FOLDER + path.sep)
-          ) {
-            const info = await stat(src);
-            if (info.isFile()) {
-              await copyFile(src, dest);
-              copied = true;
-            } else {
-              copyNote = 'Source is not a file';
-            }
-          } else {
-            copyNote = 'Invalid filename';
-          }
-        } catch {
-          // Most likely ENOENT — the source video is not present locally yet.
-          copyNote = 'Source video not found locally';
+      const source = path.resolve(getOutputRoot(), filename);
+      const destination = path.resolve(collection, filename);
+      if (source.startsWith(`${getOutputRoot()}${path.sep}`) && destination.startsWith(`${collection}${path.sep}`)) {
+        const info = await stat(source);
+        if (info.isFile()) {
+          await copyFile(source, destination);
+          copied = true;
         }
-      } else {
-        copyNote = 'Invalid filename';
       }
     }
-
-    // Open the collection folder using the OS launcher. execFile does NOT go
-    // through a shell, so the folder path (which contains spaces) is safe and
-    // cannot be used for command injection.
-    if (process.platform === 'darwin') {
-      await execFileAsync('open', [COLLECTION_FOLDER]);
-    } else if (process.platform === 'win32') {
-      await execFileAsync('explorer', [COLLECTION_FOLDER]);
-    } else {
-      await execFileAsync('xdg-open', [COLLECTION_FOLDER]);
-    }
-
-    return NextResponse.json({
-      success: true,
-      folder: COLLECTION_FOLDER,
-      copied,
-      copyNote,
-      message: copied
-        ? 'Video saved to collection — folder opened'
-        : 'Collection folder opened',
-    });
-  } catch (error) {
-    console.error('Open video folder error:', error);
-    const message = error instanceof Error ? error.message : 'Failed to open folder';
-    return NextResponse.json(
-      { success: false, folder: COLLECTION_FOLDER, error: message },
-      { status: 500 }
-    );
+    await openDirectory(collection);
+    return privateJson({ success: true, copied, message: copied ? 'Video saved to collection' : 'Collection folder opened' });
+  } catch {
+    console.error('Open video folder failed');
+    return privateJson({ success: false, error: 'Failed to open video folder' }, { status: 500 });
   }
 }

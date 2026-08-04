@@ -1,88 +1,60 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
+import { getAuthConfiguration, SESSION_COOKIE_NAME, verifySessionToken } from '@/lib/auth/session';
+import { mutationRequestError } from '@/lib/security/origin';
 
-const REALM = 'WSTV Dashboard';
+const PUBLIC_PATHS = new Set(['/login', '/api/auth/login', '/api/auth/session']);
 
-function authEnabled(): boolean {
-  const value = (process.env.ASTV_AUTH_ENABLED ?? process.env.WSTV_AUTH_ENABLED ?? '').trim().toLowerCase();
-
-  // Local dev: auth is off unless explicitly enabled.
-  if (process.env.NODE_ENV !== 'production') {
-    return value === 'true';
-  }
-
-  // Production: auth is on by default unless explicitly disabled.
-  return value !== 'false';
-}
-
-function unauthorized(message = 'Authentication required') {
-  return new NextResponse(message, {
-    status: 401,
-    headers: {
-      'WWW-Authenticate': `Basic realm="${REALM}", charset="UTF-8"`,
-      'Cache-Control': 'no-store',
-    },
+function privateResponse(body: unknown, status: number): NextResponse {
+  return NextResponse.json(body, {
+    status,
+    headers: { 'Cache-Control': 'private, no-store' },
   });
 }
 
-function authNotConfigured() {
-  return new NextResponse('Auth not configured', {
-    status: 503,
-    headers: {
-      'Cache-Control': 'no-store',
-    },
-  });
+function unauthenticatedResponse(request: NextRequest): NextResponse {
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    return privateResponse({ error: 'Authentication required' }, 401);
+  }
+
+  const loginUrl = new URL('/login', request.url);
+  const next = `${request.nextUrl.pathname}${request.nextUrl.search}`;
+  loginUrl.searchParams.set('next', next);
+  const response = NextResponse.redirect(loginUrl);
+  response.headers.set('Cache-Control', 'no-store');
+  return response;
 }
 
-function parseBasicAuth(header: string | null): { user: string; password: string } | null {
-  if (!header?.startsWith('Basic ')) return null;
+export async function proxy(request: NextRequest) {
+  if (PUBLIC_PATHS.has(request.nextUrl.pathname)) return NextResponse.next();
 
-  try {
-    const decoded = atob(header.slice('Basic '.length));
-    const separator = decoded.indexOf(':');
-
-    if (separator < 0) return null;
-
-    return {
-      user: decoded.slice(0, separator),
-      password: decoded.slice(separator + 1),
-    };
-  } catch {
-    return null;
-  }
-}
-
-export function proxy(request: NextRequest) {
-  if (!authEnabled()) {
-    return NextResponse.next();
+  if (request.nextUrl.pathname.startsWith('/api/') && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) {
+    const originError = mutationRequestError(request);
+    if (originError) return privateResponse({ error: originError }, 403);
   }
 
-  const expectedUser = process.env.ASTV_AUTH_USER ?? process.env.WSTV_AUTH_USER;
-  const expectedPassword = process.env.ASTV_AUTH_PASSWORD ?? process.env.WSTV_AUTH_PASSWORD;
-
-  if (!expectedUser || !expectedPassword) {
-    return authNotConfigured();
+  const config = getAuthConfiguration();
+  if (!config.enabled) return NextResponse.next();
+  if (config.issue) {
+    if (request.nextUrl.pathname.startsWith('/api/')) {
+      return privateResponse({ error: 'Authentication is unavailable' }, 503);
+    }
+    return new NextResponse('Authentication is unavailable', {
+      status: 503,
+      headers: { 'Cache-Control': 'no-store' },
+    });
   }
 
-  const credentials = parseBasicAuth(request.headers.get('authorization'));
+  const session = await verifySessionToken(request.cookies.get(SESSION_COOKIE_NAME)?.value);
+  if (!session) return unauthenticatedResponse(request);
 
-  if (!credentials) {
-    return unauthorized();
-  }
-
-  if (credentials.user !== expectedUser || credentials.password !== expectedPassword) {
-    return unauthorized('Invalid credentials');
-  }
-
-  return NextResponse.next();
+  const response = NextResponse.next();
+  response.headers.set('Cache-Control', 'private, no-store');
+  return response;
 }
 
 export const config = {
   matcher: [
-    /*
-     * Protect all pages and /api routes.
-     * Exclude only Next.js static/image assets and basic metadata files.
-     */
     '/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)',
   ],
 };

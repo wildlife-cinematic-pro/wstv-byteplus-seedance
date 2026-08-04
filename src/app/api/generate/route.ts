@@ -5,6 +5,7 @@ import {
   estimateSeedancePlanningCost,
   resolveOfficialSeedanceModelId,
 } from '@/lib/seedance-pricing';
+import { privateJson, requireProtectedMutation } from '@/lib/auth/guards';
 
 // PHASE5.1 simulation route only.
 // This route never calls BytePlus / ModelArk and must remain behind Safe Mode.
@@ -16,6 +17,8 @@ function getCharLimit(modelType: string) {
 const SIMULATION_CONFIRMATION = 'CONFIRM_SIMULATED_GENERATION';
 
 export async function POST(request: NextRequest) {
+  const guard = await requireProtectedMutation(request);
+  if ('response' in guard) return guard.response;
   try {
     const body = await request.json();
     const {
@@ -244,7 +247,6 @@ export async function POST(request: NextRequest) {
         status: updatedTask.status,
         costEstimate: estimatedCost,
         estimatedTokens: pricingEstimate.estimatedTokens,
-        taskId: updatedTask.taskId,
       },
     });
   } catch (error) {
