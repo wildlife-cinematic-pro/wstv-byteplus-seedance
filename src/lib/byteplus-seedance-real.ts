@@ -5,8 +5,6 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { getArkEndpoints, requireArkApiKey } from './seedance-config';
 
-export const REAL_BYTEPLUS_CONFIRMATION = 'CONFIRM_REAL_PAID_BYTEPLUS_GENERATION';
-
 export interface BytePlusCreateTaskResponse {
   id?: string;
   task_id?: string;
@@ -40,7 +38,6 @@ export interface NormalizedBytePlusTaskStatus {
   errorMessage: string | null;
   completionTokens: number | null;
   totalTokens: number | null;
-  raw: unknown;
 }
 
 export function getRealApiEnvStatus() {
@@ -98,7 +95,7 @@ export async function createBytePlusSeedanceTask(payload: Record<string, unknown
     throw new Error('BytePlus create task response did not include task_id.');
   }
 
-  return { providerTaskId, raw };
+  return { providerTaskId };
 }
 
 export async function getBytePlusSeedanceTaskStatus(providerTaskId: string): Promise<NormalizedBytePlusTaskStatus> {
@@ -149,7 +146,6 @@ export async function getBytePlusSeedanceTaskStatus(providerTaskId: string): Pro
     errorMessage: raw?.error?.message ?? null,
     completionTokens: typeof raw?.usage?.completion_tokens === 'number' ? raw.usage.completion_tokens : null,
     totalTokens: typeof raw?.usage?.total_tokens === 'number' ? raw.usage.total_tokens : null,
-    raw,
   };
 }
 

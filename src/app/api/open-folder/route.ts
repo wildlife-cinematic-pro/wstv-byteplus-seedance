@@ -1,44 +1,31 @@
-import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { execFile } from 'node:child_process';
 import { mkdir } from 'node:fs/promises';
 import { promisify } from 'node:util';
-import { db } from '@/lib/db';
+import { privateJson, requireProtectedMutation } from '@/lib/auth/guards';
+import { getOutputRoot, isLoopbackRequest } from '@/lib/security/local-request';
 
 export const runtime = 'nodejs';
-
-const DEFAULT_OUTPUT_FOLDER = '/Users/acharyabimal/Movies/WSTV/SeedanceVideos';
 const execFileAsync = promisify(execFile);
 
-export async function POST() {
-  let folder = DEFAULT_OUTPUT_FOLDER;
+async function openDirectory(directory: string) {
+  if (process.platform === 'darwin') return execFileAsync('open', [directory]);
+  if (process.platform === 'win32') return execFileAsync('explorer', [directory]);
+  return execFileAsync('xdg-open', [directory]);
+}
+
+export async function POST(request: NextRequest) {
+  const guard = await requireProtectedMutation(request);
+  if ('response' in guard) return guard.response;
+  if (!isLoopbackRequest(request)) return privateJson({ error: 'Local request required' }, { status: 403 });
 
   try {
-    const settings = await db.dashboardSettings.findFirst();
-    folder = settings?.outputFolder || DEFAULT_OUTPUT_FOLDER;
-
-    // Local-only helper: opens the configured output folder and never calls
-    // BytePlus / ModelArk or submits paid generation tasks.
+    const folder = getOutputRoot();
     await mkdir(folder, { recursive: true });
-
-    if (process.platform === 'darwin') {
-      await execFileAsync('open', [folder]);
-    } else if (process.platform === 'win32') {
-      await execFileAsync('explorer', [folder]);
-    } else {
-      await execFileAsync('xdg-open', [folder]);
-    }
-
-    return NextResponse.json({
-      success: true,
-      folder,
-      message: 'Opened output folder',
-    });
-  } catch (error) {
-    console.error('Open folder error:', error);
-    const message = error instanceof Error ? error.message : 'Failed to open folder';
-    return NextResponse.json(
-      { success: false, folder, error: message },
-      { status: 500 }
-    );
+    await openDirectory(folder);
+    return privateJson({ success: true, message: 'Opened output folder' });
+  } catch {
+    console.error('Open folder failed');
+    return privateJson({ success: false, error: 'Failed to open output folder' }, { status: 500 });
   }
 }

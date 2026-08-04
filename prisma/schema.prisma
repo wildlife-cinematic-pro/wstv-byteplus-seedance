@@ -100,7 +100,7 @@ model TokenPack {
 model DashboardSettings {
   id               String   @id @default(cuid())
   safeMode         Boolean  @default(true)
-  outputFolder     String   @default("/Users/acharyabimal/Movies/WSTV/SeedanceVideos")
+  outputFolder     String   @default("outputs")
   defaultFps       Int      @default(24)
   defaultModel     String   @default("seedance-2.0")
   defaultResolution String  @default("720p")

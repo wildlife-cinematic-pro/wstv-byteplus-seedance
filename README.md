@@ -71,3 +71,20 @@ Security greps:
 rg -n "fetch\\([^\\n]*(ark|bytepluses)|axios\\(|requests\\.post|httpx|contents/generations/tasks" src
 rg -n "NEXT_PUBLIC_.*(KEY|SECRET|ARK|BYTEPLUS)" .
 ```
+# Local security setup
+
+The development and production servers bind to `127.0.0.1` by default. Start the
+development server with `npm run dev`; do not expose it through a public tunnel
+without deliberately reviewing the deployment configuration.
+
+Configure server-side login in a local `.env.local` file. Generate a password
+hash with `node scripts/hash-password.mjs '<password>'`, then set
+`WSTV_AUTH_USER`, `WSTV_AUTH_PASSWORD_HASH`, and a random `WSTV_SESSION_SECRET`
+(at least 32 characters). `WSTV_SESSION_HOURS` is capped at 8. Production fails
+closed if login configuration is incomplete.
+
+Paid generation remains disabled by default: keep `DRY_RUN=true`,
+`ENABLE_REAL_API=false`, and `ALLOW_PAID_CALLS=false`. Never commit `.env`,
+`.env.local`, API keys, plaintext passwords, password hashes, session secrets,
+cookies, authorization headers, provider responses, signed URLs, local
+databases, logs, MP4 files, absolute private paths, or private task records.

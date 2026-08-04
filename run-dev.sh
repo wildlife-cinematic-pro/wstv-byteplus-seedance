@@ -1,5 +1,6 @@
 #!/bin/bash
-while true; do
-  cd /home/z/my-project && bun --bun next dev -p 3000 -H 0.0.0.0
-  sleep 2
-done
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")"
+exec bun --bun next dev -p 3000 -H 127.0.0.1

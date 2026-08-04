@@ -16,6 +16,7 @@ import {
   type GenerationMode,
 } from '@/lib/seedance-validation';
 import { estimateSeedancePlanningCost } from '@/lib/seedance-pricing';
+import { privateJson, requireProtectedMutation } from '@/lib/auth/guards';
 
 // PHASE5.1: These are RECOMMENDED char ranges, not hard API limits.
 // A prompt exceeding these shows a warning but does NOT hard-block Dry Run.
@@ -40,6 +41,8 @@ interface ReferencesPayload {
 }
 
 export async function POST(request: NextRequest) {
+  const guard = await requireProtectedMutation(request);
+  if ('response' in guard) return guard.response;
   try {
     const body = await request.json();
     const {
@@ -371,10 +374,11 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json(dryRunResult);
-  } catch (error) {
-    console.error('Dry run error:', error);
-    return NextResponse.json(
+    const { references: _references, ...clientResult } = dryRunResult;
+    return privateJson(clientResult);
+  } catch {
+    console.error('Dry run failed');
+    return privateJson(
       { passed: false, errors: ['Internal server error'], validationLog: ['❌ Internal server error'] },
       { status: 500 }
     );

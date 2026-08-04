@@ -8,10 +8,8 @@ const nextConfig: NextConfig = {
   reactStrictMode: false,
   allowedDevOrigins: [
     "localhost",
-    "localhost:81",
     "localhost:3000",
-    "21.0.13.157:3000",
-    "21.0.13.157:81",
+    "127.0.0.1:3000",
   ],
 };
 

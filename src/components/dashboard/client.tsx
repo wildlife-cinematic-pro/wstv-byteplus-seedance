@@ -38,7 +38,6 @@ import {
 
 interface InitialData {
   safeMode: boolean;
-  outputFolder: string;
   taskHistory: TaskHistory[];
   budget: BudgetInfo;
   latestVideo: LatestVideo | null;
