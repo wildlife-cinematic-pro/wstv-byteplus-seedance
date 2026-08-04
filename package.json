@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000 --hostname 127.0.0.1",
-    "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
+    "build": "prisma generate && next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
     "start": "NODE_ENV=production HOSTNAME=127.0.0.1 PORT=3000 bun .next/standalone/server.js",
     "lint": "eslint .",
     "db:push": "prisma db push",
