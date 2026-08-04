@@ -5,17 +5,22 @@
  * Deterministic, local-only estimate. Never calls the provider, never reads
  * a balance, and is never added to actual spend / budget usage — Phase 1 is
  * dry-run only.
+ *
+ * Threshold and both price tiers are taken from the producer-verified
+ * BytePlus ModelArk console/documentation, not derived locally.
  */
+
+import type { SeedreamPricingBasis } from './seedream-image-validation';
 
 export const SEEDREAM_INPUT_REF_COST_ADDITIONAL_USD = 0.003;
 export const SEEDREAM_OUTPUT_COST_LOW_USD = 0.045;
 export const SEEDREAM_OUTPUT_COST_HIGH_USD = 0.09;
-export const SEEDREAM_OUTPUT_PIXEL_THRESHOLD = 2_360_000;
+export const SEEDREAM_OUTPUT_PIXEL_THRESHOLD = 2_610_000;
 
 export interface SeedreamCostEstimateInput {
   referenceImageCount: number;
   outputPixelCount: number;
-  pricingBasis: 'label_estimate_1k' | 'label_estimate_2k' | 'custom_exact';
+  pricingBasis: SeedreamPricingBasis;
 }
 
 export interface SeedreamCostEstimate {
@@ -23,7 +28,7 @@ export interface SeedreamCostEstimate {
   outputCostUsd: number;
   estimatedTotalCostUsd: number;
   outputPixelCount: number;
-  pricingBasis: 'label_estimate_1k' | 'label_estimate_2k' | 'custom_exact';
+  pricingBasis: SeedreamPricingBasis;
   estimateOnly: true;
 }
 
@@ -42,7 +47,7 @@ export function estimateInputReferenceCostUsd(referenceImageCount: number): numb
 
 /**
  * Output cost: a flat rate keyed on total output pixel count, at or below
- * vs. above the 2,360,000-pixel threshold.
+ * vs. above the 2,610,000-pixel threshold.
  */
 export function estimateOutputCostUsd(outputPixelCount: number): number {
   return outputPixelCount <= SEEDREAM_OUTPUT_PIXEL_THRESHOLD ? SEEDREAM_OUTPUT_COST_LOW_USD : SEEDREAM_OUTPUT_COST_HIGH_USD;

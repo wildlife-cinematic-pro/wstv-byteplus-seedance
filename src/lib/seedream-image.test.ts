@@ -15,6 +15,7 @@ import {
   countPromptWords,
   SEEDREAM_MODEL_ID,
   SEEDREAM_UNSUPPORTED_FIELDS,
+  SEEDREAM_SIZE_LABELS,
   MAX_REFERENCE_IMAGES,
   PROMPT_WORD_WARNING_THRESHOLD,
 } from './seedream-image-validation';
@@ -125,19 +126,51 @@ describe('validateReferenceAssetSelection — ownership and type', () => {
   });
 });
 
-describe('size — 1K / 2K / custom', () => {
+describe('allowed size labels', () => {
+  it('contains exactly 1K, 1.5K, 2K, and custom', () => {
+    strictAssert.deepEqual([...SEEDREAM_SIZE_LABELS].sort(), ['1.5K', '1K', '2K', 'custom'].sort());
+  });
+});
+
+describe('size — 1K / 1.5K / 2K / custom', () => {
   it('resolves 1K to its documented estimate dimensions', () => {
     const resolved = resolveSeedreamSize('1K');
     strictAssert.equal(resolved.pricingBasis, 'label_estimate_1k');
-    strictAssert.ok(resolved.width > 0 && resolved.height > 0);
+    strictAssert.equal(resolved.width, 1024);
+    strictAssert.equal(resolved.height, 1024);
     strictAssert.equal(resolved.sizeValue, '1K');
   });
 
-  it('resolves 2K to its documented estimate dimensions', () => {
+  it('resolves 1.5K to 1536x1536', () => {
+    const resolved = resolveSeedreamSize('1.5K');
+    strictAssert.equal(resolved.pricingBasis, 'label_estimate_1_5k');
+    strictAssert.equal(resolved.width, 1536);
+    strictAssert.equal(resolved.height, 1536);
+    strictAssert.equal(resolved.sizeValue, '1.5K');
+  });
+
+  it('resolves 2K to its documented estimate dimensions (the provider default size)', () => {
     const resolved = resolveSeedreamSize('2K');
     strictAssert.equal(resolved.pricingBasis, 'label_estimate_2k');
-    strictAssert.ok(resolved.width * resolved.height > resolveSeedreamSize('1K').width * resolveSeedreamSize('1K').height);
+    strictAssert.equal(resolved.width, 2048);
+    strictAssert.equal(resolved.height, 2048);
     strictAssert.equal(resolved.sizeValue, '2K');
+    strictAssert.ok(resolved.width * resolved.height > resolveSeedreamSize('1K').width * resolveSeedreamSize('1K').height);
+  });
+
+  it('a 1.5K request preview contains size: "1.5K"', () => {
+    const resolved = resolveSeedreamSize('1.5K');
+    const preview = buildSeedreamRequestPreview({
+      prompt: 'Test prompt',
+      referenceAssetIds: [],
+      size: '1.5K',
+      width: resolved.width,
+      height: resolved.height,
+      outputFormat: 'png',
+      watermark: false,
+      optimizeMode: 'standard',
+    });
+    strictAssert.equal(preview.size, '1.5K');
   });
 
   it('accepts a valid custom size', () => {
@@ -165,8 +198,13 @@ describe('size — 1K / 2K / custom', () => {
     strictAssert.equal(check.valid, false);
   });
 
-  it('rejects the "1.5K" label — only 1K, 2K, and custom are allowed', () => {
+  it('accepts the "1.5K" label — 1K, 1.5K, 2K, and custom are the only allowed sizes', () => {
     const parsed = seedreamDryRunRequestSchema.safeParse(baseRequestBody({ size: '1.5K' }));
+    strictAssert.equal(parsed.success, true);
+  });
+
+  it('rejects any other size label, e.g. "3K"', () => {
+    const parsed = seedreamDryRunRequestSchema.safeParse(baseRequestBody({ size: '3K' }));
     strictAssert.equal(parsed.success, false);
   });
 });
@@ -199,13 +237,56 @@ describe('unsupported provider fields are rejected by strict validation', () => 
 });
 
 describe('cost estimator', () => {
-  it('prices output at or exactly on the 2,360,000-pixel threshold as the low tier', () => {
-    strictAssert.equal(estimateOutputCostUsd(SEEDREAM_OUTPUT_PIXEL_THRESHOLD), SEEDREAM_OUTPUT_COST_LOW_USD);
-    strictAssert.equal(estimateOutputCostUsd(SEEDREAM_OUTPUT_PIXEL_THRESHOLD - 1), SEEDREAM_OUTPUT_COST_LOW_USD);
+  it('the verified threshold is 2,610,000 pixels', () => {
+    strictAssert.equal(SEEDREAM_OUTPUT_PIXEL_THRESHOLD, 2_610_000);
   });
 
-  it('prices output above the 2,360,000-pixel threshold as the high tier', () => {
+  it('prices exactly 2,610,000 pixels as the low tier (inclusive lower bound)', () => {
+    strictAssert.equal(estimateOutputCostUsd(2_610_000), 0.045);
+    strictAssert.equal(estimateOutputCostUsd(SEEDREAM_OUTPUT_PIXEL_THRESHOLD), SEEDREAM_OUTPUT_COST_LOW_USD);
+  });
+
+  it('prices 2,610,001 pixels as the high tier', () => {
+    strictAssert.equal(estimateOutputCostUsd(2_610_001), 0.09);
     strictAssert.equal(estimateOutputCostUsd(SEEDREAM_OUTPUT_PIXEL_THRESHOLD + 1), SEEDREAM_OUTPUT_COST_HIGH_USD);
+  });
+
+  it('1024x1024 (1K, 1,048,576 px) prices at USD 0.045', () => {
+    strictAssert.equal(estimateOutputCostUsd(1024 * 1024), 0.045);
+  });
+
+  it('1536x1536 (1.5K, 2,359,296 px) prices at USD 0.045 — same price as 1K', () => {
+    strictAssert.equal(estimateOutputCostUsd(1536 * 1536), 0.045);
+  });
+
+  it('2048x2048 (2K, 4,194,304 px) prices at USD 0.090', () => {
+    strictAssert.equal(estimateOutputCostUsd(2048 * 2048), 0.09);
+  });
+
+  it('1600x1600 (2,560,000 px) prices at USD 0.045', () => {
+    strictAssert.equal(estimateOutputCostUsd(1600 * 1600), 0.045);
+  });
+
+  it('1700x1600 (2,720,000 px) prices at USD 0.090', () => {
+    strictAssert.equal(estimateOutputCostUsd(1700 * 1600), 0.09);
+  });
+
+  it('end-to-end: resolveSeedreamSize("1K") -> estimateSeedreamImageCost gives USD 0.045', () => {
+    const resolved = resolveSeedreamSize('1K');
+    const estimate = estimateSeedreamImageCost({ referenceImageCount: 0, outputPixelCount: resolved.width * resolved.height, pricingBasis: resolved.pricingBasis });
+    strictAssert.equal(estimate.outputCostUsd, 0.045);
+  });
+
+  it('end-to-end: resolveSeedreamSize("1.5K") -> estimateSeedreamImageCost gives USD 0.045 (same price as 1K)', () => {
+    const resolved = resolveSeedreamSize('1.5K');
+    const estimate = estimateSeedreamImageCost({ referenceImageCount: 0, outputPixelCount: resolved.width * resolved.height, pricingBasis: resolved.pricingBasis });
+    strictAssert.equal(estimate.outputCostUsd, 0.045);
+  });
+
+  it('end-to-end: resolveSeedreamSize("2K") -> estimateSeedreamImageCost gives USD 0.090', () => {
+    const resolved = resolveSeedreamSize('2K');
+    const estimate = estimateSeedreamImageCost({ referenceImageCount: 0, outputPixelCount: resolved.width * resolved.height, pricingBasis: resolved.pricingBasis });
+    strictAssert.equal(estimate.outputCostUsd, 0.09);
   });
 
   it('the first reference image is free', () => {
