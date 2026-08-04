@@ -36,17 +36,20 @@ export const MAX_REFERENCE_IMAGES = 10;
 
 // ─── Size ───
 
-export const SEEDREAM_SIZE_LABELS = ['1K', '2K', 'custom'] as const;
+export const SEEDREAM_SIZE_LABELS = ['1K', '1.5K', '2K', 'custom'] as const;
 export type SeedreamSizeLabel = (typeof SEEDREAM_SIZE_LABELS)[number];
 
 /**
  * Documented project-side estimate dimensions for labeled sizes. These are
  * used ONLY for the local dry-run cost estimate and sanitized preview — the
  * real provider chooses actual output dimensions from the prompt/aspect at
- * generation time, so these are estimates, not guarantees.
+ * generation time, so these are estimates, not guarantees. 2K is the
+ * provider's documented default size; this app always sends an explicit
+ * size value regardless (see resolveSeedreamSize below).
  */
-export const LABEL_ESTIMATE_DIMENSIONS: Record<'1K' | '2K', { width: number; height: number }> = {
+export const LABEL_ESTIMATE_DIMENSIONS: Record<'1K' | '1.5K' | '2K', { width: number; height: number }> = {
   '1K': { width: 1024, height: 1024 },
+  '1.5K': { width: 1536, height: 1536 },
   '2K': { width: 2048, height: 2048 },
 };
 
@@ -133,10 +136,12 @@ export function validateCustomSizePixels(width: number, height: number): CustomS
 
 // ─── Resolved dimensions + pricing basis ───
 
+export type SeedreamPricingBasis = 'label_estimate_1k' | 'label_estimate_1_5k' | 'label_estimate_2k' | 'custom_exact';
+
 export interface ResolvedSeedreamSize {
   width: number;
   height: number;
-  pricingBasis: 'label_estimate_1k' | 'label_estimate_2k' | 'custom_exact';
+  pricingBasis: SeedreamPricingBasis;
   /** Explicit size value for the sanitized provider preview — never a bare default. */
   sizeValue: string;
 }
@@ -149,6 +154,10 @@ export function resolveSeedreamSize(
   if (size === '1K') {
     const { width, height } = LABEL_ESTIMATE_DIMENSIONS['1K'];
     return { width, height, pricingBasis: 'label_estimate_1k', sizeValue: '1K' };
+  }
+  if (size === '1.5K') {
+    const { width, height } = LABEL_ESTIMATE_DIMENSIONS['1.5K'];
+    return { width, height, pricingBasis: 'label_estimate_1_5k', sizeValue: '1.5K' };
   }
   if (size === '2K') {
     const { width, height } = LABEL_ESTIMATE_DIMENSIONS['2K'];

@@ -490,7 +490,7 @@ model ImageTask {
   mode                   String // text_to_image, single_reference, multi_reference
   prompt                 String
   referenceImageCount    Int      @default(0)
-  size                   String // "1K", "2K", or "custom"
+  size                   String // "1K", "1.5K", "2K", or "custom"
   width                  Int
   height                 Int
   outputFormat           String // png, jpeg
