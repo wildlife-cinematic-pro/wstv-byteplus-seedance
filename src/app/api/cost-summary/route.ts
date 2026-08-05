@@ -1,5 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
+import { privateJson, requireAuthenticatedUser, requireProtectedMutation } from '@/lib/auth/guards';
+import {
+  costSummaryPostSchema,
+  DEFAULT_MONTHLY_LIMIT,
+  DEFAULT_CURRENCY,
+  DEFAULT_ALERT_THRESHOLD,
+  firstZodErrorMessage,
+} from '@/lib/budget-validation';
 
 // Force dynamic rendering — this route reads/writes the DB and must never be cached.
 export const dynamic = 'force-dynamic';
@@ -23,34 +31,42 @@ function round2(value: number): number {
  * Legacy alias `monthlyBudgetUsd` is still accepted for backward compatibility,
  * but the database column is always `monthlyLimit`.
  *
+ * This route only ever updates `monthlyLimit`. It never accepts or writes
+ * `spentThisMonth` — the spend accumulator is exclusively server-managed
+ * (see /api/generate and /api/real-task-status).
+ *
  * Response shape (on success):
  *   { success: true, budget: { monthlyLimit, spentThisMonth, currency, alertThreshold, ... } }
- *
- * The returned `budget` reflects the actual row in the database after the
- * write, so the client can update its UI directly without a follow-up GET.
  */
-export async function POST(req: Request) {
-  try {
-    const body = await req.json().catch(() => ({}));
+export async function POST(request: NextRequest) {
+  const guard = await requireProtectedMutation(request);
+  if ('response' in guard) return guard.response;
 
-    // Accept either canonical `monthlyLimit` or legacy `monthlyBudgetUsd`.
-    const rawLimit = toSafeNumber(
-      (body as any)?.monthlyLimit ?? (body as any)?.monthlyBudgetUsd,
-      50
+  const body = await request.json().catch(() => null);
+  const parsed = costSummaryPostSchema.safeParse(body);
+  if (!parsed.success) {
+    return privateJson(
+      { success: false, error: firstZodErrorMessage(parsed.error) },
+      { status: 400 }
     );
-    const safeMonthlyLimit = rawLimit > 0 ? rawLimit : 50;
+  }
 
-    // Persist to DB. Unlike the previous implementation, we DO NOT swallow
-    // errors silently — if Prisma fails (e.g. schema mismatch), we return a
-    // 500 so the client knows the save did not land.
-    let saved: { monthlyLimit: number; spentThisMonth: number; currency: string; alertThreshold: number };
+  const newLimit = parsed.data.monthlyLimit ?? (parsed.data.monthlyBudgetUsd as number);
+
+  try {
+    let saved: {
+      monthlyLimit: number;
+      spentThisMonth: number;
+      currency: string;
+      alertThreshold: number;
+    };
 
     const existing = await db.budgetSetting.findFirst();
 
     if (existing) {
       const updated = await db.budgetSetting.update({
         where: { id: existing.id },
-        data: { monthlyLimit: safeMonthlyLimit },
+        data: { monthlyLimit: newLimit },
       });
       saved = {
         monthlyLimit: updated.monthlyLimit,
@@ -61,10 +77,10 @@ export async function POST(req: Request) {
     } else {
       const created = await db.budgetSetting.create({
         data: {
-          monthlyLimit: safeMonthlyLimit,
+          monthlyLimit: newLimit,
           spentThisMonth: 0,
-          currency: 'USD',
-          alertThreshold: 0.8,
+          currency: DEFAULT_CURRENCY,
+          alertThreshold: DEFAULT_ALERT_THRESHOLD,
         },
       });
       saved = {
@@ -75,25 +91,22 @@ export async function POST(req: Request) {
       };
     }
 
-    return NextResponse.json(
-      {
-        success: true,
-        budget: {
-          ...saved,
-          label: 'Estimated Spend',
-          safeModeNote: 'Dry-run estimate only. No real charge.',
-        },
+    return privateJson({
+      success: true,
+      budget: {
+        ...saved,
+        label: 'Current Period Spend',
+        safeModeNote: 'Canonical budget accumulator — includes simulated costs and any recorded actual provider spend.',
       },
-      { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
-    );
+    });
   } catch {
     console.error('Cost summary POST failed');
-    return NextResponse.json(
+    return privateJson(
       {
         success: false,
         error: 'Failed to save budget setting',
       },
-      { status: 500, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
+      { status: 500 }
     );
   }
 }
@@ -101,119 +114,107 @@ export async function POST(req: Request) {
 /**
  * GET /api/cost-summary
  *
- * Returns the current budget + spend summary. Reads directly from the DB on
- * every request (force-dynamic + no-store headers), so a fresh save is
- * immediately visible to the next GET.
+ * Returns the current budget + spend summary.
+ *
+ * Canonical values (used by budget enforcement in /api/generate,
+ * /api/real-generate and /api/real-task-status):
+ *   - spentThisMonth = BudgetSetting.spentThisMonth
+ *   - remainingBudget = monthlyLimit - spentThisMonth
+ *   - usagePercent = spentThisMonth / monthlyLimit
+ *
+ * The canonical spend is the BudgetSetting accumulator, NOT a sum over a
+ * partial (latest-100) subset of CostLedger rows. CostLedger remains an
+ * audit/history list: `recentLedger` returns only the latest 20 rows, and the
+ * total record count comes from db.costLedger.count().
+ *
+ * The estimated/actual spend split is not reliably derivable from ledger data
+ * (both simulated and actual costs land in the same accumulator), so those
+ * fields are explicitly unknown (null) rather than fabricated from an
+ * incomplete subset. `spendBasis` documents this.
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const guard = await requireAuthenticatedUser(request);
+  if ('response' in guard) return guard.response;
+
   try {
-    let budgetSetting: {
-      id: string;
-      monthlyLimit: number;
-      spentThisMonth: number;
-      currency: string;
-      alertThreshold: number;
-    } | null = null;
-
-    try {
-      budgetSetting = await db.budgetSetting.findFirst();
-    } catch (e) {
-      console.warn('budgetSetting table might not exist or is empty', e);
-    }
-
-    let costLedger: Array<{
-      id: string;
-      modelType: string;
-      resolution: string;
-      duration: number;
-      costUsd: number;
-      description: string | null;
-      createdAt: Date;
-    }> = [];
-
-    try {
-      costLedger = await db.costLedger.findMany({
-        take: 100,
+    const [budgetSetting, recentLedgerRows, ledgerCount] = await Promise.all([
+      db.budgetSetting.findFirst(),
+      db.costLedger.findMany({
+        take: 20,
         orderBy: { createdAt: 'desc' },
-      });
-    } catch (e) {
-      console.warn('costLedger table might not exist or is empty', e);
-    }
+      }),
+      db.costLedger.count(),
+    ]);
 
-    const monthlyLimitRaw = toSafeNumber(budgetSetting?.monthlyLimit, 50);
-    const monthlyLimit = monthlyLimitRaw > 0 ? monthlyLimitRaw : 50;
+    const monthlyLimitRaw = toSafeNumber(budgetSetting?.monthlyLimit, DEFAULT_MONTHLY_LIMIT);
+    const monthlyLimit = monthlyLimitRaw > 0 ? monthlyLimitRaw : DEFAULT_MONTHLY_LIMIT;
 
-    const ledger = Array.isArray(costLedger) ? costLedger : [];
-
-    const estimatedSpendThisMonth = ledger.reduce((sum, entry) => {
-      const cost = toSafeNumber(entry?.costUsd, 0);
-      return sum + cost;
-    }, 0);
-
-    const actualSpendThisMonth = 0; // no actuals tracked in dry-run mode
-    const spentThisMonth = estimatedSpendThisMonth + actualSpendThisMonth;
+    // Canonical current-period spend accumulator.
+    const spentThisMonth = toSafeNumber(budgetSetting?.spentThisMonth, 0);
     const remainingBudget = Math.max(0, monthlyLimit - spentThisMonth);
-    const usagePercent =
-      monthlyLimit > 0 ? (spentThisMonth / monthlyLimit) * 100 : 0;
+    const usagePercent = monthlyLimit > 0 ? (spentThisMonth / monthlyLimit) * 100 : 0;
 
-    return NextResponse.json(
-      {
-        budget: {
-          monthlyLimit,
-          spentThisMonth: round2(spentThisMonth),
-          estimatedSpendThisMonth: round2(estimatedSpendThisMonth),
-          actualSpendThisMonth: round2(actualSpendThisMonth),
-          remainingBudget: round2(remainingBudget),
-          usagePercent: round2(usagePercent),
-          currency: budgetSetting?.currency ?? 'USD',
-          alertThreshold: budgetSetting?.alertThreshold ?? 0.8,
-          label: 'Estimated Spend',
-          safeModeNote: 'Dry-run estimate only. No real charge.',
-        },
-        plan: {
-          provider: 'Seedance / BytePlus / Dreamina',
-          planName: 'Seedance Light Plan',
-          purchaseDate: '2026-06-16',
-          planCostUsd: 30.1,
-          includedTokens: 7000000,
-          remainingTokens: 7000000,
-          validityDays: 90,
-          expiryDate: '2026-09-14',
-          status: 'Active',
-          notes: 'Manual subscription tracker. Does not connect to real API.',
-        },
-        usage: {
-          plannedVideoCount: ledger.length,
-          completedManualVideoCount: 0,
-          estimatedTokensUsed: 0,
-          actualTokensUsed: 0,
-          failedRetryEstimate: 0,
-          estimatedVsActualDifference: round2(estimatedSpendThisMonth - actualSpendThisMonth),
-        },
-        meta: {
-          safeMode: true,
-          dryRunOnly: true,
-          realApiConnected: false,
-          realChargesTrackedAutomatically: false,
-        },
-        recentLedger: ledger.slice(0, 20).map(entry => ({
-          id: entry?.id ?? Math.random().toString(36).slice(2),
-          modelType: entry?.modelType,
-          resolution: entry?.resolution,
-          duration: entry?.duration,
-          costUsd: toSafeNumber(entry?.costUsd, 0),
-          description: entry?.description ?? '',
-          createdAt: entry?.createdAt ?? new Date().toISOString(),
-        })),
-        totalSpentInPeriod: round2(spentThisMonth),
+    return privateJson({
+      budget: {
+        monthlyLimit: round2(monthlyLimit),
+        spentThisMonth: round2(spentThisMonth),
+        // Explicitly unknown: the accumulator mixes simulated and actual costs,
+        // and a partial ledger subset cannot split them honestly.
+        estimatedSpendThisMonth: null,
+        actualSpendThisMonth: null,
+        remainingBudget: round2(remainingBudget),
+        usagePercent: round2(usagePercent),
+        currency: budgetSetting?.currency ?? DEFAULT_CURRENCY,
+        alertThreshold: budgetSetting?.alertThreshold ?? DEFAULT_ALERT_THRESHOLD,
+        label: 'Current Period Spend',
+        safeModeNote: 'Canonical budget accumulator — includes simulated costs and any recorded actual provider spend.',
+        spendBasis: 'BudgetSetting.spentThisMonth',
+        spendBasisNote:
+          'spentThisMonth is the canonical mixed current-period accumulator used for budget enforcement. ' +
+          'The estimate/actual split is not derived from a partial ledger subset.',
       },
-      { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
-    );
+      plan: {
+        provider: 'Seedance / BytePlus / Dreamina',
+        planName: 'Seedance Light Plan',
+        purchaseDate: '2026-06-16',
+        planCostUsd: 30.1,
+        includedTokens: 7000000,
+        remainingTokens: 7000000,
+        validityDays: 90,
+        expiryDate: '2026-09-14',
+        status: 'Active',
+        notes: 'Manual subscription tracker. Does not connect to real API.',
+      },
+      usage: {
+        plannedVideoCount: ledgerCount,
+        completedManualVideoCount: 0,
+        estimatedTokensUsed: 0,
+        actualTokensUsed: 0,
+        failedRetryEstimate: 0,
+        estimatedVsActualDifference: null,
+      },
+      meta: {
+        safeMode: true,
+        dryRunOnly: true,
+        realApiConnected: false,
+        realChargesTrackedAutomatically: false,
+      },
+      recentLedger: recentLedgerRows.map(entry => ({
+        id: entry.id,
+        modelType: entry.modelType,
+        resolution: entry.resolution,
+        duration: entry.duration,
+        costUsd: toSafeNumber(entry.costUsd, 0),
+        description: entry.description ?? '',
+        createdAt: entry.createdAt.toISOString(),
+      })),
+      totalSpentInPeriod: round2(spentThisMonth),
+    });
   } catch (error) {
     console.error('Cost summary error:', error);
-    return NextResponse.json(
+    return privateJson(
       { error: 'Failed to fetch cost summary' },
-      { status: 500, headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
+      { status: 500 }
     );
   }
 }
