@@ -95,8 +95,8 @@ export async function POST(request: NextRequest) {
       success: true,
       budget: {
         ...saved,
-        label: 'Estimated Spend',
-        safeModeNote: 'Dry-run estimate only. No real charge.',
+        label: 'Current Period Spend',
+        safeModeNote: 'Canonical budget accumulator — includes simulated costs and any recorded actual provider spend.',
       },
     });
   } catch {

@@ -280,3 +280,22 @@ describe('Accounting contract', () => {
     strictAssert.match(realGenerateSource, /budget\.monthlyLimit - budget\.spentThisMonth/);
   });
 });
+
+// ─── POST /api/cost-summary response metadata (semantic honesty) ───
+
+describe('POST /api/cost-summary response metadata', () => {
+  it('labels the canonical accumulator as Current Period Spend', () => {
+    strictAssert.match(costSummarySource, /label:\s*'Current Period Spend'/);
+  });
+
+  it('no longer claims the returned spend is a dry-run estimate only', () => {
+    strictAssert.doesNotMatch(costSummarySource, /Dry-run estimate only\. No real charge\./);
+  });
+
+  it('explains that the accumulator mixes simulated and recorded actual costs', () => {
+    strictAssert.match(
+      costSummarySource,
+      /Canonical budget accumulator — includes simulated costs and any recorded actual provider spend\./
+    );
+  });
+});
