@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Leaf, Shield, ShieldCheck, ShieldOff, DollarSign, History, Cpu, Monitor, Keyboard, LayoutDashboard, Calculator, Film, FolderOpen, Calendar, GraduationCap, Info, Sun, Moon, Settings as SettingsIcon, Workflow, ImageIcon } from 'lucide-react';
+import { Leaf, Shield, ShieldCheck, ShieldOff, DollarSign, History, Cpu, Monitor, Keyboard, LayoutDashboard, Calculator, Film, FolderOpen, Calendar, GraduationCap, Info, Sun, Moon, Settings as SettingsIcon, ImageIcon } from 'lucide-react';
 import { StepShell, StepAccordion } from '@/components/dashboard/shared';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +27,6 @@ import CostDashboard from '@/components/dashboard/cost-dashboard';
 import { CostSettings } from '@/components/dashboard/cost-settings';
 import PostProduction from '@/components/dashboard/post-production';
 import CalendarLearning from '@/components/dashboard/calendar-learning';
-import WorkflowStudio from '@/components/workflow/studio-client';
 import { SeedreamImageDryRunPanel } from '@/components/dashboard/seedream-image-dryrun';
 import type { DryRunResult, TaskHistory, BudgetInfo, LatestVideo, Gates, ModelType, ToastMessage, ReferenceEntry } from '@/components/dashboard/types';
 import { groupReferencesByType, remapReferenceRolesForMode } from '@/components/dashboard/types';
@@ -500,10 +499,6 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
                 <Calendar className="w-4 h-4" />
                 <span className="hidden sm:inline">Calendar</span>
               </TabsTrigger>
-              <TabsTrigger value="workflow" className="accent-generate tab-accent text-muted-foreground gap-1.5 text-xs sm:text-sm">
-                <Workflow className="w-4 h-4" />
-                <span className="hidden sm:inline">Workflow</span>
-              </TabsTrigger>
               <TabsTrigger value="image" className="accent-generate tab-accent text-muted-foreground gap-1.5 text-xs sm:text-sm">
                 <ImageIcon className="w-4 h-4" />
                 <span className="hidden sm:inline">Image</span>
@@ -672,11 +667,6 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
               </div>
               <CalendarLearning />
             </div>
-          </TabsContent>
-
-          {/* Workflow Studio Tab — frontend-only mock (no /api, no keys) */}
-          <TabsContent value="workflow" className="accent-generate">
-            <WorkflowStudio />
           </TabsContent>
 
           {/* Seedream Image Dry-Run Tab — Phase 1, dry-run only, no provider call */}
