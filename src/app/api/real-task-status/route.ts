@@ -47,7 +47,9 @@ export async function POST(request: NextRequest) {
           videoUrl,
           providerResultVideoUrl: provider.videoUrl,
           providerLastFrameUrl: provider.lastFrameUrl,
-          errorMessage: provider.status === 'failed' ? 'Provider reported task failure' : null,
+          errorMessage: provider.status === 'failed'
+            ? ['Provider reported task failure', provider.errorCode && `(${provider.errorCode})`, provider.errorMessage].filter(Boolean).join(' ')
+            : null,
           lastCheckedAt: new Date(), pollCount: { increment: 1 }, actualTokens: provider.completionTokens,
           costActual: actualCost,
           actualBillingStatus: provider.completionTokens != null ? 'actual_from_provider_completion_tokens' : 'unknown_provider_usage_missing',
@@ -75,8 +77,10 @@ export async function POST(request: NextRequest) {
         actualTokens: updated.actualTokens, actualBillingStatus: updated.actualBillingStatus,
       },
     });
-  } catch {
-    console.error('Real task status check failed');
+  } catch (error) {
+    // Only the sanitized provider message is logged (never the API key or raw
+    // provider body); the client always receives a generic response.
+    console.error('Real task status check failed:', error instanceof Error ? error.message : 'unknown');
     return privateJson({ success: false, error: 'Status check failed' }, { status: 502 });
   }
 }

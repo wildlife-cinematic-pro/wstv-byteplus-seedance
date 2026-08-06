@@ -166,10 +166,12 @@ export async function POST(request: NextRequest) {
         maxCostUsd: updated.maxCostUsd, estimatedCostUsd: estimate.estimatedCostUsd, estimatedTokens: estimate.estimatedTokens,
       },
     });
-  } catch {
+  } catch (error) {
     // Keep the task in submitting state after an ambiguous provider failure so
     // the server never retries or accidentally creates a duplicate paid job.
-    console.error('Real paid submission failed');
+    // Only the sanitized provider message is logged (never the API key or raw
+    // provider body); the client always receives a generic response.
+    console.error('Real paid submission failed:', error instanceof Error ? error.message : 'unknown');
     return privateJson({ success: false, error: 'Paid submission result is unknown; do not retry automatically.' }, { status: 502 });
   }
 }
