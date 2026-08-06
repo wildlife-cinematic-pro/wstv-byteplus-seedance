@@ -29,8 +29,11 @@ async function getInitialData() {
       }),
     ]);
 
+    // Only tasks with an actual saved file are treated as a previewable video.
+    // Simulated tasks complete with status 'succeeded' but no real video file,
+    // so they must not surface here as a downloadable/previewable result.
     const latestVideo = await db.videoTask.findFirst({
-      where: { status: 'succeeded' },
+      where: { status: 'succeeded', videoFileName: { not: null } },
       orderBy: { createdAt: 'desc' },
       select: { videoFileName: true, videoUrl: true, status: true, createdAt: true },
     });
