@@ -38,7 +38,12 @@ export const WSTV_DEFAULT_PLANNING_PRESET = {
   actualUsageRequiredForFinalBilling: true,
 };
 
-export const ACTUAL_CONSOLE_USAGE = {
+/**
+ * Manual Plan Snapshot — manually maintained static planning numbers entered by
+ * the operator. This is NOT live provider synchronization: no BytePlus /
+ * ModelArk request is made anywhere, and these values never change at runtime.
+ */
+export const MANUAL_PLAN_SNAPSHOT = {
   totalPlanTokens: 7_000_000,
   usedTokens: 649_800,
   totalCalls: 2,

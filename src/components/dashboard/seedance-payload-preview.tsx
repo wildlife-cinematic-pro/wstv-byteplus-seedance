@@ -371,7 +371,7 @@ export function SeedancePayloadPreviewPanel({
               </div>
             ))}
             <p className="text-xs text-muted-foreground italic">
-              WSTV default shape uses Reference Mode with one or more reference_image entries. Model: {SEEDANCE_MODEL_IDS.STANDARD}, ratio 9:16, duration 15, resolution 720p, return_last_frame true.
+              ASTV default shape uses Reference Mode with one or more reference_image entries. Model: {SEEDANCE_MODEL_IDS.STANDARD}, ratio 9:16, duration 15, resolution 720p, return_last_frame true.
             </p>
           </CollapsibleContent>
         </Collapsible>

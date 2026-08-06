@@ -80,7 +80,7 @@ export function ResourcePackBillingPanel({
         {/* WSTV Active Pack card */}
         <div className="p-4 rounded-lg bg-muted/30 border border-emerald-500/20 space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-emerald-400">WSTV Active Pack</p>
+            <p className="text-sm font-medium text-emerald-400">ASTV Active Pack</p>
             <Badge variant="outline" className="text-xs border-emerald-500/30 text-emerald-400 bg-emerald-500/10">
               {WSTV_ACTIVE_PACK.packType}
             </Badge>

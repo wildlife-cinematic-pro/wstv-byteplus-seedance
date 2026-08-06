@@ -46,7 +46,7 @@ export function GenerateSafetyStrip({
         </Badge>
         <Badge variant="outline" className="border-blue-500/30 text-blue-300 bg-blue-500/10">
           <CreditCard className="w-3 h-3 mr-1" />
-          WSTV Standard pack: {WSTV_ACTIVE_PACK.totalQuota.toLocaleString()} tokens
+          ASTV Standard pack: {WSTV_ACTIVE_PACK.totalQuota.toLocaleString()} tokens
         </Badge>
         <Badge variant="outline" className="border-red-500/30 text-red-300 bg-red-500/10">
           <WifiOff className="w-3 h-3 mr-1" />

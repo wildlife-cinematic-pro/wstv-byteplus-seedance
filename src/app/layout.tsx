@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "WSTV Seedance Dashboard — Safety-First Wildlife Video Toolkit",
-  description: "Comprehensive toolkit for creating and managing 15-second vertical 9:16 wildlife documentary video generation prompts for ByteDance's Seedance 2.0 models.",
-  keywords: ["WSTV", "Seedance", "wildlife", "video generation", "ByteDance", "documentary"],
+  title: "ASTV Production Center — Animal Stories TV",
+  description: "Animal Stories TV (ASTV) — comprehensive toolkit for creating and managing 15-second vertical 9:16 wildlife documentary video generation prompts for ByteDance's Seedance 2.0 models.",
+  keywords: ["ASTV", "Animal Stories TV", "Seedance", "wildlife", "video generation", "ByteDance", "documentary"],
   icons: {
     icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
   },

@@ -78,6 +78,7 @@ function StarRating({ value, onChange }: { value: number; onChange?: (v: number)
           key={star}
           type="button"
           onClick={() => onChange?.(star)}
+          aria-label={`Rate ${star} out of 5`}
           className={`${onChange ? 'cursor-pointer hover:scale-110' : 'cursor-default'} transition-transform`}
         >
           <Star className={`w-3.5 h-3.5 ${star <= value ? 'text-amber-400 fill-amber-400' : 'text-gray-600'}`} />
@@ -242,7 +243,7 @@ export default function CalendarLearning() {
 
   const exportProjectSummary = useCallback(() => {
     const lines = [
-      `WSTV Project Summary`,
+      `ASTV Project Summary`,
       `Calendar: ${(calendarEntries ?? []).length} entries`,
       `Viral Learnings: ${(viralEntries ?? []).length} entries`,
       `Provider Ratings: ${(providerRatings ?? []).length} ratings`,
@@ -296,11 +297,11 @@ export default function CalendarLearning() {
             <div className="p-4 rounded-lg bg-muted/50 border border-emerald-500/10">
               {/* Month navigation */}
               <div className="flex items-center justify-between mb-4">
-                <Button variant="ghost" size="sm" onClick={prevMonth} className="text-gray-400 hover:text-emerald-400">
+                <Button variant="ghost" size="sm" onClick={prevMonth} aria-label="Previous month" title="Previous month" className="text-gray-400 hover:text-emerald-400">
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
                 <h4 className="text-sm font-medium text-emerald-400">{monthName} {calYear}</h4>
-                <Button variant="ghost" size="sm" onClick={nextMonth} className="text-gray-400 hover:text-emerald-400">
+                <Button variant="ghost" size="sm" onClick={nextMonth} aria-label="Next month" title="Next month" className="text-gray-400 hover:text-emerald-400">
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -374,8 +375,9 @@ export default function CalendarLearning() {
                 </h4>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <div className="flex-1">
-                    <Label className="text-xs text-gray-400">Project Title</Label>
+                    <Label htmlFor="calendar-entry-title" className="text-xs text-gray-400">Project Title</Label>
                     <Input
+                      id="calendar-entry-title"
                       placeholder="Project title..."
                       value={newEntryTitle}
                       onChange={e => setNewEntryTitle(e.target.value)}
@@ -383,8 +385,9 @@ export default function CalendarLearning() {
                     />
                   </div>
                   <div className="w-full sm:w-48">
-                    <Label className="text-xs text-gray-400">Status</Label>
+                    <Label htmlFor="calendar-entry-status" className="text-xs text-gray-400">Status</Label>
                     <select
+                      id="calendar-entry-status"
                       value={newEntryStatus}
                       onChange={(e) => setNewEntryStatus(e.target.value)}
                       className="h-8 bg-muted/30 border-emerald-500/20 text-xs mt-1 w-full rounded px-2"
@@ -455,6 +458,7 @@ export default function CalendarLearning() {
               <h4 className="text-sm font-medium text-emerald-400 mb-3">Add Learning</h4>
               <div className="flex flex-col sm:flex-row gap-3">
                 <select
+                  aria-label="Viral learning category"
                   value={newViralCategory}
                   onChange={(e) => setNewViralCategory(e.target.value)}
                   className="h-8 bg-muted/30 border-emerald-500/20 text-xs w-full sm:w-40 rounded px-2"

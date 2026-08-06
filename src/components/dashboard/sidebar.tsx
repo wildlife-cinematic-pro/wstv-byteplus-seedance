@@ -65,7 +65,7 @@ export function Sidebar({ open, taskHistory, budgetInfo }: SidebarProps) {
     }));
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'wstv-tasks.json'; a.click();
+    const a = document.createElement('a'); a.href = url; a.download = 'astv-tasks.json'; a.click();
     URL.revokeObjectURL(url);
   }, [taskHistory]);
 
@@ -136,7 +136,7 @@ export function Sidebar({ open, taskHistory, budgetInfo }: SidebarProps) {
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500" />
-            <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search prompts..."
+            <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search prompts..." aria-label="Search task history"
               className="h-7 text-xs pl-7 bg-muted/50 border-emerald-500/20 focus:border-emerald-500/50" />
           </div>
           <p className="text-[10px] text-gray-600">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</p>

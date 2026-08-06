@@ -206,7 +206,7 @@ function RefRow({ entry, index, onUpdate, onRemove, type, generationMode }: {
             />
             <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
               {ext && <Badge variant="outline" className="h-4 text-xs px-1 border-emerald-500/30 text-emerald-400 bg-emerald-500/10">.{ext}</Badge>}
-              {entry.url && <button onClick={() => onUpdate(index, 'url', '')} className="p-0.5 rounded hover:bg-white/10 text-muted-foreground hover:text-red-400 transition-colors"><X className="w-3 h-3" /></button>}
+              {entry.url && <button onClick={() => onUpdate(index, 'url', '')} aria-label="Clear reference URL" title="Clear reference URL" className="p-0.5 rounded hover:bg-white/10 text-muted-foreground hover:text-red-400 transition-colors"><X className="w-3 h-3" /></button>}
             </div>
           </div>
           <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-emerald-400 hover:bg-emerald-500/10" onClick={handlePaste} title="Paste from clipboard">

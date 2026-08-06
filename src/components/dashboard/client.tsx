@@ -32,7 +32,7 @@ import type { DryRunResult, TaskHistory, BudgetInfo, LatestVideo, Gates, ModelTy
 import { groupReferencesByType, remapReferenceRolesForMode } from '@/components/dashboard/types';
 import { isValidSeedanceMediaUri, normalizeSeedanceResolution } from '@/lib/seedance-validation';
 import {
-  ACTUAL_CONSOLE_USAGE,
+  MANUAL_PLAN_SNAPSHOT,
   estimateSeedancePlanningCost,
 } from '@/lib/seedance-pricing';
 
@@ -410,19 +410,19 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
       {/* Enhanced Header */}
       <header className="sticky top-0 z-50 border-b border-emerald-500/20 bg-card/95 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <div className="flex items-center gap-2 group">
                 <Leaf className="w-7 h-7 text-emerald-500 transition-transform duration-300 group-hover:scale-110 group-hover:animate-pulse" />
-                <h1 className="text-xl font-bold text-emerald-400">WSTV</h1>
-                <span className="text-sm text-muted-foreground hidden sm:inline">Production Center</span>
+                <h1 className="text-xl font-bold text-emerald-400">ASTV</h1>
+                <span className="text-sm text-muted-foreground hidden sm:inline">Animal Stories TV</span>
               </div>
-              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-xs">v5.0</Badge>
-              <Badge variant="outline" className={`text-xs ${modelType === 'mini' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'}`}>
+              <Badge variant="outline" className="hidden sm:inline-flex bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-xs">v5.0</Badge>
+              <Badge variant="outline" className={`hidden sm:inline-flex text-xs ${modelType === 'mini' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'}`}>
                 <Cpu className="w-3 h-3 mr-1" />{modelType === 'mini' ? 'Mini' : 'Full'}
               </Badge>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
               {budgetInfo && (
                 <div className="hidden md:flex flex-col items-end gap-1" title="Dry-run estimate only. No real charge.">
                   <div className="flex items-center gap-2 text-sm">
@@ -440,7 +440,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
               <div className="hidden lg:flex items-center gap-1 text-xs text-muted-foreground bg-card rounded px-2 py-1 border border-border">
                 <Keyboard className="w-3 h-3" /> Ctrl+D
               </div>
-              <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(!sidebarOpen)} className="text-muted-foreground hover:text-emerald-400">
+              <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(!sidebarOpen)} aria-label="Toggle task history panel" title="Toggle task history panel" className="text-muted-foreground hover:text-emerald-400">
                 <History className="w-4 h-4" />
               </Button>
               <Button
@@ -453,7 +453,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
               >
                 {mounted && theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </Button>
-              <div className="flex items-center gap-2 bg-card rounded-lg px-3 py-2 border border-emerald-500/20">
+              <div className="flex items-center gap-2 bg-card rounded-lg px-3 py-2 border border-emerald-500/20 shrink-0">
                 {safeMode ? <ShieldCheck className="w-5 h-5 text-emerald-400" /> : <ShieldOff className="w-5 h-5 text-amber-400" />}
                 <Label className="text-sm font-medium cursor-pointer select-none" onClick={toggleSafeMode}>Safe</Label>
                 <Switch checked={safeMode} onCheckedChange={toggleSafeMode} />
@@ -471,8 +471,8 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
               DRY RUN / PLANNING MODE — no paid BytePlus API calls. All generation results are simulated.
             </div>
             <div className="text-xs text-muted-foreground bg-card rounded-md px-3 py-2 border border-emerald-500/20">
-              <span className="text-emerald-400 font-medium">Actual Console Usage:</span>{' '}
-              {ACTUAL_CONSOLE_USAGE.usedTokens.toLocaleString()} used · {ACTUAL_CONSOLE_USAGE.remainingTokens.toLocaleString()} remaining · safe planned calls {ACTUAL_CONSOLE_USAGE.safePlannedRemainingCalls}
+              <span className="text-emerald-400 font-medium">Manual Plan Snapshot — not live provider data:</span>{' '}
+              {MANUAL_PLAN_SNAPSHOT.usedTokens.toLocaleString()} used · {MANUAL_PLAN_SNAPSHOT.remainingTokens.toLocaleString()} remaining · safe planned calls {MANUAL_PLAN_SNAPSHOT.safePlannedRemainingCalls}
             </div>
           </div>
         </div>
@@ -533,7 +533,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
                 </div>
 
                 {/* Workflow Progress */}
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30 border border-emerald-500/30">
+                <div className="flex flex-wrap items-center gap-2 p-3 rounded-lg bg-muted/30 border border-emerald-500/30">
                   <span className="text-xs text-muted-foreground">Workflow:</span>
                   {[ 
                     { label: 'Prompt', done: prompt.length > 0 },
@@ -663,7 +663,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
             <div className="space-y-3">
               <div className="text-xs text-muted-foreground bg-muted/30 border border-emerald-500/30 rounded-md px-3 py-2 flex items-center gap-2">
                 <Info className="w-3 h-3 shrink-0 text-emerald-500/70" />
-                <span>Local planning calendar — no Google Calendar connection. All data stays in your local SQLite DB.</span>
+                <span>App planning database — no Google Calendar connection.</span>
               </div>
               <CalendarLearning />
             </div>
@@ -698,7 +698,7 @@ export default function DashboardClient({ initialData }: { initialData: InitialD
           <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Leaf className="w-4 h-4 text-emerald-600" />
-              <span>WSTV Production Center • Safety-First Wildlife Video Toolkit</span>
+              <span>ASTV Production Center • Safety-First Wildlife Video Toolkit</span>
             </div>
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span>{taskHistory.length} tasks</span>

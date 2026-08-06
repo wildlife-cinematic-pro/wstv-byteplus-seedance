@@ -38,8 +38,8 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-slate-100">
       <form onSubmit={submit} className="w-full max-w-sm space-y-5 rounded-lg border border-slate-700 bg-slate-900 p-6 shadow-xl">
         <div>
-          <h1 className="text-xl font-semibold">WSTV sign in</h1>
-          <p className="mt-1 text-sm text-slate-400">Use the server-configured account.</p>
+          <h1 className="text-xl font-semibold">ASTV sign in</h1>
+          <p className="mt-1 text-sm text-slate-400">Animal Stories TV — use the server-configured account.</p>
         </div>
         <label className="block text-sm">
           Username

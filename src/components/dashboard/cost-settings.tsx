@@ -328,8 +328,9 @@ export function CostSettings({ initialBudget }: CostSettingsProps = {}) {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-gray-400 text-xs">Provider</Label>
-              <select 
+              <Label htmlFor="plan-provider" className="text-gray-400 text-xs">Provider</Label>
+              <select
+                id="plan-provider"
                 className={`w-full h-10 ${selectClassName}`}
                 value={provider} 
                 onChange={e => setProvider(e.target.value)}
@@ -412,8 +413,9 @@ export function CostSettings({ initialBudget }: CostSettingsProps = {}) {
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-gray-400 text-xs">Status</Label>
-              <select 
+              <Label htmlFor="plan-status" className="text-gray-400 text-xs">Status</Label>
+              <select
+                id="plan-status"
                 className={`w-full h-10 ${selectClassName}`}
                 value={planStatus} 
                 onChange={e => setPlanStatus(e.target.value)}

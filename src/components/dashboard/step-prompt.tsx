@@ -183,7 +183,7 @@ export function StepPrompt({ prompt, setPrompt, modelType, setModelType }: StepP
         {/* Prompt editor */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <Label className="text-sm text-gray-400">Prompt</Label>
+            <Label htmlFor="prompt-textarea" className="text-sm text-gray-400">Prompt</Label>
             {/* PHASE5.1: Word count + character count warning system.
                 Over-limit is amber (warning), NOT red (hard block).
                 3500 characters does NOT hard-block Dry Run.
@@ -216,6 +216,7 @@ export function StepPrompt({ prompt, setPrompt, modelType, setModelType }: StepP
               {copied ? 'Copied' : 'Copy'}
             </Button>
             <Textarea
+              id="prompt-textarea"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Paste your finished prompt here (from ChatGPT / Claude / GLM)..."

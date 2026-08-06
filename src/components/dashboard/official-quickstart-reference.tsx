@@ -81,7 +81,7 @@ export function OfficialQuickstartReference() {
         <div className="p-3 rounded-md bg-muted/30 border border-amber-500/20">
           <p className="text-xs text-gray-300 leading-relaxed">
             This quickstart package is official BytePlus ModelArk reference for future real API integration.
-            It should not be executed while WSTV is in Safe Mode / Dry Run Mode.
+            It should not be executed while ASTV is in Safe Mode / Dry Run Mode.
             <code className="text-amber-400 bg-amber-500/10 px-1 py-0.5 rounded text-xs mx-1">demo_standard.py</code>
             can create real paid generation tasks if a server-side API key is configured.
           </p>
@@ -108,7 +108,7 @@ export function OfficialQuickstartReference() {
 
         {/* WSTV defaults */}
         <div className="p-3 rounded-md bg-emerald-500/5 border border-emerald-500/20">
-          <p className="text-xs text-emerald-400 font-medium mb-2">WSTV Defaults (confirmed)</p>
+          <p className="text-xs text-emerald-400 font-medium mb-2">ASTV Defaults (confirmed)</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
             <div><span className="text-muted-foreground">Model:</span> <span className="text-gray-300">Standard</span></div>
             <div><span className="text-muted-foreground">Mode:</span> <span className="text-gray-300">reference_mode</span></div>
@@ -125,7 +125,7 @@ export function OfficialQuickstartReference() {
         <div className="p-2 rounded-md bg-amber-500/10 border border-amber-500/30">
           <p className="text-xs text-amber-400 flex items-start gap-1.5">
             <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
-            <span>4k is Standard-only and may have lower concurrency / higher cost. Use 720p for normal WSTV testing.</span>
+            <span>4k is Standard-only and may have lower concurrency / higher cost. Use 720p for normal ASTV testing.</span>
           </p>
         </div>
 
