@@ -9,12 +9,31 @@ import { privateJson, requireProtectedMutation } from '@/lib/auth/guards';
 
 // PHASE5.1 simulation route only.
 // This route never calls BytePlus / ModelArk and must remain behind Safe Mode.
+//
+// Reliability contract:
+// Simulated submission AND simulated completion happen deterministically inside
+// this request, inside a single db.$transaction. No in-memory background timer
+// (setTimeout / setInterval) is used to finish the task, so a serverless
+// restart or process termination can never leave a task permanently stuck in
+// 'submitted'. Persistent server state is final when the response is sent.
 
 function getCharLimit(modelType: string) {
   return modelType === 'mini' ? 1500 : 2000;
 }
 
 const SIMULATION_CONFIRMATION = 'CONFIRM_SIMULATED_GENERATION';
+
+// Statuses that mean a simulation has already been claimed or completed.
+// A task in any of these states must never be charged or recorded again.
+const CLAIMED_OR_FINAL_STATUSES = ['submitted', 'processing', 'succeeded'];
+
+// Thrown inside the transaction when the atomic claim loses (task already
+// simulated) so the caller can respond 409 without exposing a raw Prisma error.
+class SimulationAlreadyClaimedError extends Error {}
+
+function buildSimulationTaskId(): string {
+  return `SIM-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+}
 
 export async function POST(request: NextRequest) {
   const guard = await requireProtectedMutation(request);
@@ -161,7 +180,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Gate 10: Duplicate prevention
+    // Gate 10: Duplicate prevention (other tasks with identical parameters
+    // currently in flight are rejected).
     const duplicate = await db.videoTask.findFirst({
       where: {
         prompt: task.prompt,
@@ -179,61 +199,90 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // All gates passed - simulate submission only
-    const updatedTask = await db.videoTask.update({
-      where: { id: task.id },
-      data: {
-        status: 'submitted',
-        paidConfirmation: true,
-        costEstimate: estimatedCost,
-        audioRiskAcknowledged: audioRiskAcknowledged || false,
-        videoRiskAcknowledged: videoRiskAcknowledged || false,
-        taskId: `SIM-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
-      },
-    });
+    // All gates passed — run the deterministic, transactional simulation.
+    //
+    // The atomic claim below (updateMany guarded by paidConfirmation=false and a
+    // non-final status) makes duplicate/repeated accounting impossible:
+    //   - only one concurrent request can win the claim (the other gets 409);
+    //   - re-submitting the same task returns 409 instead of double-charging;
+    //   - the task state flip, CostLedger row and budget increment commit or
+    //     roll back together in a single transaction.
+    //
+    // videoFileName is intentionally NOT set: a simulated task never produced a
+    // real file, so the preview/download UI must never claim one exists.
+    const simulationTaskId = buildSimulationTaskId();
+    let finalTask: { id: string; status: string; costEstimate: number | null; costActual: number | null };
 
-    // Record simulated cost in ledger
-    await db.costLedger.create({
-      data: {
-        taskId: updatedTask.id,
-        modelType: task.modelType,
-        resolution: task.resolution,
-        duration: task.duration,
-        costUsd: estimatedCost,
-        description: `Simulated generation (no BytePlus API call) - ${officialModelId} ${task.resolution} ${task.duration}s; ${pricingEstimate.pricingMode}`,
-      },
-    });
-
-    // Update budget spent
-    if (budget) {
-      await db.budgetSetting.update({
-        where: { id: budget.id },
-        data: { spentThisMonth: budget.spentThisMonth + estimatedCost },
-      });
-    }
-
-    // Simulate task completion after short delay
-    setTimeout(async () => {
-      try {
-        await db.videoTask.update({
-          where: { id: updatedTask.id },
+    try {
+      finalTask = await db.$transaction(async (tx) => {
+        const claim = await tx.videoTask.updateMany({
+          where: {
+            id: task.id,
+            paidConfirmation: false,
+            status: { notIn: CLAIMED_OR_FINAL_STATUSES },
+          },
           data: {
             status: 'succeeded',
-            videoFileName: `seedance_${task.modelType}_${task.resolution}_${Date.now()}.mp4`,
+            paidConfirmation: true,
+            costEstimate: estimatedCost,
             costActual: estimatedCost,
+            taskId: simulationTaskId,
+            audioRiskAcknowledged: audioRiskAcknowledged || false,
+            videoRiskAcknowledged: videoRiskAcknowledged || false,
+            safetyPassed: true,
+            dryRunPassed: true,
           },
         });
-      } catch {
-        // Silent fail for simulated update
+        if (claim.count !== 1) {
+          throw new SimulationAlreadyClaimedError();
+        }
+
+        await tx.costLedger.create({
+          data: {
+            taskId: task.id,
+            modelType: task.modelType,
+            resolution: task.resolution,
+            duration: task.duration,
+            costUsd: estimatedCost,
+            description: `Simulated generation (no BytePlus API call) - ${officialModelId} ${task.resolution} ${task.duration}s; ${pricingEstimate.pricingMode}`,
+          },
+        });
+
+        if (budget) {
+          await tx.budgetSetting.update({
+            where: { id: budget.id },
+            data: { spentThisMonth: { increment: estimatedCost } },
+          });
+        }
+
+        const completed = await tx.videoTask.findUnique({
+          where: { id: task.id },
+          select: { id: true, status: true, costEstimate: true, costActual: true },
+        });
+        if (!completed) throw new Error('Simulated task state is missing after claim');
+        return completed;
+      });
+    } catch (error) {
+      if (error instanceof SimulationAlreadyClaimedError) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Simulation already claimed — this task has already been simulated. No duplicate budget charge or ledger entry was created.',
+          },
+          { status: 409 }
+        );
       }
-    }, 3000);
+      throw error;
+    }
 
     return NextResponse.json({
       success: true,
       simulation: true,
+      providerCalled: false,
       realApiConnected: false,
       dryRunMode: true,
       paidApiBlocked: true,
+      noProviderBilling: true,
       message: 'DRY RUN / PLANNING MODE — no paid BytePlus API calls were made.',
       pricingMode: 'official_token_estimate_only',
       pricingEstimate: {
@@ -243,10 +292,12 @@ export async function POST(request: NextRequest) {
       actualBilling: 'Actual billing requires usage.completion_tokens returned by the real BytePlus API after generation.',
       warnings: promptLengthWarning ? [promptLengthWarning] : [],
       task: {
-        id: updatedTask.id,
-        status: updatedTask.status,
+        id: finalTask.id,
+        status: finalTask.status,
         costEstimate: estimatedCost,
+        costActual: finalTask.costActual,
         estimatedTokens: pricingEstimate.estimatedTokens,
+        simulation: true,
       },
     });
   } catch (error) {
