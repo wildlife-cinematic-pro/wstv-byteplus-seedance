@@ -1,12 +1,15 @@
+import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
-import { NextResponse } from 'next/server';
+import { privateJson, requireAuthenticatedUser } from '@/lib/auth/guards';
 import {
   calculateBudgetSnapshot,
   type BudgetSnapshot,
 } from '@/lib/pricing';
 
 // GET /api/budget-snapshot — Calculate and return the full budget snapshot
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const guard = await requireAuthenticatedUser(request);
+  if ('response' in guard) return guard.response;
   try {
     // 1. Find the active SubscriptionPurchase
     const activePurchase = await db.subscriptionPurchase.findFirst({
@@ -15,7 +18,7 @@ export async function GET() {
     });
 
     if (!activePurchase) {
-      return NextResponse.json({
+      return privateJson({
         activePurchaseId: null,
         planName: 'No Active Subscription',
         priceUsd: 0,
@@ -107,10 +110,10 @@ export async function GET() {
       exchangeRate,
     });
 
-    return NextResponse.json(snapshot);
+    return privateJson(snapshot);
   } catch (error) {
     console.error('[BUDGET_SNAPSHOT]', error);
-    return NextResponse.json(
+    return privateJson(
       { error: 'Failed to calculate budget snapshot' },
       { status: 500 }
     );

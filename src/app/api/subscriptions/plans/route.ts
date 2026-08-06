@@ -1,16 +1,21 @@
+import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
-import { NextResponse } from 'next/server';
+import { privateJson, requireAuthenticatedUser, requireProtectedMutation } from '@/lib/auth/guards';
+import { subscriptionPlanCreateSchema } from '@/lib/tracker-validation';
+import { firstZodErrorMessage } from '@/lib/budget-validation';
 
 // GET /api/subscriptions/plans — List all subscription plans
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const guard = await requireAuthenticatedUser(request);
+  if ('response' in guard) return guard.response;
   try {
     const plans = await db.subscriptionPlan.findMany({
       orderBy: { createdAt: 'desc' },
     });
-    return NextResponse.json(plans);
+    return privateJson(plans);
   } catch (error) {
     console.error('[SUBSCRIPTION_PLANS_LIST]', error);
-    return NextResponse.json(
+    return privateJson(
       { error: 'Failed to fetch subscription plans' },
       { status: 500 }
     );
@@ -18,45 +23,32 @@ export async function GET() {
 }
 
 // POST /api/subscriptions/plans — Create a new subscription plan
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const guard = await requireProtectedMutation(request);
+  if ('response' in guard) return guard.response;
+  const parsed = subscriptionPlanCreateSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) {
+    return privateJson({ error: firstZodErrorMessage(parsed.error) }, { status: 400 });
+  }
+
   try {
-    const body = await request.json();
-
-    const {
-      name,
-      priceUsd,
-      tokenAllowance,
-      validityDays = 90,
-      provider = 'byteplus',
-      description,
-      status = 'active',
-      notes,
-    } = body;
-
-    if (!name || priceUsd === undefined || tokenAllowance === undefined) {
-      return NextResponse.json(
-        { error: 'name, priceUsd, and tokenAllowance are required' },
-        { status: 400 }
-      );
-    }
-
     const plan = await db.subscriptionPlan.create({
       data: {
-        name,
-        priceUsd,
-        tokenAllowance,
-        validityDays,
-        provider,
-        description,
-        status,
-        notes,
+        name: parsed.data.name,
+        priceUsd: parsed.data.priceUsd,
+        tokenAllowance: parsed.data.tokenAllowance,
+        validityDays: parsed.data.validityDays,
+        provider: parsed.data.provider,
+        description: parsed.data.description ?? null,
+        status: parsed.data.status,
+        notes: parsed.data.notes ?? null,
       },
     });
 
-    return NextResponse.json(plan, { status: 201 });
+    return privateJson(plan, { status: 201 });
   } catch (error) {
     console.error('[SUBSCRIPTION_PLANS_CREATE]', error);
-    return NextResponse.json(
+    return privateJson(
       { error: 'Failed to create subscription plan' },
       { status: 500 }
     );
