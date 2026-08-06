@@ -1,4 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { privateJson, requireProtectedMutation } from '@/lib/auth/guards';
+import { costCalculatorSchema } from '@/lib/tracker-validation';
+import { firstZodErrorMessage } from '@/lib/budget-validation';
 import {
   calculateTokens,
   calculateCostUsd,
@@ -7,37 +10,29 @@ import {
 
 // POST /api/cost-calculator — Calculate cost from input params
 // DRY RUN / PLANNING MODE — no real paid submissions
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
+export async function POST(request: NextRequest) {
+  const guard = await requireProtectedMutation(request);
+  if ('response' in guard) return guard.response;
+  const parsed = costCalculatorSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) {
+    return privateJson({ error: firstZodErrorMessage(parsed.error) }, { status: 400 });
+  }
 
+  try {
+    const data = parsed.data;
     const {
       width,
       height,
-      fps = 24,
+      fps,
       durationSeconds,
-      videoCount = 1,
+      videoCount,
       modelId,
       ratePerKTokens,
-      exchangeRate = 149.5,
-      intelligentMode = false,
+      exchangeRate,
+      intelligentMode,
       tokenAllowance,
-      tokensUsed = 0,
-    } = body;
-
-    if (!width || !height || !durationSeconds) {
-      return NextResponse.json(
-        { error: 'width, height, and durationSeconds are required' },
-        { status: 400 }
-      );
-    }
-
-    if (ratePerKTokens === undefined || ratePerKTokens === null) {
-      return NextResponse.json(
-        { error: 'ratePerKTokens is required' },
-        { status: 400 }
-      );
-    }
+      tokensUsed,
+    } = data;
 
     // Calculate estimated tokens
     const estimatedTokens = calculateTokens(
@@ -82,14 +77,14 @@ export async function POST(request: Request) {
       ? '⚠️ Intelligent mode: Estimated only. Actual consumption may differ based on final generation result, intelligent ratio, intelligent duration, and model behavior.'
       : 'Estimated only. Actual BytePlus consumption may differ depending on final generation result, intelligent ratio, intelligent duration, model behavior, and official billing rules.';
 
-    return NextResponse.json({
+    return privateJson({
       // Input params echoed
       width,
       height,
       fps,
       durationSeconds,
       videoCount,
-      modelId,
+      modelId: modelId ?? null,
       ratePerKTokens,
       exchangeRate,
       intelligentMode,
@@ -111,7 +106,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error('[COST_CALCULATOR]', error);
-    return NextResponse.json(
+    return privateJson(
       { error: 'Failed to calculate cost' },
       { status: 500 }
     );
