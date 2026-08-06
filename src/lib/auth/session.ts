@@ -1,4 +1,4 @@
-export const SESSION_COOKIE_NAME = 'wstv_session';
+export const SESSION_COOKIE_NAME = 'astv_session';
 const MAX_SESSION_HOURS = 8;
 
 export type AuthConfiguration = {
@@ -36,7 +36,7 @@ function parseSessionHours(value: string | undefined): number | null {
 
 export function getAuthConfiguration(): AuthConfiguration {
   const production = process.env.NODE_ENV === 'production';
-  const requested = envTrue(process.env.WSTV_AUTH_ENABLED);
+  const requested = envTrue(process.env.ASTV_AUTH_ENABLED);
 
   if (!production && !requested) {
     return {
@@ -49,17 +49,17 @@ export function getAuthConfiguration(): AuthConfiguration {
     };
   }
 
-  const username = process.env.WSTV_AUTH_USER?.trim() || null;
-  const passwordHash = process.env.WSTV_AUTH_PASSWORD_HASH?.trim() || null;
-  const sessionSecret = process.env.WSTV_SESSION_SECRET?.trim() || null;
-  const sessionHours = parseSessionHours(process.env.WSTV_SESSION_HOURS);
+  const username = process.env.ASTV_AUTH_USER?.trim() || null;
+  const passwordHash = process.env.ASTV_AUTH_PASSWORD_HASH?.trim() || null;
+  const sessionSecret = process.env.ASTV_SESSION_SECRET?.trim() || null;
+  const sessionHours = parseSessionHours(process.env.ASTV_SESSION_HOURS);
   const issues: string[] = [];
 
-  if (production && !requested) issues.push('WSTV_AUTH_ENABLED=true is required in production');
-  if (!username) issues.push('WSTV_AUTH_USER is required');
-  if (!passwordHash) issues.push('WSTV_AUTH_PASSWORD_HASH is required');
-  if (!sessionSecret || sessionSecret.length < 32) issues.push('WSTV_SESSION_SECRET must be at least 32 characters');
-  if (sessionHours == null) issues.push(`WSTV_SESSION_HOURS must be an integer from 1 to ${MAX_SESSION_HOURS}`);
+  if (production && !requested) issues.push('ASTV_AUTH_ENABLED=true is required in production');
+  if (!username) issues.push('ASTV_AUTH_USER is required');
+  if (!passwordHash) issues.push('ASTV_AUTH_PASSWORD_HASH is required');
+  if (!sessionSecret || sessionSecret.length < 32) issues.push('ASTV_SESSION_SECRET must be at least 32 characters');
+  if (sessionHours == null) issues.push(`ASTV_SESSION_HOURS must be an integer from 1 to ${MAX_SESSION_HOURS}`);
 
   return {
     enabled: true,

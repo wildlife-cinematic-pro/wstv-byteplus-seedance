@@ -173,7 +173,7 @@ export function resolveSeedreamSize(
 // This repository has no `Project` or membership model in prisma/schema.prisma
 // and no per-user access control — the whole app is a single authenticated
 // operator behind one shared session cookie (see src/lib/auth/session.ts,
-// WSTV_AUTH_USER). `projectId` is a free-form, optional scoping string used
+// ASTV_AUTH_USER). `projectId` is a free-form, optional scoping string used
 // consistently that way across every existing project-scoped model
 // (ReferenceAsset, ContentCalendar, PromptVersion, GenerationQA, etc.) —
 // there is no "project" row to check ownership of, and none of those routes
