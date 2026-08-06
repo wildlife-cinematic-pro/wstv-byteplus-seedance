@@ -25,26 +25,11 @@ ALLOW_PAID_CALLS=false
 ```bash
 npm install
 cp .env.example .env.local
+# Set DATABASE_URL and DIRECT_URL to your PostgreSQL connection strings (see Environment).
 npx prisma generate
-npx prisma db push
+npm run db:migrate
 npm run dev
 ```
-
-### Database rollout
-
-This repository uses `prisma db push` for schema changes, not Prisma Migrate
-— there is no `prisma/migrations` directory and none should be added. After
-pulling any branch that changes `prisma/schema.prisma` (including the
-`ImageTask` model added for the Seedream image dry-run feature), re-run:
-
-```bash
-npx prisma generate
-npx prisma db push
-```
-
-`db push` is non-destructive for additive changes like a new model; it will
-not run against a schema it can't reconcile, so review its output before
-confirming on a database with existing data.
 
 Open:
 
@@ -52,17 +37,66 @@ Open:
 http://localhost:3000
 ```
 
+### Database rollout (Prisma Migrate)
+
+Schema changes ship as Prisma migrations under `prisma/migrations`. Do not use
+`db push` in production — apply migrations explicitly.
+
+Locally, sync your development database with the schema:
+
+```bash
+npx prisma generate
+npm run db:migrate        # prisma migrate dev
+```
+
+For production (e.g. Neon on Vercel), apply pending migrations exactly once:
+
+```bash
+npm run db:migrate:deploy # prisma migrate deploy
+```
+
+Never run migrations automatically from a Preview deployment — deploy them
+deliberately against the production database. Check drift with
+`npm run db:migrate:status` (`prisma migrate status`).
+
 ## Environment
 
 Use `.env.local` for local development. It is gitignored.
 
-Required for the local SQLite database:
+The app requires a PostgreSQL database (Neon is recommended for Vercel):
 
 ```bash
-DATABASE_URL="file:./prisma/dev.db"
+# Pooled Neon runtime URL — used by the application at runtime
+DATABASE_URL="postgresql://<user>:<password>@<host>-pooler.neon.tech/<db>?sslmode=require"
+
+# Direct Neon migration URL — used by prisma migrate / the Prisma CLI (DDL)
+DIRECT_URL="postgresql://<user>:<password>@<host>.neon.tech/<db>?sslmode=require"
 ```
 
-For dry-run planning, leave the server-side API key empty. Do not add real keys to frontend code, commits, logs, screenshots, or public files.
+`DATABASE_URL` must be the pooled Neon URL so serverless connections stay within
+Neon's connection limit. `DIRECT_URL` must be the direct (non-pooled) Neon URL —
+`prisma migrate deploy` runs DDL that the pooler cannot execute.
+
+The legacy local SQLite database file (`prisma/dev.db`) is preserved for
+reference but is no longer the datasource. For dry-run planning, leave the
+server-side API key empty. Do not add real keys to frontend code, commits,
+logs, screenshots, or public files.
+
+## Production deployment (Vercel + Neon)
+
+1. Create a Neon PostgreSQL project (region close to your Vercel deployment).
+2. In Vercel → Project → Settings → Environment Variables, add for the
+   **Production** environment:
+   - `DATABASE_URL` — the pooled Neon runtime URL
+   - `DIRECT_URL` — the direct Neon migration URL
+3. Run the one-time production migration:
+   `npm run db:migrate:deploy` (`prisma migrate deploy`).
+4. Redeploy production so the app boots with the new datasource.
+5. Perform authenticated read/write smoke tests: sign in, open the dashboard,
+   save a budget setting, create a dry-run task, and confirm history updates.
+
+Migrations are never run from Preview deployments — only from the explicit
+`db:migrate:deploy` step above.
 
 ## Pricing Notes
 
@@ -76,7 +110,7 @@ Suggested local checks:
 
 ```bash
 npx prisma generate
-npx prisma db push
+npx prisma validate
 npm run build
 git diff --check
 ```

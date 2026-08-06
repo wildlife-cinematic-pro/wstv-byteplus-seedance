@@ -2,9 +2,13 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// Production datasource: Neon PostgreSQL on Vercel.
+//   DATABASE_URL = pooled Neon PostgreSQL runtime URL (used by the app)
+//   DIRECT_URL   = direct Neon PostgreSQL URL (used by prisma migrate / CLI)
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ─── Original Models ───
