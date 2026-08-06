@@ -95,8 +95,8 @@ without deliberately reviewing the deployment configuration.
 
 Configure server-side login in a local `.env.local` file. Generate a password
 hash with `node scripts/hash-password.mjs '<password>'`, then set
-`WSTV_AUTH_USER`, `WSTV_AUTH_PASSWORD_HASH`, and a random `WSTV_SESSION_SECRET`
-(at least 32 characters). `WSTV_SESSION_HOURS` is capped at 8. Production fails
+`ASTV_AUTH_USER`, `ASTV_AUTH_PASSWORD_HASH`, and a random `ASTV_SESSION_SECRET`
+(at least 32 characters). `ASTV_SESSION_HOURS` is capped at 8. Production fails
 closed if login configuration is incomplete.
 
 Paid generation remains disabled by default: keep `DRY_RUN=true`,

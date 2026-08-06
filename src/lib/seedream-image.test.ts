@@ -415,7 +415,7 @@ describe('resolveProjectScope — project scoping fallback (no Project/membershi
 
 describe('authentication and CSRF/origin rejection (reused guards, not weakened)', () => {
   const originalEnv: Record<string, string | undefined> = {};
-  const authEnvKeys = ['WSTV_AUTH_ENABLED', 'WSTV_AUTH_USER', 'WSTV_AUTH_PASSWORD_HASH', 'WSTV_SESSION_SECRET'];
+  const authEnvKeys = ['ASTV_AUTH_ENABLED', 'ASTV_AUTH_USER', 'ASTV_AUTH_PASSWORD_HASH', 'ASTV_SESSION_SECRET'];
 
   after(() => {
     for (const key of authEnvKeys) {
@@ -426,10 +426,10 @@ describe('authentication and CSRF/origin rejection (reused guards, not weakened)
 
   it('rejects an unauthenticated request (no session cookie) when auth is enabled', async () => {
     for (const key of authEnvKeys) originalEnv[key] = process.env[key];
-    process.env.WSTV_AUTH_ENABLED = 'true';
-    process.env.WSTV_AUTH_USER = 'tester';
-    process.env.WSTV_AUTH_PASSWORD_HASH = 'scrypt$16384$8$1$c2FsdHNhbHRzYWx0c2FsdA$aGFzaGhhc2hoYXNoaGFzaGhhc2hoYXNoaGFzaGhhc2hoYXNoaGFzaGhhc2g';
-    process.env.WSTV_SESSION_SECRET = 'a'.repeat(32);
+    process.env.ASTV_AUTH_ENABLED = 'true';
+    process.env.ASTV_AUTH_USER = 'tester';
+    process.env.ASTV_AUTH_PASSWORD_HASH = 'scrypt$16384$8$1$c2FsdHNhbHRzYWx0c2FsdA$aGFzaGhhc2hoYXNoaGFzaGhhc2hoYXNoaGFzaGhhc2hoYXNoaGFzaGhhc2g';
+    process.env.ASTV_SESSION_SECRET = 'a'.repeat(32);
 
     const request = new NextRequest('http://127.0.0.1:3000/api/image/dry-run', { method: 'POST' });
     const guard = await requireAuthenticatedUser(request);

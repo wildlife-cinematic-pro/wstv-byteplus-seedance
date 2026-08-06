@@ -12,7 +12,7 @@ function normaliseOrigin(value: string): string | null {
 }
 
 export function getAllowedOrigins(): string[] {
-  const configured = process.env.WSTV_ALLOWED_ORIGINS;
+  const configured = process.env.ASTV_ALLOWED_ORIGINS;
   const candidates = configured?.split(',').map(value => value.trim()).filter(Boolean) ?? DEFAULT_ALLOWED_ORIGINS;
   const origins = candidates.map(normaliseOrigin).filter((value): value is string => value !== null);
   return origins.length ? [...new Set(origins)] : DEFAULT_ALLOWED_ORIGINS;
