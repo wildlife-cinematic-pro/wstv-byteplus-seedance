@@ -43,7 +43,7 @@ const workspaceItems = [
   { label: 'Generate', icon: Sparkles, href: '/' },
   { label: 'Image', icon: ImageIcon, href: '/' },
   { label: 'Post-Production', icon: Film, href: '/' },
-  { label: 'History', icon: FolderClock, phase: 'Phase 3' },
+  { label: 'History', icon: FolderClock, href: '/phase3' },
   { label: 'Content Calendar', icon: CalendarDays, href: '/' },
 ];
 
@@ -139,7 +139,6 @@ export default function Phase1Dashboard({ initialData }: { initialData: Phase1In
             >
               <Icon className={`h-4 w-4 ${item.active ? 'text-emerald-300' : ''}`} aria-hidden="true" />
               <span>{item.label}</span>
-              {item.phase && <span className="ml-auto text-[10px] uppercase tracking-wide">{item.phase}</span>}
             </button>
           );
         })}
