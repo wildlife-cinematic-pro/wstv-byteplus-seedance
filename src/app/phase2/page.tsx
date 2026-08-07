@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import Phase2GenerateDashboard from '@/components/dashboard/phase2/phase2-generate-dashboard';
+import Phase2GenerateDashboardV2 from '@/components/dashboard/phase2/phase2-generate-dashboard-v2';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,5 +39,5 @@ async function getPhase2Data() {
 
 export default async function Phase2Page() {
   const initialData = await getPhase2Data();
-  return <Phase2GenerateDashboard initialData={initialData} />;
+  return <Phase2GenerateDashboardV2 initialData={initialData} />;
 }
