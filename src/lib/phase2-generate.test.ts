@@ -8,31 +8,40 @@ function source(relativePath: string): string {
 }
 
 const pageSource = () => source('../app/phase2/page.tsx');
-const dashboardSource = () => source('../components/dashboard/phase2/phase2-generate-dashboard.tsx');
-
-const combined = () => `${pageSource()}\n${dashboardSource()}`;
+const dashboardSource = () => source('../components/dashboard/phase2/phase2-generate-dashboard-v2.tsx');
+const referencesSource = () => source('../components/dashboard/phase2/phase2-reference-panel.tsx');
+const combined = () => `${pageSource()}\n${dashboardSource()}\n${referencesSource()}`;
 
 describe('ASTV professional dashboard Phase 2', () => {
   it('keeps Phase 2 behind an isolated route and preserves Phase 1 rollback', () => {
-    strictAssert.ok(pageSource().includes('Phase2GenerateDashboard'));
+    strictAssert.ok(pageSource().includes('Phase2GenerateDashboardV2'));
     strictAssert.ok(dashboardSource().includes('href="/phase1"'));
     strictAssert.ok(dashboardSource().includes('Existing Generate'));
     strictAssert.ok(dashboardSource().includes('href="/"'));
   });
 
-  it('reuses the existing typed prompt and reference workflow', () => {
+  it('uses the professional Phase 2 reference workspace with existing typed ASTV data', () => {
     strictAssert.ok(dashboardSource().includes('StepPrompt'));
-    strictAssert.ok(dashboardSource().includes('StepReferences'));
+    strictAssert.ok(dashboardSource().includes('Phase2ReferencePanel'));
     strictAssert.ok(dashboardSource().includes('groupReferencesByType'));
     strictAssert.ok(dashboardSource().includes('remapReferenceRolesForMode'));
-    strictAssert.ok(dashboardSource().includes("type GenerationMode"));
-    strictAssert.ok(dashboardSource().includes("type ReferenceEntry"));
+    strictAssert.ok(referencesSource().includes('REFERENCE_ROLES'));
+    strictAssert.ok(referencesSource().includes('createEmptyReference'));
   });
 
-  it('shows the approved Seedance reference capacities', () => {
-    strictAssert.ok(dashboardSource().includes('/9 image'));
-    strictAssert.ok(dashboardSource().includes('/3 video'));
-    strictAssert.ok(dashboardSource().includes('/3 audio'));
+  it('enforces visible reference capacities and Frame Mode UI boundaries', () => {
+    const src = referencesSource();
+    strictAssert.ok(src.includes('9 images, 3 videos and 3 audio references'));
+    strictAssert.ok(src.includes("generationMode === 'frame_mode' && type === 'image' ? 2"));
+    strictAssert.ok(src.includes('Audio cannot stand alone'));
+    strictAssert.ok(src.includes('video/audio controls are disabled'));
+  });
+
+  it('exposes real keyboard-operable local file inputs without upload claims', () => {
+    const src = referencesSource();
+    strictAssert.ok(src.includes('type="file"'));
+    strictAssert.ok(src.includes('local metadata only'));
+    strictAssert.ok(src.includes('does not upload files'));
   });
 
   it('only calls the authenticated dry-run API from the new workspace', () => {
