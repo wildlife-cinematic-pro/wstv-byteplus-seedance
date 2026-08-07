@@ -244,7 +244,7 @@ export function StepOutput({
               <div className="text-sm font-bold text-gray-200">Reference Mode</div>
               <div className="text-xs text-muted-foreground mt-0.5">Multimodal references: reference_image, reference_video, reference_audio</div>
               <div className="text-xs text-emerald-500/70 mt-1">Soft first/last guidance through prompt, not exact frame lock</div>
-              <Badge variant="outline" className="text-xs mt-1 border-emerald-500/30 text-emerald-400 bg-emerald-500/10">WSTV default</Badge>
+              <Badge variant="outline" className="text-xs mt-1 border-emerald-500/30 text-emerald-400 bg-emerald-500/10">ASTV default</Badge>
             </button>
             <button
               onClick={() => setGenerationMode('frame_mode')}
@@ -291,13 +291,13 @@ export function StepOutput({
               <SelectItem value="4:3">4:3</SelectItem>
               <SelectItem value="1:1">1:1 (Square)</SelectItem>
               <SelectItem value="3:4">3:4</SelectItem>
-              <SelectItem value="9:16">9:16 (Vertical, WSTV default)</SelectItem>
+              <SelectItem value="9:16">9:16 (Vertical, ASTV default)</SelectItem>
               <SelectItem value="21:9">21:9</SelectItem>
               <SelectItem value="adaptive">adaptive</SelectItem>
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground mt-1">
-            Official ratios: {VALID_RATIOS.join(', ')}. WSTV defaults to 9:16.
+            Official ratios: {VALID_RATIOS.join(', ')}. ASTV defaults to 9:16.
           </p>
         </div>
 

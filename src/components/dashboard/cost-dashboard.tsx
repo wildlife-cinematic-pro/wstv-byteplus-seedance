@@ -555,7 +555,7 @@ function CostDashboard() {
                   {editingExpiry ? (
                     <div className="flex items-center gap-2">
                       <Input type="date" value={newExpiryDate} onChange={e => setNewExpiryDate(e.target.value)} className="h-8 text-sm bg-background border-emerald-500/30" />
-                      <Button size="sm" onClick={handleSaveExpiry} className="h-7 px-2 bg-emerald-600 hover:bg-emerald-700"><Save className="w-3.5 h-3.5" /></Button>
+                      <Button size="sm" onClick={handleSaveExpiry} aria-label="Save plan expiry" title="Save plan expiry" className="h-7 px-2 bg-emerald-600 hover:bg-emerald-700"><Save className="w-3.5 h-3.5" /></Button>
                       <Button size="sm" variant="ghost" onClick={() => setEditingExpiry(false)} className="h-7 px-2 text-gray-400">Cancel</Button>
                     </div>
                   ) : (
@@ -802,9 +802,7 @@ function CostDashboard() {
                 </div>
               )}
             </SectionCard>
-          )}
-
-          <SectionCard title="WSTV Presets" description="Quick-apply common configurations" icon={Video}>
+          )}            <SectionCard title="ASTV Presets" description="Quick-apply common configurations" icon={Video}>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {WSTV_PRESETS.map(preset => (
                 <button
@@ -850,7 +848,7 @@ function CostDashboard() {
                 <Input
                   value={manualEntry.projectTitle}
                   onChange={e => setManualEntry({ ...manualEntry, projectTitle: e.target.value })}
-                  placeholder="e.g., WSTV Wildlife Reel #3"
+                  placeholder="e.g., ASTV Wildlife Reel #3"
                   className="bg-background border-emerald-500/30 text-gray-100 placeholder:text-muted-foreground/60 focus:border-emerald-400 text-xs h-8"
                   style={{ color: '#e5e7eb' }}
                 />
