@@ -44,7 +44,7 @@ const workspaceItems = [
   { label: 'Image', icon: ImageIcon, href: '/' },
   { label: 'Post-Production', icon: Film, href: '/' },
   { label: 'History', icon: FolderClock, href: '/phase3' },
-  { label: 'Content Calendar', icon: CalendarDays, href: '/' },
+  { label: 'Content Calendar', icon: CalendarDays, href: '/phase4' },
 ];
 
 const managementItems = [
