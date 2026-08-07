@@ -291,7 +291,7 @@ export default function Phase3HistoryDashboard({ initialData }: { initialData: P
           <EmptyState title="No matching records" message="No loaded tasks match the current search or filter. Adjust the controls above." />
         ) : (
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-            <section aria-label="History records" className="rounded-2xl border border-slate-900 bg-[#0d1210]">
+            <section aria-label="History records" className="min-w-0 rounded-2xl border border-slate-900 bg-[#0d1210]">
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-left">
                   <caption className="sr-only">ASTV task history — read-only audit metadata</caption>
