@@ -25,7 +25,10 @@ export function isAllowedOrigin(origin: string | null): boolean {
 
 export function mutationRequestError(request: Request, options: { requireJson?: boolean } = {}): string | null {
   const origin = request.headers.get('origin');
-  if (!origin || !isAllowedOrigin(origin)) return 'Invalid request origin';
+  if (!origin) return 'Invalid request origin';
+
+  const sameOrigin = normaliseOrigin(origin) === new URL(request.url).origin;
+  if (!sameOrigin && !isAllowedOrigin(origin)) return 'Invalid request origin';
 
   if (options.requireJson !== false) {
     const contentType = request.headers.get('content-type')?.toLowerCase() ?? '';
